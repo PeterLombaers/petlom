@@ -38,7 +38,7 @@ class Player(BaseModel, table=True):
 
 
 class RatingType(BaseModel, table=True):
-    name: str
+    name: str = Field(unique=True)
 
 
 class PlayerRating(BaseModel, table=True):
@@ -48,7 +48,7 @@ class PlayerRating(BaseModel, table=True):
 
 
 class Competition(BaseModel, table=True):
-    name: str
+    name: str = Field(unique=True)
     matches: list["Match"] = Relationship(back_populates="competition")
 
 
