@@ -43,7 +43,7 @@ class RatingType(BaseModel, table=True):
 
 class PlayerRating(BaseModel, table=True):
     player_id: int = Field(foreign_key="player.id")
-    rating_type: int = Field(foreign_key="ratingtype.id")
+    rating_id: int = Field(foreign_key="ratingtype.id")
     rating: float
 
 
