@@ -11,14 +11,45 @@ class Result(str, Enum):
     BLACK_WIN = "0-1"
 
 
-class BaseModel(SQLModel):
+class RatingTypeBase(SQLModel):
+    name: str = Field(unique=True)
+
+
+class RatingType(RatingTypeBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
 
-class Player(BaseModel, table=True):
+class RatingTypePublic(RatingTypeBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class RatingTypeUpdate(RatingTypeBase):
+    name: str | None = None
+
+
+class PlayerRating(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    player_id: int = Field(foreign_key="player.id")
+    player: "Player" = Relationship(back_populates="ratings")
+    rating_id: int = Field(foreign_key="ratingtype.id")
+    rating_type: RatingType = Relationship()
+    rating: float
+
+
+class PlayerBase(SQLModel):
     name: str
+
+
+class Player(PlayerBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
     matches_white: list["Match"] = Relationship(
         # sqlmodel has trouble with two relationships to the same table.
         # This solution is from: https://github.com/fastapi/sqlmodel/issues/10
@@ -35,30 +66,57 @@ class Player(BaseModel, table=True):
             foreign_keys="[Match.player_black_id]",
         )
     )
+    ratings: list[PlayerRating] = Relationship(back_populates="player")
 
 
-class RatingType(BaseModel, table=True):
+class PlayerPublic(PlayerBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    matches_white: list["Match"]
+    matches_black: list["Match"]
+    ratings: list[PlayerRating]
+
+
+class PlayerUpdate(PlayerBase):
+    name: str | None = None
+
+
+class CompetitionBase(SQLModel):
     name: str = Field(unique=True)
 
 
-class PlayerRating(BaseModel, table=True):
-    player_id: int = Field(foreign_key="player.id")
-    rating_id: int = Field(foreign_key="ratingtype.id")
-    rating: float
-
-
-class Competition(BaseModel, table=True):
-    name: str = Field(unique=True)
+class Competition(CompetitionBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
     matches: list["Match"] = Relationship(back_populates="competition")
 
 
-class Match(BaseModel, table=True):
+class CompetitionPublic(CompetitionBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    matches: list["Match"]
+
+
+class CompetitionUpdate(CompetitionBase):
+    name: str | None = None
+
+
+class MatchBase(SQLModel):
     player_white_id: int = Field(foreign_key="player.id")
     player_black_id: int = Field(foreign_key="player.id")
     competition_id: int = Field(foreign_key="competition.id")
     round: int
     board: int
     result: Result | None = None
+
+
+class Match(MatchBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
     player_white: Player = Relationship(
         sa_relationship=RelationshipProperty(
@@ -75,3 +133,24 @@ class Match(BaseModel, table=True):
         )
     )
     competition: Competition = Relationship(back_populates="matches")
+
+
+class MatchPublic(MatchBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    player_white: Player
+    player_black: Player
+    competition: Competition
+    round: int
+    board: int
+    result: Result | None
+
+
+class MatchUpdate(MatchBase):
+    player_white: Player | None = None
+    player_black: Player | None = None
+    competition: Competition | None = None
+    round: int | None = None
+    board: int | None = None
+    result: Result | None = None

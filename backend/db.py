@@ -1,6 +1,6 @@
 import os
 
-from models import *
+from backend.models import *
 from sqlalchemy import Engine
 from sqlmodel import SQLModel, create_engine
 
