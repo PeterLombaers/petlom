@@ -4,13 +4,10 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlalchemy import func
 
-from backend.models import Competition, Match, Player, PlayerRating
+from db import init_engine, init_db
 
 app = FastAPI()
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, connect_args=connect_args, echo=True)
+engine = init_engine(check_same_thread=False, echo=True)
 
 
 def get_session():
@@ -21,13 +18,9 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
-
-
 @app.on_event("startup")
 def on_startup():
-    create_db_and_tables()
+    init_db(engine)
 
 
 @app.post("/competitions/")
