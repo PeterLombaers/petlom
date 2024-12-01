@@ -10,12 +10,15 @@ from backend.models import (
     Competition,
     CompetitionBase,
     CompetitionPublic,
+    CompetitionUpdate,
     Player,
     PlayerBase,
     PlayerPublic,
+    PlayerUpdate,
     RatingType,
     RatingTypeBase,
     RatingTypePublic,
+    RatingTypeUpdate,
 )
 
 app = FastAPI()
@@ -83,7 +86,7 @@ def delete_competition(name: str, session: SessionDep):
 
 @app.patch("/competitions/{name}")
 def update_competition(
-    name: str, competition: CompetitionBase, session: SessionDep
+    name: str, competition: CompetitionUpdate, session: SessionDep
 ) -> CompetitionPublic:
     db_competition = session.exec(
         select(Competition).where(func.lower(Competition.name) == name.lower())
@@ -143,7 +146,7 @@ def delete_rating_type(name: str, session: SessionDep):
 
 @app.patch("/rating_types/{name}")
 def update_rating_type(
-    name: str, rating_type: RatingTypeBase, session: SessionDep
+    name: str, rating_type: RatingTypeUpdate, session: SessionDep
 ) -> RatingTypePublic:
     db_rating_type = session.exec(
         select(RatingType).where(func.lower(RatingType.name) == name.lower())
@@ -197,7 +200,7 @@ def delete_player(player_id: int, session: SessionDep):
 
 @app.patch("/players/{player_id}/")
 def update_player(
-    player_id: int, player: PlayerBase, session: SessionDep
+    player_id: int, player: PlayerUpdate, session: SessionDep
 ) -> PlayerPublic:
     db_player = session.get(Player, player_id)
     if not db_player:
