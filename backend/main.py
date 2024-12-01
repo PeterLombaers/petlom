@@ -45,7 +45,7 @@ def create_competition(
 
 
 @app.get("/competitions/")
-def read_competitions(
+def list_competitions(
     session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100
 ) -> list[CompetitionPublic]:
     competitions = session.exec(select(Competition).offset(offset).limit(limit)).all()
@@ -53,7 +53,7 @@ def read_competitions(
 
 
 @app.get("/competitions/{name}")
-def read_competition(name: str, session: SessionDep) -> CompetitionPublic:
+def retrieve_competition(name: str, session: SessionDep) -> CompetitionPublic:
     competition = session.exec(
         select(Competition).where(func.lower(Competition.name) == name.lower())
     ).first()
@@ -103,7 +103,7 @@ def create_rating_type(
 
 
 @app.get("/rating_types/")
-def read_rating_types(
+def list_rating_types(
     session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100
 ) -> list[RatingTypePublic]:
     rating_types = session.exec(select(RatingType).offset(offset).limit(limit)).all()
@@ -111,7 +111,7 @@ def read_rating_types(
 
 
 @app.get("/rating_types/{name}")
-def read_rating_type(name: str, session: SessionDep) -> RatingTypePublic:
+def retrieve_rating_type(name: str, session: SessionDep) -> RatingTypePublic:
     rating_type = session.exec(
         select(RatingType).where(func.lower(RatingType.name) == name.lower())
     ).first()
