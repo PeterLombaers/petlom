@@ -37,6 +37,7 @@ def RatingTypeFactory(session: Session) -> Callable[..., RatingType]:
         class Meta:
             model = RatingType
             sqlalchemy_session = session
+            sqlalchemy_session_persistence = "commit"
 
         name = "interne"
 
@@ -60,6 +61,7 @@ def CompetitionFactory(session: Session) -> Callable[..., Competition]:
         class Meta:
             model = Competition
             sqlalchemy_session = session
+            sqlalchemy_session_persistence = "commit"
 
         name = "interne_2024"
 
