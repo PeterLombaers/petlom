@@ -19,6 +19,7 @@ app = FastAPI()
 engine = init_engine(
     fp="database.db", connect_args={"check_same_thread": False}, echo=True
 )
+MAX_PAGE_LENGTH = 100
 
 
 def get_session():
@@ -47,7 +48,9 @@ def create_competition(
 
 @app.get("/competitions/")
 def list_competitions(
-    session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100
+    session: SessionDep,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
 ) -> list[CompetitionPublic]:
     competitions = session.exec(select(Competition).offset(offset).limit(limit)).all()
     return competitions
@@ -105,7 +108,9 @@ def create_rating_type(
 
 @app.get("/rating_types/")
 def list_rating_types(
-    session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100
+    session: SessionDep,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
 ) -> list[RatingTypePublic]:
     rating_types = session.exec(select(RatingType).offset(offset).limit(limit)).all()
     return rating_types
