@@ -1,4 +1,4 @@
-from typing import Any, Generator
+from typing import Any, Generator, Callable
 
 import factory
 import pytest
@@ -32,7 +32,7 @@ def client(session: Session) -> Generator[TestClient, Any, None]:
     app.dependency_overrides.clear()
 
 
-def RatingTypeFactory(session):
+def RatingTypeFactory(session: Session) -> Callable[..., RatingType]:
     class RatingTypeFactory(factory.alchemy.SQLAlchemyModelFactory):
         class Meta:
             model = RatingType
