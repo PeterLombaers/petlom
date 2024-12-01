@@ -2,12 +2,15 @@ from typing import Any, Callable, Generator
 
 import factory
 import pytest
+from faker import Faker
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from backend.main import app, get_session
-from backend.models import Competition, RatingType
+from backend.models import Competition, Player, RatingType
+
+fake = Faker()
 
 
 @pytest.fixture
@@ -78,3 +81,27 @@ def competition_factory(
     session: Session,
 ) -> Generator[Callable[..., Competition], Any, None]:
     yield CompetitionFactory(session)
+
+
+def PlayerFactory(session: Session) -> Callable[..., Player]:
+    class PlayerFactory(factory.alchemy.SQLAlchemyModelFactory):
+        class Meta:
+            model = Player
+            sqlalchemy_session = session
+            sqlalchemy_session_persistence = "commit"
+
+        name = fake.name()
+
+    return PlayerFactory
+
+
+@pytest.fixture
+def player(session: Session) -> Generator[Player, Any, None]:
+    yield PlayerFactory(session)()
+
+
+@pytest.fixture
+def player_factory(
+    session: Session,
+) -> Generator[Callable[..., Player], Any, None]:
+    yield PlayerFactory(session)

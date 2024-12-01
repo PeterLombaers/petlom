@@ -2,7 +2,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from backend.models import Competition, RatingType
+from backend.models import Competition, Player, RatingType
 
 
 def test_create_rating_type(session: Session, client: TestClient):
@@ -90,3 +90,46 @@ def test_update_competition(competition, client, session):
 def test_delete_competition(competition, client, session):
     client.delete(f"/competitions/{competition.name}/")
     assert len(session.scalars(select(Competition)).all()) == 0
+
+
+def test_create_player(session: Session, client: TestClient):
+    player_name = "interne"
+    client.post("/players/", json={"name": player_name})
+    player = session.scalars(select(Player)).all()
+    assert len(player) == 1
+    player = player[0]
+    assert player.name == player_name
+    for key in {"id", "created_at", "updated_at"}:
+        assert key in dict(player)
+
+
+def test_get_player(player: Player, client: TestClient):
+    response = client.get(f"/players/{player.id}/")
+    response.raise_for_status()
+    res_player = response.json()
+    assert res_player.pop("ratings") == []
+    assert res_player == jsonable_encoder(player)
+
+
+def test_list_player(player_factory, client):
+    p0, p1 = player_factory(), player_factory()
+    response = client.get("/players/")
+    response.raise_for_status()
+    res_players = response.json()
+    assert len(res_players) == 2
+    assert res_players[0].pop("ratings") == []
+    assert jsonable_encoder(p0) == res_players[0]
+    assert res_players[1].pop("ratings") == []
+    assert jsonable_encoder(p1) == res_players[1]
+
+
+def test_update_player(player, client, session):
+    new_name = "foo"
+    client.patch(f"/players/{player.id}/", json={"name": new_name})
+    session.refresh(player)
+    assert player.name == new_name
+
+
+def test_delete_player(player, client, session):
+    client.delete(f"/players/{player.id}/")
+    assert len(session.scalars(select(Player)).all()) == 0

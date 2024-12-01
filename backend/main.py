@@ -10,6 +10,9 @@ from backend.models import (
     Competition,
     CompetitionBase,
     CompetitionPublic,
+    Player,
+    PlayerBase,
+    PlayerPublic,
     RatingType,
     RatingTypeBase,
     RatingTypePublic,
@@ -153,3 +156,55 @@ def update_rating_type(
     session.commit()
     session.refresh(db_rating_type)
     return db_rating_type
+
+
+@app.post("/players/")
+def create_player(player: PlayerBase, session: SessionDep) -> PlayerPublic:
+    db_player = Player.model_validate(player)
+    session.add(db_player)
+    session.commit()
+    session.refresh(db_player)
+    return db_player
+
+
+@app.get("/players/")
+def list_players(
+    session: SessionDep,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
+) -> list[PlayerPublic]:
+    players = session.exec(select(Player).offset(offset).limit(limit)).all()
+    return players
+
+
+@app.get("/players/{player_id}/")
+def retrieve_player(player_id: int, session: SessionDep) -> PlayerPublic:
+    player = session.get(Player, player_id)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    return player
+
+
+@app.delete("/players/{player_id}/")
+def delete_player(player_id: int, session: SessionDep):
+    player = session.get(Player, player_id)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    session.delete(player)
+    session.commit()
+    return {"ok": True}
+
+
+@app.patch("/players/{player_id}/")
+def update_player(
+    player_id: int, player: PlayerBase, session: SessionDep
+) -> PlayerPublic:
+    db_player = session.get(Player, player_id)
+    if not db_player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    db_player.sqlmodel_update(player.model_dump(exclude_unset=True))
+    db_player.updated_at = datetime.now()
+    session.add(db_player)
+    session.commit()
+    session.refresh(db_player)
+    return db_player

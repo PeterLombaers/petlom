@@ -73,8 +73,6 @@ class PlayerPublic(PlayerBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    matches_white: list["Match"]
-    matches_black: list["Match"]
     ratings: list[PlayerRating]
 
 
