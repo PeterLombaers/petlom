@@ -12,17 +12,15 @@ class Result(str, Enum):
 
 
 class RatingTypeBase(SQLModel):
-    name: str = Field(unique=True)
+    name: str = Field(primary_key=True)
 
 
 class RatingType(RatingTypeBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
 
 class RatingTypePublic(RatingTypeBase):
-    id: int
     created_at: datetime
     updated_at: datetime
 
@@ -37,7 +35,7 @@ class PlayerRating(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.now)
     player_id: int = Field(foreign_key="player.id")
     player: "Player" = Relationship(back_populates="ratings")
-    rating_id: int = Field(foreign_key="ratingtype.id")
+    rating_type_name: str = Field(foreign_key="ratingtype.name")
     rating_type: RatingType = Relationship()
     rating: float
 

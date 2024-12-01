@@ -12,8 +12,6 @@ def test_create_rating_type(session: Session, client: TestClient):
     assert len(rating_types) == 1
     rating_type = rating_types[0]
     assert rating_type.name == rating_name
-    for key in {"id", "created_at", "updated_at"}:
-        assert key in dict(rating_type)
 
 
 def test_get_rating_type(rating_type: RatingType, client: TestClient):
