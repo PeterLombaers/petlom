@@ -1,4 +1,4 @@
-from typing import Any, Generator, Callable
+from typing import Any, Callable, Generator
 
 import factory
 import pytest
@@ -7,7 +7,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from backend.main import app, get_session
-from backend.models import RatingType
+from backend.models import Competition, RatingType
 
 
 @pytest.fixture
@@ -44,21 +44,35 @@ def RatingTypeFactory(session: Session) -> Callable[..., RatingType]:
 
 
 @pytest.fixture
-def rating_type(session: Session):
+def rating_type(session: Session) -> Generator[RatingType, Any, None]:
     yield RatingTypeFactory(session)()
 
 
 @pytest.fixture
-def rating_type_factory(session: Session):
+def rating_type_factory(
+    session: Session,
+) -> Generator[Callable[..., RatingType], Any, None]:
     yield RatingTypeFactory(session=session)
 
 
-# @pytest.fixture
-# def rating_type(session: Session) -> Generator[RatingType, Any, None]:
-#     rating_type = RatingType(name="interne_rating")
-#     session.add(rating_type)
-#     session.commit()
-#     session.refresh(rating_type)
-#     yield rating_type
-#     session.delete(rating_type)
-#     session.commit()
+def CompetitionFactory(session: Session) -> Callable[..., Competition]:
+    class CompetitionFactory(factory.alchemy.SQLAlchemyModelFactory):
+        class Meta:
+            model = Competition
+            sqlalchemy_session = session
+
+        name = "interne_2024"
+
+    return CompetitionFactory
+
+
+@pytest.fixture
+def competition(session: Session) -> Generator[Competition, Any, None]:
+    yield CompetitionFactory(session)()
+
+
+@pytest.fixture
+def competition_factory(
+    session: Session,
+) -> Generator[Callable[..., Competition], Any, None]:
+    yield CompetitionFactory(session)

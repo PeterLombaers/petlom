@@ -38,10 +38,11 @@ def on_startup():
 def create_competition(
     competition: CompetitionBase, session: SessionDep
 ) -> CompetitionPublic:
-    session.add(competition)
+    db_competition = Competition.model_validate(competition)
+    session.add(db_competition)
     session.commit()
-    session.refresh(competition)
-    return competition
+    session.refresh(db_competition)
+    return db_competition
 
 
 @app.get("/competitions/")
