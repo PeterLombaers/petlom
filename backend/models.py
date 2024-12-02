@@ -30,12 +30,11 @@ class RatingTypeUpdate(RatingTypeBase):
 
 
 class PlayerRating(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    player_id: int = Field(foreign_key="player.id")
+    player_id: int = Field(foreign_key="player.id", primary_key=True)
     player: "Player" = Relationship(back_populates="ratings")
-    rating_type_name: str = Field(foreign_key="ratingtype.name")
+    rating_type_name: str = Field(foreign_key="ratingtype.name", primary_key=True)
     rating_type: RatingType = Relationship()
     rating: float
 
