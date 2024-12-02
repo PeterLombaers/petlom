@@ -29,6 +29,11 @@ class RatingTypeUpdate(RatingTypeBase):
     name: str | None = None
 
 
+class PlayerRatingUpdate(SQLModel):
+    rating_type_name: str
+    rating: float
+
+
 class PlayerRating(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
@@ -66,6 +71,10 @@ class Player(PlayerBase, table=True):
     ratings: list[PlayerRating] = Relationship(back_populates="player")
 
 
+class PlayerCreate(PlayerBase):
+    ratings: list[PlayerRatingUpdate] | None = None
+
+
 class PlayerPublic(PlayerBase):
     id: int
     created_at: datetime
@@ -74,7 +83,8 @@ class PlayerPublic(PlayerBase):
 
 
 class PlayerUpdate(PlayerBase):
-    name: str | None = None
+    name: str = None
+    ratings: list[PlayerRatingUpdate] | None = None
 
 
 class CompetitionBase(SQLModel):

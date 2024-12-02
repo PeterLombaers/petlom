@@ -97,7 +97,7 @@ def test_delete_competition(competition, client, session):
 
 
 def test_create_player(session: Session, client: TestClient):
-    player_name = "interne"
+    player_name = "Peter"
     res = client.post("/players/", json={"name": player_name})
     res.raise_for_status()
     players = session.scalars(select(Player)).all()
@@ -106,6 +106,30 @@ def test_create_player(session: Session, client: TestClient):
     assert player.name == player_name
     for key in {"id", "created_at", "updated_at"}:
         assert key in dict(player)
+
+
+def test_create_player_with_rating(
+    rating_type: RatingType, session: Session, client: TestClient
+):
+    data = {
+        "name": "Peter",
+        "ratings": [
+            {
+                "rating_type_name": rating_type.name,
+                "rating": 2300,
+            }
+        ],
+    }
+    res = client.post("/players/", json=data)
+    res.raise_for_status()
+    players = session.scalars(select(Player)).all()
+    assert len(players) == 1
+    player = players[0]
+    assert player.name == data["name"]
+    for key in {"id", "created_at", "updated_at"}:
+        assert key in dict(player)
+    assert player.ratings[0].rating_type_name == rating_type.name
+    assert player.ratings[0].rating == 2300
 
 
 def test_get_player(player: Player, client: TestClient):
@@ -134,6 +158,26 @@ def test_update_player(player, client, session):
     res.raise_for_status()
     session.refresh(player)
     assert player.name == new_name
+
+
+def test_update_player_with_rating(
+    player: Player, rating_type: RatingType, client, session
+):
+    data = {
+        "name": "foo",
+        "ratings": [
+            {
+                "rating_type_name": rating_type.name,
+                "rating": 2300,
+            }
+        ],
+    }
+    res = client.patch(f"/players/{player.id}/", json=data)
+    res.raise_for_status()
+    session.refresh(player)
+    assert player.name == data["name"]
+    assert player.ratings[0].rating_type_name == rating_type.name
+    assert player.ratings[0].rating == 2300
 
 
 def test_delete_player(player, client, session):

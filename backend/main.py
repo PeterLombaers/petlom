@@ -12,8 +12,9 @@ from backend.models import (
     CompetitionPublic,
     CompetitionUpdate,
     Player,
-    PlayerBase,
+    PlayerCreate,
     PlayerPublic,
+    PlayerRating,
     PlayerUpdate,
     RatingType,
     RatingTypeBase,
@@ -162,8 +163,19 @@ def update_rating_type(
 
 
 @app.post("/players/")
-def create_player(player: PlayerBase, session: SessionDep) -> PlayerPublic:
+def create_player(player: PlayerCreate, session: SessionDep) -> PlayerPublic:
+    ratings = player.ratings
+    player.ratings = []
     db_player = Player.model_validate(player)
+    if ratings is not None:
+        db_player.ratings = [
+            PlayerRating(
+                player=db_player,
+                rating_type_name=rating.rating_type_name,
+                rating=rating.rating,
+            )
+            for rating in ratings
+        ]
     session.add(db_player)
     session.commit()
     session.refresh(db_player)
@@ -207,6 +219,23 @@ def update_player(
         raise HTTPException(status_code=404, detail="Player not found")
     db_player.sqlmodel_update(player.model_dump(exclude_unset=True))
     db_player.updated_at = datetime.now()
+    if player.ratings is not None:
+        for rating in player.ratings:
+            updated = False
+            for db_rating in db_player.ratings:
+                if db_rating.name == rating.rating_type_name:
+                    db_rating.rating = rating.rating
+                    updated = True
+                    break
+            if not updated:
+                db_player.ratings.append(
+                    PlayerRating(
+                        player_id=db_player.id,
+                        rating_type_name=rating.rating_type_name,
+                        rating=rating.rating,
+                    )
+                )
+
     session.add(db_player)
     session.commit()
     session.refresh(db_player)
