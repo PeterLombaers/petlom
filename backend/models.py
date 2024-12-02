@@ -18,6 +18,9 @@ class RatingTypeBase(SQLModel):
 class RatingType(RatingTypeBase, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+    ratings: list["PlayerRating"] = Relationship(
+        back_populates="rating_type", cascade_delete=True
+    )
 
 
 class RatingTypePublic(RatingTypeBase):
@@ -37,9 +40,13 @@ class PlayerRatingUpdate(SQLModel):
 class PlayerRating(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    player_id: int = Field(foreign_key="player.id", primary_key=True)
+    player_id: int = Field(
+        foreign_key="player.id", primary_key=True, ondelete="CASCADE"
+    )
     player: "Player" = Relationship(back_populates="ratings")
-    rating_type_name: str = Field(foreign_key="ratingtype.name", primary_key=True)
+    rating_type_name: str = Field(
+        foreign_key="ratingtype.name", primary_key=True, ondelete="CASCADE"
+    )
     rating_type: RatingType = Relationship()
     rating: float
 
@@ -68,7 +75,9 @@ class Player(PlayerBase, table=True):
             foreign_keys="[Match.player_black_id]",
         )
     )
-    ratings: list[PlayerRating] = Relationship(back_populates="player")
+    ratings: list[PlayerRating] = Relationship(
+        back_populates="player", cascade_delete=True
+    )
 
 
 class PlayerCreate(PlayerBase):
@@ -95,7 +104,9 @@ class Competition(CompetitionBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    matches: list["Match"] = Relationship(back_populates="competition")
+    matches: list["Match"] = Relationship(
+        back_populates="competition", cascade_delete=True
+    )
 
 
 class CompetitionPublic(CompetitionBase):
@@ -112,7 +123,7 @@ class CompetitionUpdate(CompetitionBase):
 class MatchBase(SQLModel):
     player_white_id: int = Field(foreign_key="player.id")
     player_black_id: int = Field(foreign_key="player.id")
-    competition_id: int = Field(foreign_key="competition.id")
+    competition_id: int = Field(foreign_key="competition.id", ondelete="CASCADE")
     round: int
     board: int
     result: Result | None = None

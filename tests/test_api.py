@@ -2,7 +2,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from backend.models import Competition, Player, RatingType
+from backend.models import Competition, Player, PlayerRating, RatingType
 
 
 def test_create_rating_type(session: Session, client: TestClient):
@@ -22,7 +22,7 @@ def test_get_rating_type(rating_type: RatingType, client: TestClient):
     assert res_rating_type == jsonable_encoder(rating_type)
 
 
-def test_list_rating_types(rating_type_factory, client):
+def test_list_rating_types(rating_type_factory, client: TestClient):
     r0, r1 = rating_type_factory(name="r0"), rating_type_factory(name="r1")
     res = client.get("/rating_types/")
     res.raise_for_status()
@@ -32,7 +32,9 @@ def test_list_rating_types(rating_type_factory, client):
     assert jsonable_encoder(r1) == rating_types[1]
 
 
-def test_update_rating_type(rating_type, client, session):
+def test_update_rating_type(
+    rating_type: RatingType, client: TestClient, session: Session
+):
     new_name = "foo"
     res = client.patch(f"/rating_types/{rating_type.name}/", json={"name": new_name})
     res.raise_for_status()
@@ -40,10 +42,28 @@ def test_update_rating_type(rating_type, client, session):
     assert rating_type.name == new_name
 
 
-def test_delete_rating_type(rating_type, client, session):
+def test_delete_rating_type(
+    rating_type: RatingType, client: TestClient, session: Session
+):
     res = client.delete(f"/rating_types/{rating_type.name}/")
     res.raise_for_status()
     assert len(session.scalars(select(RatingType)).all()) == 0
+
+
+def test_delete_rating_type_cascade_ratings(
+    rating_type: RatingType, player: Player, client: TestClient, session: Session
+):
+    rating_type.ratings.append(
+        PlayerRating(player=player, rating_type=rating_type, rating=2000)
+    )
+    session.add(rating_type)
+    session.commit()
+    all_ratings = session.scalars(select(PlayerRating)).all()
+    assert len(all_ratings) == 1
+    res = client.delete(f"/rating_types/{rating_type.name}/")
+    res.raise_for_status()
+    all_ratings = session.scalars(select(PlayerRating)).all()
+    assert len(all_ratings) == 0
 
 
 def test_create_competition(session: Session, client: TestClient):
@@ -161,7 +181,7 @@ def test_update_player(player, client, session):
 
 
 def test_update_player_with_rating(
-    player: Player, rating_type: RatingType, client, session
+    player: Player, rating_type: RatingType, client: TestClient, session: Session
 ):
     data = {
         "name": "foo",
@@ -180,7 +200,21 @@ def test_update_player_with_rating(
     assert player.ratings[0].rating == 2300
 
 
-def test_delete_player(player, client, session):
+def test_delete_player(player: Player, client: TestClient, session: Session):
     res = client.delete(f"/players/{player.id}/")
     res.raise_for_status()
     assert len(session.scalars(select(Player)).all()) == 0
+
+
+def test_delete_player_cascade_ratings(
+    player: Player, rating_type: RatingType, client: TestClient, session: Session
+):
+    player.ratings = [PlayerRating(rating_type=rating_type, player=player, rating=2000)]
+    session.add(player)
+    session.commit()
+    all_ratings = session.scalars(select(PlayerRating)).all()
+    assert len(all_ratings) == 1
+    res = client.delete(f"/players/{player.id}/")
+    res.raise_for_status()
+    all_ratings = session.scalars(select(PlayerRating)).all()
+    assert len(all_ratings) == 0
