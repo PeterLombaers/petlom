@@ -117,6 +117,19 @@ def test_delete_competition(competition, client, session):
     assert len(session.scalars(select(Competition)).all()) == 0
 
 
+def test_delete_competition_cascade_matches(
+    competition: Competition,
+    match_factory: Callable[..., Match],
+    client: TestClient,
+    session: Session,
+):
+    match_factory(competition=competition)
+    res = client.delete(f"/competitions/{competition.name}/")
+    res.raise_for_status()
+    matches = session.scalars(select(Match)).all()
+    assert len(matches) == 0
+
+
 def test_create_player(session: Session, client: TestClient):
     player_name = "Peter"
     res = client.post("/players/", json={"name": player_name})
