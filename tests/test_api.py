@@ -1,8 +1,9 @@
+from typing import Callable
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from backend.models import Competition, Player, PlayerRating, RatingType
+from backend.models import Competition, Match, Player, PlayerRating, RatingType, Result
 
 
 def test_create_rating_type(session: Session, client: TestClient):
@@ -218,3 +219,85 @@ def test_delete_player_cascade_ratings(
     res.raise_for_status()
     all_ratings = session.scalars(select(PlayerRating)).all()
     assert len(all_ratings) == 0
+
+
+def test_create_match(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    session: Session,
+    client: TestClient,
+):
+    player_white = player_factory()
+    player_black = player_factory()
+    data = {
+        "competition_name": competition.name,
+        "player_white_id": player_white.id,
+        "player_black_id": player_black.id,
+        "round": 1,
+        "board": 1,
+    }
+    res = client.post("/matches/", json=data)
+    res.raise_for_status()
+    matches = session.scalars(select(Match)).all()
+    assert len(matches) == 1
+    match_obj = matches[0]
+    assert match_obj.competition == competition
+    assert match_obj.player_white == player_white
+    assert match_obj.player_black == player_black
+    assert match_obj.round == 1
+    assert match_obj.board == 1
+    for key in {"created_at", "updated_at"}:
+        assert key in dict(match_obj)
+
+    player_white = player_factory()
+    player_black = player_factory()
+    data = {
+        "competition_name": competition.name,
+        "player_white_id": player_white.id,
+        "player_black_id": player_black.id,
+        "round": 1,
+        "board": 2,
+        "result": "1/2-1/2",
+    }
+    res = client.post("/matches/", json=data)
+    res.raise_for_status()
+    matches = session.scalars(select(Match)).all()
+    assert len(matches) == 2
+    match_obj = session.get(Match, res.json()["id"])
+    assert match_obj.result == Result.DRAW
+
+
+def test_get_match(match_obj: Match, client: TestClient):
+    res = client.get(f"/matches/{match_obj.id}/")
+    res.raise_for_status()
+    res_match = res.json()
+    assert res_match == jsonable_encoder(match_obj)
+
+
+def test_list_matches(
+    competition: Competition, match_factory: Callable[..., Match], client: TestClient
+):
+    m0, m1 = (
+        match_factory(competition=competition),
+        match_factory(competition=competition),
+    )
+    res = client.get("/matches/")
+    res.raise_for_status()
+    match_obj = res.json()
+    assert len(match_obj) == 2
+    assert jsonable_encoder(m0) == match_obj[0]
+    assert jsonable_encoder(m1) == match_obj[1]
+
+
+def test_update_match(match_obj: Match, client: TestClient, session: Session):
+    assert match_obj.result is None
+    res = client.patch(f"/matches/{match_obj.id}/", json={"result": "1-0"})
+    res.raise_for_status()
+    session.refresh(match_obj)
+    assert match_obj.result == Result.WHITE_WIN
+
+
+def test_delete_match(match_obj: Match, client: TestClient, session: Session):
+    res = client.delete(f"/matches/{match_obj.id}/")
+    res.raise_for_status()
+    assert len(session.scalars(select(Match)).all()) == 0

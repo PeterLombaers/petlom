@@ -11,6 +11,10 @@ from backend.models import (
     CompetitionBase,
     CompetitionPublic,
     CompetitionUpdate,
+    Match,
+    MatchBase,
+    MatchPublic,
+    MatchUpdate,
     Player,
     PlayerCreate,
     PlayerPublic,
@@ -240,3 +244,53 @@ def update_player(
     session.commit()
     session.refresh(db_player)
     return db_player
+
+
+@app.post("/matches/")
+def create_match(match_obj: MatchBase, session: SessionDep) -> MatchPublic:
+    db_match = Match.model_validate(match_obj)
+    session.add(db_match)
+    session.commit()
+    session.refresh(db_match)
+    return db_match
+
+
+@app.get("/matches/")
+def list_matches(
+    session: SessionDep,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
+) -> list[MatchPublic]:
+    matches = session.exec(select(Match).offset(offset).limit(limit)).all()
+    return matches
+
+
+@app.get("/matches/{id}")
+def retrieve_match(id: int, session: SessionDep) -> MatchPublic:
+    match_obj = session.get(Match, id)
+    if not match_obj:
+        raise HTTPException(status_code=404, detail="Match not found")
+    return match_obj
+
+
+@app.delete("/matches/{id}")
+def delete_match(id: int, session: SessionDep):
+    match_obj = match_obj = session.get(Match, id)
+    if not match_obj:
+        raise HTTPException(status_code=404, detail="Match not found")
+    session.delete(match_obj)
+    session.commit()
+    return {"ok": True}
+
+
+@app.patch("/matches/{id}")
+def update_match(id: int, match_obj: MatchUpdate, session: SessionDep) -> MatchPublic:
+    db_match = session.get(Match, id)
+    if not db_match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    db_match.sqlmodel_update(match_obj.model_dump(exclude_unset=True))
+    db_match.updated_at = datetime.now()
+    session.add(db_match)
+    session.commit()
+    session.refresh(db_match)
+    return db_match

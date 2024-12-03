@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 
 from sqlalchemy.orm import RelationshipProperty
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 
 class Result(str, Enum):
@@ -119,6 +119,7 @@ class CompetitionUpdate(CompetitionBase):
 
 
 class MatchBase(SQLModel):
+    __table_args__ = (UniqueConstraint("round", "board"),)
     player_white_id: int = Field(foreign_key="player.id")
     player_black_id: int = Field(foreign_key="player.id")
     competition_name: str = Field(foreign_key="competition.name", ondelete="CASCADE")
@@ -153,17 +154,17 @@ class MatchPublic(MatchBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    player_white: Player
-    player_black: Player
-    competition: Competition
+    player_white_id: int
+    player_black_id: int
+    competition_name: str
     round: int
     board: int
     result: Result | None
 
 
 class MatchUpdate(MatchBase):
-    player_white: Player | None = None
-    player_black: Player | None = None
+    player_white_id: int | None = None
+    player_black_id: int | None = None
     competition_name: str | None = None
     round: int | None = None
     board: int | None = None

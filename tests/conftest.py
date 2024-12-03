@@ -8,7 +8,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from backend.main import app, get_session
-from backend.models import Competition, Player, RatingType
+from backend.models import Competition, Match, Player, RatingType
 
 fake = Faker()
 
@@ -105,3 +105,31 @@ def player_factory(
     session: Session,
 ) -> Generator[Callable[..., Player], Any, None]:
     yield PlayerFactory(session)
+
+
+def MatchFactory(session: Session) -> Callable[..., Match]:
+    class MatchFactory(factory.alchemy.SQLAlchemyModelFactory):
+        class Meta:
+            model = Match
+            sqlalchemy_session = session
+            sqlalchemy_session_persistence = "commit"
+
+        competition = factory.SubFactory(CompetitionFactory(session))
+        player_white = factory.SubFactory(PlayerFactory(session))
+        player_black = factory.SubFactory(PlayerFactory(session))
+        round = factory.Sequence(lambda n: n % 10 + 1)
+        board = factory.Sequence(lambda n: n // 10 + 1)
+
+    return MatchFactory
+
+
+@pytest.fixture
+def match_obj(session: Session) -> Generator[Match, Any, None]:
+    yield MatchFactory(session)()
+
+
+@pytest.fixture
+def match_factory(
+    session: Session,
+) -> Generator[Callable[..., Match], Any, None]:
+    yield MatchFactory(session)
