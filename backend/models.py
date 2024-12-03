@@ -97,11 +97,10 @@ class PlayerUpdate(PlayerBase):
 
 
 class CompetitionBase(SQLModel):
-    name: str = Field(unique=True)
+    name: str = Field(unique=True, primary_key=True)
 
 
 class Competition(CompetitionBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     matches: list["Match"] = Relationship(
@@ -110,7 +109,6 @@ class Competition(CompetitionBase, table=True):
 
 
 class CompetitionPublic(CompetitionBase):
-    id: int
     created_at: datetime
     updated_at: datetime
     matches: list["Match"]
@@ -123,7 +121,7 @@ class CompetitionUpdate(CompetitionBase):
 class MatchBase(SQLModel):
     player_white_id: int = Field(foreign_key="player.id")
     player_black_id: int = Field(foreign_key="player.id")
-    competition_id: int = Field(foreign_key="competition.id", ondelete="CASCADE")
+    competition_name: str = Field(foreign_key="competition.name", ondelete="CASCADE")
     round: int
     board: int
     result: Result | None = None
@@ -166,7 +164,7 @@ class MatchPublic(MatchBase):
 class MatchUpdate(MatchBase):
     player_white: Player | None = None
     player_black: Player | None = None
-    competition: Competition | None = None
+    competition_name: str | None = None
     round: int | None = None
     board: int | None = None
     result: Result | None = None

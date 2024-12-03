@@ -74,7 +74,7 @@ def test_create_competition(session: Session, client: TestClient):
     assert len(competition) == 1
     competition = competition[0]
     assert competition.name == competition_name
-    for key in {"id", "created_at", "updated_at"}:
+    for key in {"created_at", "updated_at"}:
         assert key in dict(competition)
 
 
