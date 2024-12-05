@@ -94,19 +94,19 @@ def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
 
 
 def calculate_color_saldo(matches: list[Match]) -> defaultdict[Player, int]:
-    """Calculate the color score for all players in a list of matches.
+    """Calculate the color saldo for all players in a list of matches.
 
-    The color score of a player is the number of white games minus black games.
+    The color saldo of a player is the number of white games minus black games.
 
     Parameters
     ----------
     matches : list[Match]
-        List of matches based on which to calculate the color score.
+        List of matches based on which to calculate the color saldo.
 
     Returns
     -------
     defaultdict[Player, int]
-        Default dictionary {player: color_score} with the default value 0.
+        Default dictionary {player: color_saldo} with the default value 0.
     """
     color_saldo = defaultdict(int)
     for m in matches:
