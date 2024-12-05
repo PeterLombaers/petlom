@@ -90,7 +90,7 @@ def PlayerFactory(session: Session) -> Callable[..., Player]:
             sqlalchemy_session = session
             sqlalchemy_session_persistence = "commit"
 
-        name = fake.name()
+        name = factory.Sequence(lambda _: fake.name())
 
     return PlayerFactory
 
