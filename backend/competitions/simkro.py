@@ -28,8 +28,9 @@ for a win and decreases by 12 for a loss. After that, the result score increases
 decreases by 6.
 The attendance score starts at 0. It increases by 3 for each game played, up to a
 maximum of 60.
-The opponent saldo is the of the saldo of the opponent of each game played by a player.
-It is the final saldo, and not the saldo at the time of playing.
+The opponent saldo is the total of the saldo of the opponent of each game played by a
+player, with a maximum of 6 per match. It is the current saldo, and not the saldo at the
+time of playing.
 - penalty score: A score to determine how suitable a pairing between two players is. The
 penalty score is calculated as:
 ```
@@ -51,7 +52,7 @@ The pairng of players in a round of a SimKro competition goes in the following s
 or removed before a pairing is possible.
 2. Sort the players in a descending order according to their saldo.
 3. Take the player with the highest saldo and pair them against the most suitable
-opponent. Here most suitable means the opponent with the lowest penalty score. 
+opponent. Here most suitable means the opponent with the lowest penalty score.
 4. Take the player with the lowest saldo and pair them agains the most suitable
 opponent.
 5. Repeat steps 3. and 4. until there are 10 players left.
