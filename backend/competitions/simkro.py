@@ -65,6 +65,20 @@ from collections import defaultdict
 
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
+    """Calculate the saldo for all players in a list of matches.
+
+    The saldo of a player is the number of matches won minus the matches lost.
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches based on which to calculate the saldo.
+
+    Returns
+    -------
+    defaultdict[Player, int]
+        Default dictionary {player: saldo} with the default value 0.
+    """
     saldo = defaultdict(int)
     for m in matches:
         match m.result:
