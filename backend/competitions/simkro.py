@@ -59,3 +59,21 @@ opponent.
 6. Calculate the penalty scores for all possible pairing between these 10 players and
 take the pairing that has the lowest total penalty score.
 """
+
+from backend.models import Match, Player, Result
+from collections import defaultdict
+
+
+def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
+    saldo = defaultdict(int)
+    for m in matches:
+        match m.result:
+            case Result.WHITE_WIN:
+                saldo[m.player_white] += 1
+                saldo[m.player_black] -= 1
+            case Result.BLACK_WIN:
+                saldo[m.player_white] -= 1
+                saldo[m.player_black] += 1
+            case _:
+                pass
+    return saldo

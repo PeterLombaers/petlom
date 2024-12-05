@@ -8,7 +8,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from backend.main import app, get_session
-from backend.models import Competition, Match, Player, RatingType
+from backend.models import Competition, Match, Player, RatingType, Result
 
 fake = Faker()
 
@@ -133,3 +133,119 @@ def match_factory(
     session: Session,
 ) -> Generator[Callable[..., Match], Any, None]:
     yield MatchFactory(session)
+
+
+@pytest.fixture
+def simkro_setup(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    match_factory: Callable[..., Match],
+) -> Generator[tuple[Competition, list[Player], list[Match]], Any, None]:
+    players = [player_factory() for _ in range(8)]
+    matches = [
+        match_factory(
+            player_white=players[0],
+            player_black=players[1],
+            result=Result.WHITE_WIN,
+            competition=competition,
+            round=1,
+            board=1,
+        ),
+        match_factory(
+            player_white=players[2],
+            player_black=players[3],
+            result=Result.DRAW,
+            competition=competition,
+            round=1,
+            board=2,
+        ),
+        match_factory(
+            player_white=players[4],
+            player_black=players[5],
+            result=Result.BLACK_WIN,
+            competition=competition,
+            round=1,
+            board=3,
+        ),
+        match_factory(
+            player_white=players[0],
+            player_black=players[5],
+            result=Result.DRAW,
+            competition=competition,
+            round=2,
+            board=1,
+        ),
+        match_factory(
+            player_white=players[2],
+            player_black=players[6],
+            result=Result.BLACK_WIN,
+            competition=competition,
+            round=2,
+            board=2,
+        ),
+        match_factory(
+            player_white=players[3],
+            player_black=players[7],
+            result=Result.WHITE_WIN,
+            competition=competition,
+            round=2,
+            board=3,
+        ),
+        match_factory(
+            player_white=players[1],
+            player_black=players[4],
+            result=Result.BLACK_WIN,
+            competition=competition,
+            round=2,
+            board=4,
+        ),
+        match_factory(
+            player_white=players[6],
+            player_black=players[0],
+            result=Result.WHITE_WIN,
+            competition=competition,
+            round=3,
+            board=1,
+        ),
+        match_factory(
+            player_white=players[7],
+            player_black=players[2],
+            result=Result.DRAW,
+            competition=competition,
+            round=3,
+            board=2,
+        ),
+        match_factory(
+            player_white=players[5],
+            player_black=players[6],
+            result=Result.BLACK_WIN,
+            competition=competition,
+            round=4,
+            board=1,
+        ),
+        match_factory(
+            player_white=players[2],
+            player_black=players[1],
+            result=Result.DRAW,
+            competition=competition,
+            round=4,
+            board=2,
+        ),
+        match_factory(
+            player_white=players[4],
+            player_black=players[0],
+            result=Result.BLACK_WIN,
+            competition=competition,
+            round=4,
+            board=3,
+        ),
+        match_factory(
+            player_white=players[3],
+            player_black=players[7],
+            result=Result.DRAW,
+            competition=competition,
+            round=4,
+            board=4,
+        ),
+    ]
+    yield (competition, players, matches)

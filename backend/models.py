@@ -79,6 +79,12 @@ class Player(PlayerBase, table=True):
         back_populates="player", cascade_delete=True
     )
 
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return isinstance(other, Player) and self.id == other.id
+
 
 class PlayerCreate(PlayerBase):
     ratings: list[PlayerRatingUpdate] | None = None
