@@ -64,6 +64,15 @@ from backend.models import Match, Player, Result
 from collections import defaultdict
 
 
+# The number of rounds that scores are influenced by a high amount. This has influence
+# on attendence scores, results scores, etc.
+N_ROUNDS_HIGH = 20
+# The result score gaining by winning in the start rounds.
+RESULT_SCORE_HIGH = 12
+# The result score gaining by winning after the start rounds.
+RESULT_SCORE_LOW = 6
+
+
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
     """Calculate the saldo for all players in a list of matches.
 
@@ -113,3 +122,47 @@ def calculate_color_saldo(matches: list[Match]) -> defaultdict[Player, int]:
         color_saldo[m.player_white] += 1
         color_saldo[m.player_black] -= 1
     return color_saldo
+
+
+def calculate_result_score(matches: list[Match]) -> defaultdict[Player, int]:
+    """Calculate the result score for all players in a list of matches.
+
+    The result score starts at 0. The first `N_ROUND_HIGH` rounds, it increases or
+    decreases by `RESULT_SCORE_HIGH` point based on a win or a loss. After that it
+    changes by `RESULT_SCORE_LOW`. A draw does not affect the result score.
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches based on which to calculate the result score.
+
+    Returns
+    -------
+    defaultdict[Player, int]
+        Default dictionary {player: result_score} with the default value 0.
+    """
+    score = defaultdict(int)
+    n_rounds_attended = defaultdict(int)
+    for m in matches:
+        n_rounds_attended[m.player_white] += 1
+        n_rounds_attended[m.player_black] += 1
+        multiplier_white = (
+            RESULT_SCORE_HIGH
+            if n_rounds_attended[m.player_white] <= N_ROUNDS_HIGH
+            else RESULT_SCORE_LOW
+        )
+        multiplier_black = (
+            RESULT_SCORE_HIGH
+            if n_rounds_attended[m.player_black] <= N_ROUNDS_HIGH
+            else RESULT_SCORE_LOW
+        )
+        match m.result:
+            case Result.WHITE_WIN:
+                score[m.player_white] += multiplier_white
+                score[m.player_black] -= multiplier_black
+            case Result.BLACK_WIN:
+                score[m.player_white] -= multiplier_white
+                score[m.player_black] += multiplier_black
+            case _:
+                pass
+    return score
