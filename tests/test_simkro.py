@@ -2,6 +2,7 @@ from backend.competitions.simkro import (
     calculate_attendance_score,
     calculate_color_saldo,
     calculate_opponent_saldo,
+    calculate_point_total,
     calculate_result_score,
     calculate_saldo,
 )
@@ -95,3 +96,25 @@ def test_opponent_saldo(simkro_setup: tuple[Competition, list[Player], list[Matc
     # Check the maximum and minimum are capped.
     matches = [matches[0] for _ in range(7)]
     assert calculate_opponent_saldo(matches) == {players[0]: -42, players[1]: 42}
+
+
+def test_point_total(
+    simkro_setup: tuple[Competition, list[Player], list[Match]], player: Player
+):
+    (_, players, matches) = simkro_setup
+    # Allow using `player` as a variable below without overwriting the player fixture.
+    other_player = player
+    correct_point_totals = [
+        [514, 492, 503, 503, 492, 514, 500, 500],
+        [517, 483, 496, 516, 505, 519, 514, 492],
+        [510, 482, 499, 516, 505, 518, 529, 494],
+        [524, 484, 501, 518, 496, 512, 545, 498],
+    ]
+    for round_nr in range(1, 5):
+        round_matches = [m for m in matches if m.round <= round_nr]
+        calculated_point_totals = calculate_point_total(round_matches)
+        for player, correct_total in zip(players, correct_point_totals[round_nr - 1]):
+            assert calculated_point_totals[player] == correct_total
+
+    # Check the defaultdict has default value 500.
+    assert calculated_point_totals[other_player] == 500

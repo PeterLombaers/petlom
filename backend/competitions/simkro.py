@@ -232,3 +232,32 @@ def calculate_opponent_saldo(matches: list[Match]) -> defaultdict[Player, int]:
             saldo[m.player_white], -MAX_OPPONENT_SALDO, MAX_OPPONENT_SALDO
         )
     return score
+
+
+def calculate_point_total(matches: list[Match]) -> defaultdict[Player, int]:
+    """For each player calculate the point total.
+
+    The point total of a players is defined as
+    ```
+    point_total = 500 + result_score + attendance_score + opponent_saldo
+    ```
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches based on which to calculate the point total.
+
+    Returns
+    -------
+    defaultdict[Player, int]
+        Default dictionary {player: point_total} with the default value 500.
+    """
+    attendence_score = calculate_attendance_score(matches)
+    result_score = calculate_result_score(matches)
+    opponent_saldo = calculate_opponent_saldo(matches)
+    point_total = defaultdict(lambda: 500)
+    for player in attendence_score:
+        point_total[player] += (
+            attendence_score[player] + result_score[player] + opponent_saldo[player]
+        )
+    return point_total
