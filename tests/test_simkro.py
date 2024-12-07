@@ -1,4 +1,5 @@
 from backend.competitions.simkro import (
+    calculate_attendance_score,
     calculate_color_saldo,
     calculate_result_score,
     calculate_saldo,
@@ -51,3 +52,24 @@ def test_calculate_result_score(
     # Check we get diminished returns after round 20.
     matches = [matches[0] for _ in range(21)]
     assert calculate_result_score(matches) == {players[0]: 246, players[1]: -246}
+
+
+def test_attendance_score(simkro_setup: tuple[Competition, list[Player], list[Match]]):
+    (_, players, matches) = simkro_setup
+    correct_attendance_scores = [
+        [3, 3, 3, 3, 3, 3, 0, 0],
+        [6, 6, 6, 6, 6, 6, 3, 3],
+        [9, 6, 9, 6, 6, 6, 6, 6],
+        [12, 9, 12, 9, 9, 9, 9],
+    ]
+    for round_nr in range(1, 5):
+        round_matches = [m for m in matches if m.round <= round_nr]
+        calculated_attendance_scores = calculate_attendance_score(round_matches)
+        for player, correct_score in zip(
+            players, correct_attendance_scores[round_nr - 1]
+        ):
+            assert calculated_attendance_scores[player] == correct_score
+
+    # Check no points get added after round 20.
+    matches = [matches[0] for _ in range(21)]
+    assert calculate_attendance_score(matches) == {players[0]: 60, players[1]: 60}

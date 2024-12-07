@@ -71,6 +71,10 @@ N_ROUNDS_HIGH = 20
 RESULT_SCORE_HIGH = 12
 # The result score gaining by winning after the start rounds.
 RESULT_SCORE_LOW = 6
+# The number of rounds a player gains attendance points and the number of points per
+# round.
+N_ROUNDS_ATTENDANCE = 20
+ATTENDANCE_SCORE = 3
 
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
@@ -165,4 +169,28 @@ def calculate_result_score(matches: list[Match]) -> defaultdict[Player, int]:
                 score[m.player_black] += multiplier_black
             case _:
                 pass
+    return score
+
+
+def calculate_attendance_score(matches: list[Match]) -> defaultdict[Player, int]:
+    """Calculate the attendance score for all players in a list of matches.
+
+    The attendance score is `ATTENDANCE_SCORE` points for each of the first
+    `N_ROUNDS_ATTENDANCE` games.
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches based on which to calculate the attendance score.
+
+    Returns
+    -------
+    defaultdict[Player, int]
+        Default dictionary {player: attendance_score} with the default value 0.
+    """
+    score = defaultdict(int)
+    max_score = N_ROUNDS_ATTENDANCE * ATTENDANCE_SCORE
+    for m in matches:
+        score[m.player_white] = min(score[m.player_white] + ATTENDANCE_SCORE, max_score)
+        score[m.player_black] = min(score[m.player_black] + ATTENDANCE_SCORE, max_score)
     return score
