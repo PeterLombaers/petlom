@@ -75,6 +75,8 @@ RESULT_SCORE_LOW = 6
 # round.
 N_ROUNDS_ATTENDANCE = 20
 ATTENDANCE_SCORE = 3
+# Maximum ammount that an opponents saldo counts when calculating the point total.
+MAX_OPPONENT_SALDO = 6
 
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
@@ -193,4 +195,40 @@ def calculate_attendance_score(matches: list[Match]) -> defaultdict[Player, int]
     for m in matches:
         score[m.player_white] = min(score[m.player_white] + ATTENDANCE_SCORE, max_score)
         score[m.player_black] = min(score[m.player_black] + ATTENDANCE_SCORE, max_score)
+    return score
+
+
+def min_max(n: int, val_min: int, val_max: int) -> int:
+    """Apply a maximum and a minimum at the same time."""
+    return max(val_min, min(val_max, n))
+
+
+def calculate_opponent_saldo(matches: list[Match]) -> defaultdict[Player, int]:
+    """For each player calculate the total opponent saldo from a list of matches.
+
+    The opponent saldo is the sum of the saldo's of the opponents of a player. If a
+    player faced the same opponent multiple times, the saldo will count multiple times.
+    The contribution of a single opponent is capped between `-MAX_OPPONENT_SALDO` and
+    `MAX_OPPONENT_SALDO`.
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches based on which to calculate the opponent saldo.
+
+    Returns
+    -------
+    defaultdict[Player, int]
+        Default dictionary {player: opponent_saldo} with the default value 0.
+    """
+    saldo = calculate_saldo(matches)
+
+    score = defaultdict(int)
+    for m in matches:
+        score[m.player_white] += min_max(
+            saldo[m.player_black], -MAX_OPPONENT_SALDO, MAX_OPPONENT_SALDO
+        )
+        score[m.player_black] += min_max(
+            saldo[m.player_white], -MAX_OPPONENT_SALDO, MAX_OPPONENT_SALDO
+        )
     return score

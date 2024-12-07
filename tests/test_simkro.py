@@ -1,6 +1,7 @@
 from backend.competitions.simkro import (
     calculate_attendance_score,
     calculate_color_saldo,
+    calculate_opponent_saldo,
     calculate_result_score,
     calculate_saldo,
 )
@@ -73,3 +74,24 @@ def test_attendance_score(simkro_setup: tuple[Competition, list[Player], list[Ma
     # Check no points get added after round 20.
     matches = [matches[0] for _ in range(21)]
     assert calculate_attendance_score(matches) == {players[0]: 60, players[1]: 60}
+
+
+def test_opponent_saldo(simkro_setup: tuple[Competition, list[Player], list[Match]]):
+    (_, players, matches) = simkro_setup
+    correct_opponent_saldos = [
+        [-1, 1, 0, 0, 1, -1, 0, 0],
+        [-1, 1, 2, -2, -1, 1, -1, 1],
+        [1, 0, 2, -2, -1, 0, -1, 0],
+        [0, -1, 1, -3, -1, 3, 0, 1],
+    ]
+    for round_nr in range(1, 5):
+        round_matches = [m for m in matches if m.round <= round_nr]
+        calculated_opponent_saldos = calculate_opponent_saldo(round_matches)
+        for player, correct_saldo in zip(
+            players, correct_opponent_saldos[round_nr - 1]
+        ):
+            assert calculated_opponent_saldos[player] == correct_saldo
+
+    # Check the maximum and minimum are capped.
+    matches = [matches[0] for _ in range(7)]
+    assert calculate_opponent_saldo(matches) == {players[0]: -42, players[1]: 42}
