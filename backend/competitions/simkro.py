@@ -60,9 +60,9 @@ opponent.
 take the pairing that has the lowest total penalty score.
 """
 
-from backend.models import Match, Player, Result
 from collections import defaultdict
 
+from backend.models import Match, Player, Result
 
 # The number of rounds that scores are influenced by a high amount. This has influence
 # on attendence scores, results scores, etc.
@@ -81,6 +81,9 @@ MAX_OPPONENT_SALDO = 6
 N_ROUNDS_TURNUS = 10
 # Penalty for playing twice in the same turnus.
 TURNUS_PENALTY = 10000
+# Number of games a player needs to have played before being able to play an opponent
+# again without a penalty.
+N_GAMES_BETWEEN = 4
 
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
@@ -294,3 +297,45 @@ def played_in_turnus_pairs(
     ]
     # We use frozenset to represent a symmetric pair.
     return {frozenset((m.player_white, m.player_black)) for m in turnus_matches}
+
+
+def calculate_games_since_last_played(
+    matches: list[Match],
+) -> defaultdict[Player, defaultdict[Player, int]]:
+    """For each player and opponent get the number of played since playing the opponent.
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches.
+
+    Returns
+    -------
+    defaultdict[Player, defaultdict[Player, int]]
+        Default dict `{player: {opponent: n_games_since_last_played}}`, where
+        `n_games_since_last_played` is the number of games that the played played since
+        meeting the opponent, with a maximum of `N_GAMES_BETWEEN. The default value
+        of the inner default dict is `N_GAMES_BETWEEN`.
+    """
+    games_since_last_played = defaultdict(lambda: defaultdict(lambda: N_GAMES_BETWEEN))
+    n_games_between = defaultdict(int)
+    for m in sorted(matches, key=lambda match_obj: match_obj.round, reverse=True):
+        # If an opponent occurs multiple times, we take the last round.
+        # We don't need to look further than `N_GAMES_BETWEE` games in the past.
+        if (
+            n_games_between[m.player_white] < N_GAMES_BETWEEN
+            and m.player_black not in games_since_last_played[m.player_white]
+        ):
+            games_since_last_played[m.player_white][m.player_black] = n_games_between[
+                m.player_white
+            ]
+        if (
+            n_games_between[m.player_black] < N_GAMES_BETWEEN
+            and m.player_white not in games_since_last_played[m.player_black]
+        ):
+            games_since_last_played[m.player_black][m.player_white] = n_games_between[
+                m.player_white
+            ]
+        n_games_between[m.player_white] += 1
+        n_games_between[m.player_black] += 1
+    return games_since_last_played

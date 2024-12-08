@@ -1,6 +1,9 @@
+from collections.abc import Callable
+
 from backend.competitions.simkro import (
     calculate_attendance_score,
     calculate_color_saldo,
+    calculate_games_since_last_played,
     calculate_opponent_saldo,
     calculate_point_total,
     calculate_result_score,
@@ -134,3 +137,48 @@ def test_played_in_turnus_pairs(match_obj: Match):
     assert player_pair not in played_in_turnus_pairs([match_obj], 20)
     assert player_pair in played_in_turnus_pairs([match_obj], 21)
     assert player_pair in played_in_turnus_pairs([match_obj], 30)
+
+
+def test_games_since_last_played(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    match_factory: Callable[..., Match],
+):
+    # A match factory that always uses the same competition.
+    def match_factory_comp(**kwargs):
+        return match_factory(competition=competition, **kwargs)
+
+    players = [player_factory() for _ in range(6)]
+    matches = [
+        match_factory_comp(player_white=players[0], player_black=players[1], round=1),
+        match_factory_comp(player_white=players[0], player_black=players[2], round=2),
+        match_factory_comp(player_white=players[0], player_black=players[3], round=3),
+        match_factory_comp(player_white=players[0], player_black=players[4], round=4),
+        match_factory_comp(player_white=players[0], player_black=players[1], round=5),
+        match_factory_comp(player_white=players[0], player_black=players[1], round=6),
+        match_factory_comp(player_white=players[0], player_black=players[5], round=7),
+        match_factory_comp(player_white=players[0], player_black=players[3], round=8),
+        match_factory_comp(player_white=players[0], player_black=players[4], round=9),
+        match_factory_comp(player_white=players[0], player_black=players[2], round=10),
+    ]
+    correct_n_games = [
+        [4, 4, 4, 4, 4],
+        [0, 4, 4, 4, 4],
+        [1, 0, 4, 4, 4],
+        [2, 1, 0, 4, 4],
+        [3, 2, 1, 0, 4],
+        [0, 3, 2, 1, 4],
+        [0, 4, 3, 2, 4],
+        [1, 4, 4, 3, 0],
+        [2, 4, 0, 4, 1],
+        [3, 4, 1, 0, 2],
+        [4, 0, 2, 1, 3],
+    ]
+    for round_nr in range(11):
+        print(round_nr)
+        games_since_last_played = calculate_games_since_last_played(matches[:round_nr])[
+            players[0]
+        ]
+        correct_output = correct_n_games[round_nr]
+        for i in range(5):
+            assert games_since_last_played[players[i + 1]] == correct_output[i]
