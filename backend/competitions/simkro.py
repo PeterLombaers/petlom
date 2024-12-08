@@ -93,6 +93,8 @@ PENALTY_COLOR_WEIGHT = 0.5
 PENALTY_POINT_WEIGHT = 0.001
 # Seed for random number generation.
 RANDOM_SEED = 16843
+RNG = random.Random(RANDOM_SEED)
+
 # Weight given to the random factor in the penalty score.
 RANDOM_PENALTY_WEIGHT = 0.0001
 
@@ -415,13 +417,13 @@ def calculate_penalty_score(
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY
             * max(0, N_GAMES_BETWEEN - n_games_between[player1][player2])
-            + RANDOM_PENALTY_WEIGHT * rng.random()
+            + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
         penalty_score[player2][player1] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY
             * max(0, N_GAMES_BETWEEN - n_games_between[player2][player1])
-            + RANDOM_PENALTY_WEIGHT * rng.random()
+            + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
     return penalty_score
