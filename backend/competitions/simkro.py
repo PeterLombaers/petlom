@@ -60,9 +60,10 @@ opponent.
 take the pairing that has the lowest total penalty score.
 """
 
-from collections import defaultdict
 import itertools
 import random
+from collections import defaultdict
+from typing import Literal
 
 from backend.models import Match, Player, Result
 
@@ -397,14 +398,9 @@ def calculate_base_penalty_score(
     return penalty_score
 
 
-def games_between_penalty(n_games_between: int) -> int:
-    return
-
-
 def calculate_penalty_score(
     matches: list[Match], players: list[Player]
 ) -> dict[Player, dict[Player, float]]:
-    rng = random.Random(RANDOM_SEED)
     penalty_score = {}
     base_penalty_score = calculate_base_penalty_score(matches, players)
     current_round = max(m.round for m in matches) + 1
@@ -427,3 +423,50 @@ def calculate_penalty_score(
             + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
     return penalty_score
+
+
+def pick_color(
+    player1: Player,
+    color_score1: int,
+    player2: Player,
+    color_score2: int,
+    previous_matches: list[Match],
+) -> dict[Literal["white", "black"], Player]:
+    """Pick colors in a matchup.
+
+    Parameters
+    ----------
+    player1 : Player
+        First player.
+    color_score1 : int
+        Color score of first player.
+    player2 : Player
+        Second player.
+    color_score2 : int
+        Color score of second player.
+    previous_matches : list[Match]
+        List of previous matches between the two players.
+
+    Returns
+    -------
+    dict[Literal["white", "black"], Player]:
+        Dictionary {"white": player, "black": other_player}. The person with the lower
+        color score gets white. If the color scores are equal, the person with the lower
+        number of previous white games gets white. Otherwise the colors are randomly
+        picked.
+    """
+    if color_score1 > color_score2:
+        return {"white": player2, "black": player1}
+    elif color_score1 < color_score2:
+        return {"white": player1, "black": player2}
+    else:
+        n_games_white_p1 = sum(m.player_white == player1 for m in previous_matches)
+        if n_games_white_p1 < len(previous_matches) / 2:
+            return {"white": player1, "black": player2}
+        elif n_games_white_p1 > len(previous_matches) / 2:
+            return {"white": player2, "black": player1}
+        # Choose randomly
+        elif RNG.random() > 0.5:
+            return {"white": player1, "black": player2}
+        else:
+            return {"white": player2, "black": player1}

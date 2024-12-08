@@ -9,6 +9,7 @@ from backend.competitions.simkro import (
     calculate_point_total,
     calculate_result_score,
     calculate_saldo,
+    pick_color,
     played_in_turnus_pairs,
 )
 from backend.models import Competition, Match, Player
@@ -205,3 +206,31 @@ def test_base_penalty_score(
             assert (
                 calculated_penalty_scores[frozenset((player0, player))] == correct_total
             )
+
+
+def test_pick_color(competition: Competition, player_factory, match_factory):
+    player1, player2 = player_factory(), player_factory()
+    matches = [
+        match_factory(
+            competition=competition, player_white=player1, player_black=player2
+        ),
+        match_factory(
+            competition=competition, player_white=player2, player_black=player1
+        ),
+    ]
+    assert pick_color(player1, 1, player2, 0, []) == {
+        "white": player2,
+        "black": player1,
+    }
+    assert pick_color(player1, -1, player2, 0, []) == {
+        "white": player1,
+        "black": player2,
+    }
+    assert pick_color(player1, 1, player2, 1, matches[:1]) == {
+        "white": player2,
+        "black": player1,
+    }
+    assert pick_color(player1, 0, player2, 0, matches[1:]) == {
+        "white": player1,
+        "black": player2,
+    }
