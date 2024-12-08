@@ -61,6 +61,7 @@ take the pairing that has the lowest total penalty score.
 """
 
 from collections import defaultdict
+import itertools
 
 from backend.models import Match, Player, Result
 
@@ -84,6 +85,9 @@ TURNUS_PENALTY = 10000
 # Number of games a player needs to have played before being able to play an opponent
 # again without a penalty.
 N_GAMES_BETWEEN = 4
+# The weight given to the color and point part of the penalty score.
+PENALTY_COLOR_WEIGHT = 0.5
+PENALTY_POINT_WEIGHT = 0.001
 
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
@@ -339,3 +343,46 @@ def calculate_games_since_last_played(
         n_games_between[m.player_white] += 1
         n_games_between[m.player_black] += 1
     return games_since_last_played
+
+
+def calculate_base_penalty_score(
+    matches: list[Match], players: list[Player]
+) -> defaultdict[frozenset[Player], float]:
+    """The base penalty score for pairs from a list of players.
+
+    The base penalty score for a pair of players is defined as:
+    ```
+    base_penalty_score = (
+        saldo_difference**2
+        - 0.5 * abs(color_saldo_difference)
+        + 0.001 * abs(point_total_difference)
+    )
+    ```
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches.
+    players : list[Player]
+        List of players.
+
+    Returns
+    -------
+    defaultdict[frozenset[Player], float]
+        Dictionary {{pair_of_players} : penalty score} for each pair of players from the
+        input list of players.
+    """
+    penalty_score = {}
+    saldo = calculate_saldo(matches)
+    color_saldo = calculate_color_saldo(matches)
+    point_total = calculate_point_total(matches)
+    for player1, player2 in itertools.combinations(players, 2):
+        saldo_diff = saldo[player1] - saldo[player2]
+        color_diff = color_saldo[player1] - color_saldo[player2]
+        point_diff = point_total[player1] - point_total[player2]
+        penalty_score[frozenset((player1, player2))] = (
+            saldo_diff**2
+            - PENALTY_COLOR_WEIGHT * abs(color_diff)
+            + PENALTY_POINT_WEIGHT * abs(point_diff)
+        )
+    return penalty_score

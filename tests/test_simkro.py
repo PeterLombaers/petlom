@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 from backend.competitions.simkro import (
     calculate_attendance_score,
+    calculate_base_penalty_score,
     calculate_color_saldo,
     calculate_games_since_last_played,
     calculate_opponent_saldo,
@@ -175,10 +176,32 @@ def test_games_since_last_played(
         [4, 0, 2, 1, 3],
     ]
     for round_nr in range(11):
-        print(round_nr)
         games_since_last_played = calculate_games_since_last_played(matches[:round_nr])[
             players[0]
         ]
         correct_output = correct_n_games[round_nr]
         for i in range(5):
             assert games_since_last_played[players[i + 1]] == correct_output[i]
+
+
+def test_base_penalty_score(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+):
+    (_, players, matches) = simkro_setup
+    # Allow using `player` as a variable below without overwriting the player fixture.
+    player0, rest = players[0], players[1:]
+    correct_penalty_scores = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [3.022, 1.011, 0.011, 4.022, -1.000, 0.514, 0.514],
+        [8.034, 4.021, -0.999, 0.012, -1.998, -1.497, 2.525],
+        [3.528, 1.011, 0.506, -0.495, -0.492, 3.519, 0.516],
+        [8.540, 3.023, -0.494, 3.528, 0.512, 3.521, 3.526],
+    ]
+
+    for round_nr in range(5):
+        round_matches = [m for m in matches if m.round <= round_nr]
+        calculated_penalty_scores = calculate_base_penalty_score(round_matches, players)
+        for player, correct_total in zip(rest, correct_penalty_scores[round_nr]):
+            assert (
+                calculated_penalty_scores[frozenset((player0, player))] == correct_total
+            )
