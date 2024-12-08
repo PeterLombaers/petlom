@@ -5,6 +5,7 @@ from backend.competitions.simkro import (
     calculate_point_total,
     calculate_result_score,
     calculate_saldo,
+    played_in_turnus_pairs,
 )
 from backend.models import Competition, Match, Player
 
@@ -118,3 +119,18 @@ def test_point_total(
 
     # Check the defaultdict has default value 500.
     assert calculated_point_totals[other_player] == 500
+
+
+def test_played_in_turnus_pairs(match_obj: Match):
+    player_pair = frozenset((match_obj.player_white, match_obj.player_black))
+    match_obj.round = 1
+    assert player_pair in played_in_turnus_pairs([match_obj], 2)
+    assert player_pair not in played_in_turnus_pairs([match_obj], 11)
+    match_obj.round = 11
+    assert player_pair not in played_in_turnus_pairs([match_obj], 10)
+    assert player_pair in played_in_turnus_pairs([match_obj], 20)
+    assert player_pair not in played_in_turnus_pairs([match_obj], 21)
+    match_obj.round = 25
+    assert player_pair not in played_in_turnus_pairs([match_obj], 20)
+    assert player_pair in played_in_turnus_pairs([match_obj], 21)
+    assert player_pair in played_in_turnus_pairs([match_obj], 30)

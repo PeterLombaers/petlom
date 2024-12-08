@@ -77,6 +77,10 @@ N_ROUNDS_ATTENDANCE = 20
 ATTENDANCE_SCORE = 3
 # Maximum ammount that an opponents saldo counts when calculating the point total.
 MAX_OPPONENT_SALDO = 6
+# Number of rounds in a turnus.
+N_ROUNDS_TURNUS = 10
+# Penalty for playing twice in the same turnus.
+TURNUS_PENALTY = 10000
 
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
@@ -261,3 +265,32 @@ def calculate_point_total(matches: list[Match]) -> defaultdict[Player, int]:
             attendence_score[player] + result_score[player] + opponent_saldo[player]
         )
     return point_total
+
+
+def played_in_turnus_pairs(
+    matches: list[Match], round_nr: int
+) -> set[frozenset[Player]]:
+    """Get the pairs of players that played already in the turnus of the given round.
+
+    Parameters
+    ----------
+    matches : list[Match]
+        List of matches.
+    round_nr : int
+        Number of the round.
+
+    Returns
+    -------
+    set[frozenset[Player]]
+        Set of pairs {player1, player2} of players that played a match in the turnus to
+        which the input round belongs.
+    """
+    # Round nr starts counting from 1, not 0.
+    turnus_start = N_ROUNDS_TURNUS * ((round_nr - 1) // N_ROUNDS_TURNUS) + 1
+    turnus_matches = [
+        m
+        for m in matches
+        if m.round in range(turnus_start, turnus_start + N_ROUNDS_TURNUS)
+    ]
+    # We use frozenset to represent a symmetric pair.
+    return {frozenset((m.player_white, m.player_black)) for m in turnus_matches}
