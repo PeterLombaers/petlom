@@ -46,7 +46,7 @@ be paired again.
 
 Pairing
 -------
-The pairng of players in a round of a SimKro competition goes in the following steps:
+The pairing of players in a round of a SimKro competition goes in the following steps:
 
 1. If the number of players is odd, no pairing is possible. One player should be added
 or removed before a pairing is possible.
@@ -95,9 +95,11 @@ PENALTY_POINT_WEIGHT = 0.001
 # Seed for random number generation.
 RANDOM_SEED = 16843
 RNG = random.Random(RANDOM_SEED)
-
 # Weight given to the random factor in the penalty score.
 RANDOM_PENALTY_WEIGHT = 0.0001
+# Start finding the optimal pairing for the remaining players if there are only this
+# many players left.
+OPTIMAL_PAIRING_THRESHOLD = 10
 
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
@@ -407,15 +409,15 @@ def calculate_penalty_score(
     turnus_pairs = played_in_turnus_pairs(matches, current_round)
     n_games_between = calculate_games_since_last_played(matches)
     for player1, player2 in itertools.combinations(players, 2):
-        pair = frozenset(player1, player2)
-        penalty_score[player1][player2] = (
+        pair = frozenset((player1, player2))
+        penalty_score.setdefault(player1, {})[player2] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY
             * max(0, N_GAMES_BETWEEN - n_games_between[player1][player2])
             + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
-        penalty_score[player2][player1] = (
+        penalty_score.setdefault(player2, {})[player1] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY
@@ -470,3 +472,102 @@ def pick_color(
             return {"white": player1, "black": player2}
         else:
             return {"white": player2, "black": player1}
+
+
+def _calculate_all_pairings(
+    players: list[Player],
+) -> list[list[tuple[Player, Player]]]:
+    if len(players) == 2:
+        # Base case: if only two items left, one pair can be formed
+        return [[tuple(players)]]
+
+    all_partitions = []
+    for pair in itertools.combinations(players, 2):
+        # Form a pair and partition the rest recursively
+        remaining = [player for player in players if player not in pair]
+        for sub_partition in _calculate_all_pairings(remaining):
+            all_partitions.append([pair] + sub_partition)
+
+    return all_partitions
+
+
+def _total_penalty_score(
+    pairing: list[tuple[Player, Player]],
+    penalty_score: dict[Player, dict[Player, float]],
+) -> float:
+    return sum(
+        penalty_score[pair[0]][pair[1]] + penalty_score[pair[1]][pair[0]]
+        for pair in pairing
+    )
+
+
+def _pick_color_from_lists(
+    player1: Player,
+    player2: Player,
+    color_saldo: defaultdict[Player, int],
+    matches: list[Match],
+) -> dict[Literal["white", "black"], Player]:
+    previous_matchups = [
+        m for m in matches if {m.player_white, m.player_black} == {player1, player2}
+    ]
+    return pick_color(
+        player1=player1,
+        color_score1=color_saldo[player1],
+        player2=player2,
+        color_score2=color_saldo[player2],
+        previous_matches=previous_matchups,
+    )
+
+
+def create_matchups(
+    matches: list[Match], players: list[Player]
+) -> dict[Literal["white", "black"], Player]:
+    # Step 1: Set up the data.
+    if len(players) // 2 == 1:
+        raise ValueError("Number of players should be even.")
+    saldo = calculate_saldo(matches)
+    color_saldo = calculate_color_saldo(matches)
+    penalty_score = calculate_penalty_score(matches, players)
+    # Step 2
+    players.sort(key=lambda p: saldo[p], reverse=True)
+    matchups = []
+    # Step 3, 4 and 5: Alternatingly create the best matchup for the highest and lowest
+    # saldo player until there are only a few left.
+    pair_best = True
+    while len(players) > OPTIMAL_PAIRING_THRESHOLD:
+        if pair_best:
+            player = players.pop(0)
+        else:
+            player = players.pop(-1)
+        best_opponent_idx = min(
+            enumerate(players), key=lambda x: penalty_score[player][x[1]]
+        )[0]
+        opponent = players.pop(best_opponent_idx)
+        matchups.append(
+            _pick_color_from_lists(
+                player1=player,
+                player2=opponent,
+                color_saldo=color_saldo,
+                matches=matches,
+            )
+        )
+        pair_best = not pair_best
+
+    # Step 6: Calculate all remaining pairings.
+    all_remaining_pairings = _calculate_all_pairings(players)
+    best_remaining_pairing = min(
+        all_remaining_pairings,
+        key=lambda pairing: _total_penalty_score(
+            pairing=pairing, penalty_score=penalty_score
+        ),
+    )
+    for player1, player2 in best_remaining_pairing:
+        matchups.append(
+            _pick_color_from_lists(
+                player1=player1,
+                player2=player2,
+                color_saldo=color_saldo,
+                matches=matches,
+            )
+        )
+    return matchups

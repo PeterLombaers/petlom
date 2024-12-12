@@ -9,6 +9,7 @@ from backend.competitions.simkro import (
     calculate_point_total,
     calculate_result_score,
     calculate_saldo,
+    create_matchups,
     pick_color,
     played_in_turnus_pairs,
 )
@@ -234,3 +235,13 @@ def test_pick_color(competition: Competition, player_factory, match_factory):
         "white": player1,
         "black": player2,
     }
+
+
+def test_create_matchups(simkro_setup: tuple[Competition, list[Player], list[Match]]):
+    (_, players, matches) = simkro_setup
+    matchups = create_matchups(matches, players)
+    # Check the correct number of matchups.
+    assert len(matchups) == len(players) // 2
+    # Check all players are paired once.
+    paired_players = [m["white"] for m in matchups] + [m["black"] for m in matchups]
+    assert set(paired_players) == set(players)
