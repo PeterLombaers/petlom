@@ -109,9 +109,7 @@ def test_list_competition(competition_factory, client):
 
 def test_update_competition(competition, client, session):
     new_name = "foo"
-    res = client.patch(
-        f"/competitions/{competition.name}/", json={"name": new_name}
-    )
+    res = client.patch(f"/competitions/{competition.name}/", json={"name": new_name})
     res.raise_for_status()
     session.refresh(competition)
     assert competition.name == new_name
@@ -320,3 +318,13 @@ def test_delete_match(match_obj: Match, client: TestClient, session: Session):
     res = client.delete(f"/matches/{match_obj.id}/")
     res.raise_for_status()
     assert len(session.scalars(select(Match)).all()) == 0
+
+
+def test_retrieve_competition_round(
+    simkro_setup: tuple[Competition, list[Player], list[Match]], client: TestClient
+):
+    (competition, _, matches) = simkro_setup
+    r1_matches = [m for m in matches if m.round == 1]
+    res = client.get(f"/competitions/{competition.name}/round/1")
+    res.raise_for_status()
+    assert set(m["id"] for m in res.json()) == set(m.id for m in r1_matches)

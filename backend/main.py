@@ -106,6 +106,18 @@ def update_competition(
     return db_competition
 
 
+@app.get("/competitions/{name}/round/{round_nr}")
+def retrieve_competition_round(
+    name: str, round_nr: int, session: SessionDep
+) -> list[MatchPublic]:
+    matches = session.exec(
+        select(Match)
+        .where(Match.competition_name == name)
+        .where(Match.round == round_nr)
+    ).all()
+    return matches
+
+
 @app.post("/rating_types/")
 def create_rating_type(
     rating_type: RatingTypeBase, session: SessionDep
