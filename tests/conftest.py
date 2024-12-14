@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+from backend.competitions import CompetitionType
 from backend.main import app, get_session
 from backend.models import Competition, Match, Player, RatingType, Result
 
@@ -67,6 +68,7 @@ def CompetitionFactory(session: Session) -> Callable[..., Competition]:
             sqlalchemy_session_persistence = "commit"
 
         name = "interne_2024"
+        type = CompetitionType.SIMKRO
 
     return CompetitionFactory
 

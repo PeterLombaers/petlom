@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
+from backend.competitions import CompetitionType
 from backend.models import Competition, Match, Player, PlayerRating, RatingType, Result
 
 
@@ -69,12 +70,15 @@ def test_delete_rating_type_cascade_ratings(
 
 def test_create_competition(session: Session, client: TestClient):
     competition_name = "interne"
-    res = client.post("/competitions/", json={"name": competition_name})
+    res = client.post(
+        "/competitions/", json={"name": competition_name, "type": "simkro"}
+    )
     res.raise_for_status()
     competition = session.scalars(select(Competition)).all()
     assert len(competition) == 1
     competition = competition[0]
     assert competition.name == competition_name
+    assert competition.type == CompetitionType.SIMKRO
     for key in {"created_at", "updated_at"}:
         assert key in dict(competition)
 
@@ -105,7 +109,9 @@ def test_list_competition(competition_factory, client):
 
 def test_update_competition(competition, client, session):
     new_name = "foo"
-    res = client.patch(f"/competitions/{competition.name}/", json={"name": new_name})
+    res = client.patch(
+        f"/competitions/{competition.name}/", json={"name": new_name}
+    )
     res.raise_for_status()
     session.refresh(competition)
     assert competition.name == new_name

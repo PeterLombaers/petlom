@@ -4,6 +4,8 @@ from enum import Enum
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
+from backend.competitions import CompetitionType
+
 
 class Result(str, Enum):
     WHITE_WIN = "1-0"
@@ -104,6 +106,7 @@ class PlayerUpdate(PlayerBase):
 
 class CompetitionBase(SQLModel):
     name: str = Field(unique=True, primary_key=True)
+    type: CompetitionType
 
 
 class Competition(CompetitionBase, table=True):
@@ -122,6 +125,7 @@ class CompetitionPublic(CompetitionBase):
 
 class CompetitionUpdate(CompetitionBase):
     name: str | None = None
+    type: CompetitionType | None = None
 
 
 class MatchBase(SQLModel):
