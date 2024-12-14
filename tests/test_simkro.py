@@ -1,5 +1,7 @@
 from collections.abc import Callable
 
+import pytest
+
 from backend.competitions.simkro import (
     calculate_attendance_score,
     calculate_base_penalty_score,
@@ -237,9 +239,26 @@ def test_pick_color(competition: Competition, player_factory, match_factory):
     }
 
 
-def test_create_matchups(simkro_setup: tuple[Competition, list[Player], list[Match]]):
+def test_create_matchups(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    player_factory: Callable[..., Player],
+):
     (_, players, matches) = simkro_setup
     matchups = create_matchups(matches, players)
+    # Check the correct number of matchups.
+    assert len(matchups) == len(players) // 2
+    # Check all players are paired once.
+    paired_players = [m["white"] for m in matchups] + [m["black"] for m in matchups]
+    assert set(paired_players) == set(players)
+
+    # Check that an odd number of players fails.
+    players.append(player_factory())
+    with pytest.raises(ValueError):
+        create_matchups(matches, players)
+    # Check that it also works with more than 10 players.
+    players += [player_factory() for _ in range(21)]
+    matchups = create_matchups(matches, players)
+
     # Check the correct number of matchups.
     assert len(matchups) == len(players) // 2
     # Check all players are paired once.

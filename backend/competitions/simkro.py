@@ -477,6 +477,10 @@ def pick_color(
 def _calculate_all_pairings(
     players: list[Player],
 ) -> list[list[tuple[Player, Player]]]:
+    if len(players) % 2 == 1:
+        raise ValueError(
+            f"Number of players should be even. len(players): {len(players)}"
+        )
     if len(players) == 2:
         # Base case: if only two items left, one pair can be formed
         return [[tuple(players)]]
@@ -523,12 +527,16 @@ def create_matchups(
     matches: list[Match], players: list[Player]
 ) -> dict[Literal["white", "black"], Player]:
     # Step 1: Set up the data.
-    if len(players) // 2 == 1:
-        raise ValueError("Number of players should be even.")
+    if len(players) % 2 == 1:
+        raise ValueError(
+            f"Number of players should be even. len(players): {len(players)}"
+        )
     saldo = calculate_saldo(matches)
     color_saldo = calculate_color_saldo(matches)
     penalty_score = calculate_penalty_score(matches, players)
     # Step 2
+    # Make sure we don't mutate the input list:
+    players = players.copy()
     players.sort(key=lambda p: saldo[p], reverse=True)
     matchups = []
     # Step 3, 4 and 5: Alternatingly create the best matchup for the highest and lowest
@@ -543,6 +551,7 @@ def create_matchups(
             enumerate(players), key=lambda x: penalty_score[player][x[1]]
         )[0]
         opponent = players.pop(best_opponent_idx)
+        assert len(players) % 2 == 0
         matchups.append(
             _pick_color_from_lists(
                 player1=player,
