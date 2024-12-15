@@ -328,3 +328,42 @@ def test_retrieve_competition_round(
     res = client.get(f"/competitions/{competition.name}/round/1")
     res.raise_for_status()
     assert set(m["id"] for m in res.json()) == set(m.id for m in r1_matches)
+
+
+def test_create_competition_round(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    player_factory: Callable[..., Player],
+    client: TestClient,
+):
+    (competition, players, matches) = simkro_setup
+    players += [player_factory() for _ in range(20)]
+    player_ids = [player.id for player in players]
+    max_round_nr = max(m.round for m in matches)
+    # Check only the next round can be created.
+    for round_nr in range(1, max_round_nr + 1):
+        res = client.post(
+            f"/competitions/{competition.name}/round/{round_nr}",
+            json=player_ids,
+        )
+        assert res.status_code == 400
+    res = client.post(
+        f"/competitions/{competition.name}/round/{max_round_nr + 2}",
+        json=player_ids,
+    )
+    assert res.status_code == 400
+
+    correct_round_nr = max_round_nr + 1
+    res = client.post(
+        f"/competitions/{competition.name}/round/{correct_round_nr}",
+        json=player_ids,
+    )
+    res.raise_for_status()
+    created_matches = res.json()
+    assert len(created_matches) == len(player_ids) // 2
+    created_player_ids = [m["player_white_id"] for m in created_matches] + [
+        m["player_black_id"] for m in created_matches
+    ]
+    assert set(created_player_ids) == set(player_ids)
+    assert set(m["board"] for m in created_matches) == set(
+        range(1, len(player_ids) // 2 + 1)
+    )

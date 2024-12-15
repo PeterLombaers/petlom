@@ -4,6 +4,7 @@ from typing import Annotated, Type, TypeVar
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Session, select
 
+from backend.competitions.simkro import create_matchups
 from backend.db import init_db, init_engine
 from backend.models import (
     Competition,
@@ -111,6 +112,60 @@ def retrieve_competition_round(
         .where(Match.competition_name == name)
         .where(Match.round == round_nr)
     ).all()
+    return matches
+
+
+@app.post("/competitions/{name}/round/{round_nr}")
+def create_competition_round(
+    name: str, round_nr: int, player_ids: list[int], session: SessionDep
+) -> list[MatchPublic]:
+    competition = find_object(model=Competition, identifier=name, session=session)
+
+    # Check if the previous round exists and the current or later rounds do not exist.
+    if round_nr > 1:
+        previous_round_match = session.exec(
+            select(Match).where(Match.round == round_nr - 1)
+        ).first()
+        if not previous_round_match:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Unable to create round {round_nr} when round {round_nr - 1}"
+                    " does not yet exist."
+                ),
+            )
+    later_round_matches = session.exec(
+        select(Match.round).where(Match.round >= round_nr)
+    ).all()
+    if later_round_matches:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unable to create round {round_nr} when matches in rounds"
+                f" {later_round_matches} already exist."
+            ),
+        )
+
+    # Check if the players all exist.
+    db_players = session.exec(select(Player).where(Player.id.in_(player_ids))).all()
+    db_player_ids = set(db_player.id for db_player in db_players)
+    non_existing_player_ids = [
+        player_id for player_id in player_ids if player_id not in db_player_ids
+    ]
+    if non_existing_player_ids:
+        raise HTTPException(
+            status_code=404, detail=f"Player ids not found: {non_existing_player_ids}"
+        )
+
+    previous_matches = session.exec(select(Match).where(Match.round < round_nr)).all()
+    matches = create_matchups(
+        matches=previous_matches,
+        players=db_players,
+        round_nr=round_nr,
+        competition=competition,
+    )
+    session.add_all(matches)
+    session.commit()
     return matches
 
 
