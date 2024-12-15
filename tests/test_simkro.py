@@ -243,24 +243,36 @@ def test_create_matchups(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     player_factory: Callable[..., Player],
 ):
-    (_, players, matches) = simkro_setup
-    matchups = create_matchups(matches, players)
+    (competition, players, matches) = simkro_setup
+    matchups = create_matchups(
+        matches=matches, players=players, round_nr=1, competition=competition
+    )
     # Check the correct number of matchups.
     assert len(matchups) == len(players) // 2
     # Check all players are paired once.
-    paired_players = [m["white"] for m in matchups] + [m["black"] for m in matchups]
+    paired_players = [m.player_white for m in matchups] + [
+        m.player_black for m in matchups
+    ]
     assert set(paired_players) == set(players)
+    # Check that board numbers are correct.
+    assert set(m.board for m in matchups) == set(range(1, len(matchups) + 1))
 
     # Check that an odd number of players fails.
     players.append(player_factory())
     with pytest.raises(ValueError):
-        create_matchups(matches, players)
+        create_matchups(
+            matches=matches, players=players, competition=competition, round_nr=2
+        )
     # Check that it also works with more than 10 players.
     players += [player_factory() for _ in range(21)]
-    matchups = create_matchups(matches, players)
+    matchups = create_matchups(
+        matches=matches, players=players, competition=competition, round_nr=2
+    )
 
     # Check the correct number of matchups.
     assert len(matchups) == len(players) // 2
     # Check all players are paired once.
-    paired_players = [m["white"] for m in matchups] + [m["black"] for m in matchups]
+    paired_players = [m.player_white for m in matchups] + [
+        m.player_black for m in matchups
+    ]
     assert set(paired_players) == set(players)

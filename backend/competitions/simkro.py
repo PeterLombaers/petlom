@@ -65,7 +65,7 @@ import random
 from collections import defaultdict
 from typing import Literal
 
-from backend.models import Match, Player, Result
+from backend.models import Competition, Match, Player, Result
 
 # The number of rounds that scores are influenced by a high amount. This has influence
 # on attendence scores, results scores, etc.
@@ -524,8 +524,8 @@ def _pick_color_from_lists(
 
 
 def create_matchups(
-    matches: list[Match], players: list[Player]
-) -> dict[Literal["white", "black"], Player]:
+    matches: list[Match], players: list[Player], round_nr: int, competition: Competition
+) -> list[Match]:
     # Step 1: Set up the data.
     if len(players) % 2 == 1:
         raise ValueError(
@@ -542,6 +542,7 @@ def create_matchups(
     # Step 3, 4 and 5: Alternatingly create the best matchup for the highest and lowest
     # saldo player until there are only a few left.
     pair_best = True
+    board_nr = 1
     while len(players) > OPTIMAL_PAIRING_THRESHOLD:
         if pair_best:
             player = players.pop(0)
@@ -552,14 +553,22 @@ def create_matchups(
         )[0]
         opponent = players.pop(best_opponent_idx)
         assert len(players) % 2 == 0
+        player_colors = _pick_color_from_lists(
+            player1=player,
+            player2=opponent,
+            color_saldo=color_saldo,
+            matches=matches,
+        )
         matchups.append(
-            _pick_color_from_lists(
-                player1=player,
-                player2=opponent,
-                color_saldo=color_saldo,
-                matches=matches,
+            Match(
+                player_white=player_colors["white"],
+                player_black=player_colors["black"],
+                competition=competition,
+                round=round_nr,
+                board=board_nr,
             )
         )
+        board_nr += 1
         pair_best = not pair_best
 
     # Step 6: Calculate all remaining pairings.
@@ -571,12 +580,20 @@ def create_matchups(
         ),
     )
     for player1, player2 in best_remaining_pairing:
+        player_colors = _pick_color_from_lists(
+            player1=player1,
+            player2=player2,
+            color_saldo=color_saldo,
+            matches=matches,
+        )
         matchups.append(
-            _pick_color_from_lists(
-                player1=player1,
-                player2=player2,
-                color_saldo=color_saldo,
-                matches=matches,
+            Match(
+                player_white=player_colors["white"],
+                player_black=player_colors["black"],
+                competition=competition,
+                round=round_nr,
+                board=board_nr,
             )
         )
+        board_nr += 1
     return matchups
