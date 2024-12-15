@@ -177,6 +177,19 @@ def create_competition_round(
     return matches
 
 
+@app.delete("/competitions/{name}/round/{round_nr}")
+def delete_competition_round(name: str, round_nr: int, session: SessionDep):
+    competition = find_object(model=Competition, identifier=name, session=session)
+    round_matches = session.exec(
+        select(Match)
+        .where(Match.round == round_nr)
+        .where(Match.competition == competition)
+    )
+    for m in round_matches:
+        session.delete(m)
+    {"ok": True}
+
+
 @app.post("/rating_types/")
 def create_rating_type(
     rating_type: RatingTypeBase, session: SessionDep

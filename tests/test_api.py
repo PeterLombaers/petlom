@@ -384,3 +384,20 @@ def test_create_competition_round(
         range(1, len(player_ids) // 2 + 1)
     )
     assert other_match.id not in set(m["id"] for m in created_matches)
+
+
+def test_delete_competition_round(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    client: TestClient,
+    session: Session,
+):
+    (competition, _, matches) = simkro_setup
+    assert len(list(m for m in matches if m.round == 2)) > 0
+    res = client.delete(f"/competitions/{competition.name}/round/2")
+    res.raise_for_status()
+    db_matches = session.exec(select(Match)).all()
+    for m in matches:
+        if m.round == 2:
+            assert m not in db_matches
+        else:
+            assert m in db_matches
