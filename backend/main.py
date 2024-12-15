@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Type, TypeVar
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from sqlalchemy import func
 from sqlmodel import Session, select
 
 from backend.db import init_db, init_engine
@@ -41,6 +40,16 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
+T = TypeVar("SQLModel")
+
+
+def find_object(model: Type[T], identifier: str | int, session: SessionDep) -> T:
+    obj = session.get(model, identifier)
+    if not obj:
+        raise HTTPException(status_code=404, detail=f"{model.__name__} not found")
+    return obj
+
+
 @app.on_event("startup")
 def on_startup():
     init_db(engine)
@@ -69,21 +78,12 @@ def list_competitions(
 
 @app.get("/competitions/{name}")
 def retrieve_competition(name: str, session: SessionDep) -> CompetitionPublic:
-    competition = session.exec(
-        select(Competition).where(func.lower(Competition.name) == name.lower())
-    ).first()
-    if not competition:
-        raise HTTPException(status_code=404, detail="Competition not found")
-    return competition
+    return find_object(model=Competition, identifier=name, session=session)
 
 
 @app.delete("/competitions/{name}")
 def delete_competition(name: str, session: SessionDep):
-    competition = session.exec(
-        select(Competition).where(func.lower(Competition.name) == name.lower())
-    ).first()
-    if not competition:
-        raise HTTPException(status_code=404, detail="Competition not found")
+    competition = find_object(model=Competition, identifier=name, session=session)
     session.delete(competition)
     session.commit()
     return {"ok": True}
@@ -93,11 +93,7 @@ def delete_competition(name: str, session: SessionDep):
 def update_competition(
     name: str, competition: CompetitionUpdate, session: SessionDep
 ) -> CompetitionPublic:
-    db_competition = session.exec(
-        select(Competition).where(func.lower(Competition.name) == name.lower())
-    ).first()
-    if not db_competition:
-        raise HTTPException(status_code=404, detail="Competition not found")
+    db_competition = find_object(model=Competition, identifier=name, session=session)
     db_competition.sqlmodel_update(competition.model_dump(exclude_unset=True))
     db_competition.updated_at = datetime.now()
     session.add(db_competition)
@@ -141,21 +137,12 @@ def list_rating_types(
 
 @app.get("/rating_types/{name}")
 def retrieve_rating_type(name: str, session: SessionDep) -> RatingTypePublic:
-    rating_type = session.exec(
-        select(RatingType).where(func.lower(RatingType.name) == name.lower())
-    ).first()
-    if not rating_type:
-        raise HTTPException(status_code=404, detail="Rating type not found")
-    return rating_type
+    return find_object(model=RatingType, identifier=name, session=session)
 
 
 @app.delete("/rating_types/{name}")
 def delete_rating_type(name: str, session: SessionDep):
-    rating_type = session.exec(
-        select(RatingType).where(func.lower(RatingType.name) == name.lower())
-    ).first()
-    if not rating_type:
-        raise HTTPException(status_code=404, detail="Rating type not found")
+    rating_type = find_object(model=RatingType, identifier=name, session=session)
     session.delete(rating_type)
     session.commit()
     return {"ok": True}
@@ -165,11 +152,7 @@ def delete_rating_type(name: str, session: SessionDep):
 def update_rating_type(
     name: str, rating_type: RatingTypeUpdate, session: SessionDep
 ) -> RatingTypePublic:
-    db_rating_type = session.exec(
-        select(RatingType).where(func.lower(RatingType.name) == name.lower())
-    ).first()
-    if not db_rating_type:
-        raise HTTPException(status_code=404, detail="Rating type not found")
+    db_rating_type = find_object(model=RatingType, identifier=name, session=session)
     db_rating_type.sqlmodel_update(rating_type.model_dump(exclude_unset=True))
     db_rating_type.updated_at = datetime.now()
     session.add(db_rating_type)
@@ -218,9 +201,7 @@ def retrieve_player(player_id: int, session: SessionDep) -> PlayerPublic:
 
 @app.delete("/players/{player_id}/")
 def delete_player(player_id: int, session: SessionDep):
-    player = session.get(Player, player_id)
-    if not player:
-        raise HTTPException(status_code=404, detail="Player not found")
+    player = find_object(model=Player, identifier=player_id, session=session)
     session.delete(player)
     session.commit()
     return {"ok": True}
@@ -230,9 +211,7 @@ def delete_player(player_id: int, session: SessionDep):
 def update_player(
     player_id: int, player: PlayerUpdate, session: SessionDep
 ) -> PlayerPublic:
-    db_player = session.get(Player, player_id)
-    if not db_player:
-        raise HTTPException(status_code=404, detail="Player not found")
+    db_player = find_object(model=Player, identifier=player_id, session=session)
     db_player.sqlmodel_update(player.model_dump(exclude_unset=True))
     db_player.updated_at = datetime.now()
     if player.ratings is not None:
@@ -279,17 +258,13 @@ def list_matches(
 
 @app.get("/matches/{id}")
 def retrieve_match(id: int, session: SessionDep) -> MatchPublic:
-    match_obj = session.get(Match, id)
-    if not match_obj:
-        raise HTTPException(status_code=404, detail="Match not found")
+    match_obj = find_object(model=Match, identifier=id, session=session)
     return match_obj
 
 
 @app.delete("/matches/{id}")
 def delete_match(id: int, session: SessionDep):
-    match_obj = match_obj = session.get(Match, id)
-    if not match_obj:
-        raise HTTPException(status_code=404, detail="Match not found")
+    match_obj = find_object(model=Match, identifier=id, session=session)
     session.delete(match_obj)
     session.commit()
     return {"ok": True}
@@ -297,9 +272,7 @@ def delete_match(id: int, session: SessionDep):
 
 @app.patch("/matches/{id}")
 def update_match(id: int, match_obj: MatchUpdate, session: SessionDep) -> MatchPublic:
-    db_match = session.get(Match, id)
-    if not db_match:
-        raise HTTPException(status_code=404, detail="Match not found")
+    db_match = find_object(model=Match, identifier=id, session=session)
     db_match.sqlmodel_update(match_obj.model_dump(exclude_unset=True))
     db_match.updated_at = datetime.now()
     session.add(db_match)
