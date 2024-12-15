@@ -129,7 +129,7 @@ class CompetitionUpdate(CompetitionBase):
 
 
 class MatchBase(SQLModel):
-    __table_args__ = (UniqueConstraint("round", "board"),)
+    __table_args__ = (UniqueConstraint("round", "board", "competition_name"),)
     player_white_id: int = Field(foreign_key="player.id")
     player_black_id: int = Field(foreign_key="player.id")
     competition_name: str = Field(foreign_key="competition.name", ondelete="CASCADE")
