@@ -321,24 +321,40 @@ def test_delete_match(match_obj: Match, client: TestClient, session: Session):
 
 
 def test_retrieve_competition_round(
-    simkro_setup: tuple[Competition, list[Player], list[Match]], client: TestClient
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    client: TestClient,
+    competition_factory: Callable[..., Competition],
+    match_factory: Callable[..., Match],
 ):
     (competition, _, matches) = simkro_setup
+    other_competition = competition_factory(name="other")
+    other_match = match_factory(competition=other_competition, round=1)
     r1_matches = [m for m in matches if m.round == 1]
     res = client.get(f"/competitions/{competition.name}/round/1")
     res.raise_for_status()
+    for m in res.json():
+        assert m["competition_name"] == competition.name
     assert set(m["id"] for m in res.json()) == set(m.id for m in r1_matches)
+    assert other_match.id not in set(m["id"] for m in res.json())
 
 
 def test_create_competition_round(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     player_factory: Callable[..., Player],
+    competition_factory: Callable[..., Competition],
+    match_factory: Callable[..., Match],
     client: TestClient,
 ):
     (competition, players, matches) = simkro_setup
     players += [player_factory() for _ in range(20)]
     player_ids = [player.id for player in players]
     max_round_nr = max(m.round for m in matches)
+
+    # Create data in other competition to check it does not interfere with current
+    # competition.
+    other_competition = competition_factory(name="other")
+    other_match = match_factory(competition=other_competition, round=max_round_nr + 1)
+    match_factory(competition=other_competition, round=max_round_nr + 2)
     # Check only the next round can be created.
     for round_nr in range(1, max_round_nr + 1):
         res = client.post(
@@ -367,3 +383,4 @@ def test_create_competition_round(
     assert set(m["board"] for m in created_matches) == set(
         range(1, len(player_ids) // 2 + 1)
     )
+    assert other_match.id not in set(m["id"] for m in created_matches)

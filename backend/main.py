@@ -124,7 +124,9 @@ def create_competition_round(
     # Check if the previous round exists and the current or later rounds do not exist.
     if round_nr > 1:
         previous_round_match = session.exec(
-            select(Match).where(Match.round == round_nr - 1)
+            select(Match)
+            .where(Match.round == round_nr - 1)
+            .where(Match.competition == competition)
         ).first()
         if not previous_round_match:
             raise HTTPException(
@@ -135,7 +137,9 @@ def create_competition_round(
                 ),
             )
     later_round_matches = session.exec(
-        select(Match.round).where(Match.round >= round_nr)
+        select(Match)
+        .where(Match.round >= round_nr)
+        .where(Match.competition == competition)
     ).all()
     if later_round_matches:
         raise HTTPException(
@@ -157,7 +161,11 @@ def create_competition_round(
             status_code=404, detail=f"Player ids not found: {non_existing_player_ids}"
         )
 
-    previous_matches = session.exec(select(Match).where(Match.round < round_nr)).all()
+    previous_matches = session.exec(
+        select(Match)
+        .where(Match.competition == competition)
+        .where(Match.round < round_nr)
+    ).all()
     matches = create_matchups(
         matches=previous_matches,
         players=db_players,
