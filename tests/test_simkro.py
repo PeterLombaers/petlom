@@ -9,6 +9,7 @@ from backend.competitions.simkro import (
     calculate_games_since_last_played,
     calculate_opponent_saldo,
     calculate_point_total,
+    calculate_ranking,
     calculate_result_score,
     calculate_saldo,
     create_matchups,
@@ -276,3 +277,11 @@ def test_create_matchups(
         m.player_black for m in matchups
     ]
     assert set(paired_players) == set(players)
+
+
+def test_calculate_ranking(simkro_setup: tuple[Competition, list[Player], list[Match]]):
+    _, players, matches = simkro_setup
+    ranking = calculate_ranking(matches)
+    assert len(ranking) == len(players)
+    for i in range(len(ranking) - 1):
+        assert ranking[i].points > ranking[i + 1].points

@@ -179,3 +179,15 @@ class MatchUpdate(MatchBase):
     round: int | None = None
     board: int | None = None
     result: Result | None = None
+
+
+class SimkroRank(SQLModel):
+    position: int
+    player: PlayerPublic
+    games_played: int
+    saldo: int
+    points: int
+    color_saldo: int
+    wins: int
+    draws: int
+    losses: int

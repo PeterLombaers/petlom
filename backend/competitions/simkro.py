@@ -65,7 +65,7 @@ import random
 from collections import defaultdict
 from typing import Literal
 
-from backend.models import Competition, Match, Player, Result
+from backend.models import Competition, Match, Player, Result, SimkroRank
 
 # The number of rounds that scores are influenced by a high amount. This has influence
 # on attendence scores, results scores, etc.
@@ -597,3 +597,55 @@ def create_matchups(
         )
         board_nr += 1
     return matchups
+
+
+def calculate_games_played(matches: list[Match]) -> defaultdict[Player, int]:
+    output = defaultdict(int)
+    for m in matches:
+        output[m.player_white] += 1
+        output[m.player_black] += 1
+    return output
+
+
+def calculate_win_draw_loss(
+    matches: list[Match],
+) -> defaultdict[Player, list[int]]:
+    output = defaultdict(lambda: [0, 0, 0])
+    for m in matches:
+        match m.result:
+            case Result.WHITE_WIN:
+                output[m.player_white][0] += 1
+                output[m.player_black][2] += 1
+            case Result.DRAW:
+                output[m.player_white][1] += 1
+                output[m.player_black][1] += 1
+            case Result.BLACK_WIN:
+                output[m.player_white][2] += 1
+                output[m.player_black][0] += 1
+    return output
+
+
+def calculate_ranking(matches: list[Match]) -> list[SimkroRank]:
+    games_played = calculate_games_played(matches)
+    saldo = calculate_saldo(matches)
+    points = calculate_point_total(matches)
+    color_saldo = calculate_color_saldo(matches)
+    win_draw_loss = calculate_win_draw_loss(matches)
+    ranking = []
+    for idx, (player, points) in enumerate(
+        sorted(points.items(), key=lambda x: x[1], reverse=True)
+    ):
+        ranking.append(
+            SimkroRank(
+                position=idx + 1,
+                player=player,
+                games_played=games_played[player],
+                saldo=saldo[player],
+                points=points,
+                color_saldo=color_saldo[player],
+                wins=win_draw_loss[player][0],
+                draws=win_draw_loss[player][1],
+                losses=win_draw_loss[player][2],
+            )
+        )
+    return ranking
