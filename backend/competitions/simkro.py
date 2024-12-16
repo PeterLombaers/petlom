@@ -633,7 +633,7 @@ def calculate_ranking(matches: list[Match]) -> list[SimkroRank]:
     win_draw_loss = calculate_win_draw_loss(matches)
     ranking = []
     for idx, (player, points) in enumerate(
-        sorted(points.items(), key=lambda x: x[1], reverse=True)
+        sorted(points.items(), key=lambda x: (-x[1], x[0].name))
     ):
         ranking.append(
             SimkroRank(

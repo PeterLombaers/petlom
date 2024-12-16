@@ -284,4 +284,21 @@ def test_calculate_ranking(simkro_setup: tuple[Competition, list[Player], list[M
     ranking = calculate_ranking(matches)
     assert len(ranking) == len(players)
     for i in range(len(ranking) - 1):
-        assert ranking[i].points > ranking[i + 1].points
+        assert ranking[i].points >= ranking[i + 1].points
+    # The point total should be: [524, 484, 501, 518, 496, 512, 545, 498]
+    assert [rank.player.id for rank in ranking] == [7, 1, 4, 6, 3, 8, 5, 2]
+
+    # The point total for round 1 should be: [514, 492, 503, 503, 492, 514, 500, 500].
+    # Make sure players 0,5 and 2,3 and 1,4 in the list are ordered alphabetically.
+    players[0].name = "a"
+    players[5].name = "b"
+    players[2].name = "a"
+    players[3].name = "b"
+    players[1].name = "a"
+    players[4].name = "b"
+    r1_matches = [m for m in matches if m.round == 1]
+    r1_ranking = calculate_ranking(r1_matches)
+    assert len(r1_ranking) == 6
+    for i in range(5):
+        assert r1_ranking[i].points >= r1_ranking[i + 1].points
+    assert [rank.player.id for rank in r1_ranking] == [1, 6, 3, 4, 2, 5]
