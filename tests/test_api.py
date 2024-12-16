@@ -401,3 +401,19 @@ def test_delete_competition_round(
             assert m not in db_matches
         else:
             assert m in db_matches
+
+
+def test_competition_ranking(
+    simkro_setup: tuple[Competition, list[Player], list[Match]], client: TestClient
+):
+    competition, players, _ = simkro_setup
+    res = client.get(f"/competitions/{competition.name}/ranking")
+    res.raise_for_status()
+    ranking = res.json()
+    assert len(ranking) == len(players)
+
+    # Last two players did not play in the first round.
+    res = client.get(f"/competitions/{competition.name}/round/1/ranking")
+    res.raise_for_status()
+    ranking = res.json()
+    assert len(ranking) == len(players) - 2

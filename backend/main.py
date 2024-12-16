@@ -4,7 +4,7 @@ from typing import Annotated, Type, TypeVar
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Session, select
 
-from backend.competitions.simkro import create_matchups
+from backend.competitions.simkro import calculate_ranking, create_matchups
 from backend.db import init_db, init_engine
 from backend.models import (
     Competition,
@@ -24,6 +24,7 @@ from backend.models import (
     RatingTypeBase,
     RatingTypePublic,
     RatingTypeUpdate,
+    SimkroRank,
 )
 
 app = FastAPI()
@@ -188,6 +189,26 @@ def delete_competition_round(name: str, round_nr: int, session: SessionDep):
     for m in round_matches:
         session.delete(m)
     {"ok": True}
+
+
+@app.get("/competitions/{name}/round/{round_nr}/ranking")
+def retrieve_competition_round_ranking(
+    name: str, round_nr: int, session: SessionDep
+) -> list[SimkroRank]:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    matches = session.exec(
+        select(Match)
+        .where(Match.round <= round_nr)
+        .where(Match.competition == competition)
+    ).all()
+    return calculate_ranking(matches)
+
+
+@app.get("/competitions/{name}/ranking")
+def retrieve_competition_ranking(name: str, session: SessionDep) -> list[SimkroRank]:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    matches = session.exec(select(Match).where(Match.competition == competition)).all()
+    return calculate_ranking(matches)
 
 
 @app.post("/rating_types/")
