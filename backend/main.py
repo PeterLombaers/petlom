@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Annotated, Type, TypeVar
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
 from backend.competitions.simkro import calculate_ranking, create_matchups
@@ -28,6 +29,14 @@ from backend.models import (
 )
 
 app = FastAPI()
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # List of origins allowed to make requests
+    allow_credentials=True,  # Allow cookies and authentication credentials
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Allow all headers (e.g., Authorization, Content-Type)
+)
 engine = init_engine(
     fp="database.db", connect_args={"check_same_thread": False}, echo=True
 )
