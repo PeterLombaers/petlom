@@ -11,13 +11,17 @@ const competitions: CompetitionProps[] = [
 
 function App() {
   return (
-    <div>
-      <h2>PetLom</h2>
-      <h4>Manage Chess Competitions</h4>
-      {competitions.map((competition) => {
-        return <Competition {...competition} />;
-      })}
-    </div>
+    <body>
+      <header>
+        <h2>PetLom</h2>
+        <h4>Manage Chess Competitions</h4>
+      </header>
+      <main>
+        {competitions.map((competition) => {
+          return <Competition {...competition} />;
+        })}
+      </main>
+    </body>
   );
 }
 

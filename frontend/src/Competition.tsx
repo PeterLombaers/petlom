@@ -9,11 +9,11 @@ export type CompetitionProps = {
 export function Competition(props: CompetitionProps) {
   const { name, type, created_at, updated_at } = props;
   return (
-    <article>
+    <article className="container competition">
       <h2>{name}</h2>
       <p>Type: {type}</p>
-      <p>Last Updated: {updated_at.toISOString()}</p>
-      <p>Created: {created_at.toISOString()}</p>
+      <p>Last Updated: {updated_at.toDateString()}</p>
+      <p>Created: {created_at.toDateString()}</p>
     </article>
   );
 }
