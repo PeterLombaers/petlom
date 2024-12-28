@@ -1,11 +1,16 @@
 import { CompetitionList } from "./CompetitionList";
+import Typography from "@mui/material/Typography";
 
 function App() {
   return (
     <>
       <header>
-        <h2>PetLom</h2>
-        <h4>Manage Chess Competitions</h4>
+        <Typography variant="h2" align="center">
+          PetLom
+        </Typography>
+        <Typography variant="subtitle1" align="center">
+          Manage Chess Competitions
+        </Typography>
       </header>
       <main>
         <CompetitionList />

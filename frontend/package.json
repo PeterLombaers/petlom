@@ -11,6 +11,11 @@
     "generate-client": "npx openapi-typescript http://localhost:8000/openapi.json -o ./src/client/schema.d.ts"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@fontsource/roboto": "^5.1.0",
+    "@mui/icons-material": "^6.3.0",
+    "@mui/material": "^6.3.0",
     "@tanstack/react-query": "^5.62.10",
     "openapi-fetch": "^0.13.3",
     "openapi-react-query": "^0.2.8",

@@ -1,3 +1,4 @@
+import { Grid2 as Grid } from "@mui/material";
 import { Competition } from "./Competition";
 import { apiClient } from "./utils";
 
@@ -15,16 +16,14 @@ export const CompetitionList = () => {
   }
 
   return (
-    <div className="container">
-      <ul>
-        {data.map((competition) => {
-          return (
-            <li key={competition.name}>
-              <Competition {...competition} />
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <Grid container spacing={2}>
+      {data.map((competition) => {
+        return (
+          <Grid size={4} key={competition.name}>
+            <Competition {...competition} />
+          </Grid>
+        );
+      })}
+    </Grid>
   );
 };
