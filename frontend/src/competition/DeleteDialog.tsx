@@ -16,10 +16,16 @@ import React, { useState } from "react";
 export interface DeleteDialogProps {
   open: boolean;
   name: string;
+  setOpen: (value: boolean) => void;
   onClose: (value: string) => void;
 }
 
-export function DeleteDialog({ open, name, onClose }: DeleteDialogProps) {
+export function DeleteDialog({
+  open,
+  name,
+  setOpen,
+  onClose,
+}: DeleteDialogProps) {
   const [deleteInput, setDeleteInput] = useState("");
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -34,6 +40,7 @@ export function DeleteDialog({ open, name, onClose }: DeleteDialogProps) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/competitions/"] });
+      setOpen(false);
     },
   });
 

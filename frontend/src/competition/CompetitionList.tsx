@@ -3,6 +3,7 @@ import { Competition } from "./Competition";
 import { apiClient } from "../utils";
 import { components } from "../client/schema";
 import { useQuery } from "@tanstack/react-query";
+import CreateButton from "./CreateButton";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
@@ -43,6 +44,7 @@ export const CompetitionList = () => {
           );
         })}
       </Grid>
+      <CreateButton />
     </Container>
   );
 };

@@ -1,8 +1,8 @@
 import { Button } from "@mui/material";
 import { useState } from "react";
-import { DeleteDialog } from "./DeleteDialog";
+import CreateDialog from "./CreateDialog";
 
-export default function DeleteButton({ name }: { name: string }) {
+export default function DeleteButton() {
   const [open, setOpen] = useState(false);
 
   const handleClose = () => {
@@ -15,13 +15,12 @@ export default function DeleteButton({ name }: { name: string }) {
 
   return (
     <>
-      <Button onClick={handleClick}>Delete</Button>
-      <DeleteDialog
-        name={name}
+      <Button onClick={handleClick}>New</Button>
+      <CreateDialog
         open={open}
         setOpen={setOpen}
         onClose={handleClose}
-      ></DeleteDialog>
+      ></CreateDialog>
     </>
   );
 }
