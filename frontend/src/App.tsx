@@ -1,4 +1,4 @@
-import { CompetitionList } from "./CompetitionList";
+import { CompetitionList } from "./competition/CompetitionList";
 import Typography from "@mui/material/Typography";
 
 function App() {

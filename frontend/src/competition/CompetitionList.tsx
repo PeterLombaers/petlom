@@ -1,7 +1,7 @@
 import { Grid2 as Grid, Container } from "@mui/material";
 import { Competition } from "./Competition";
-import { apiClient } from "./utils";
-import { components } from "./client/schema";
+import { apiClient } from "../utils";
+import { components } from "../client/schema";
 import { useQuery } from "@tanstack/react-query";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
@@ -21,7 +21,7 @@ export const CompetitionList = () => {
     isPending,
     isError,
   } = useQuery({
-    queryKey: ["GET", "/competitions/"],
+    queryKey: ["/competitions/", "GET"],
     queryFn: getCompetitions,
   });
 
