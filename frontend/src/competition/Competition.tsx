@@ -1,6 +1,6 @@
 import { Card, Link, Typography } from "@mui/material";
 import type { components } from "../client/schema";
-import CompetitionDeleteButton from "./CompetitionDeleteButton";
+import DeleteButton from "./DeleteButton";
 
 type CompetitionProps = components["schemas"]["CompetitionPublic"];
 
@@ -18,7 +18,7 @@ export function Competition(props: CompetitionProps) {
       <Typography variant="subtitle2">
         Created: {parsedUpdatedDate.toDateString()}
       </Typography>
-      <CompetitionDeleteButton name={name} />
+      <DeleteButton name={name} />
     </Card>
   );
 }
