@@ -1,18 +1,22 @@
-import { Card, Container, Link, Typography } from "@mui/material";
+import { Card, Link, Typography } from "@mui/material";
 import type { components } from "./client/schema";
 
 type CompetitionProps = components["schemas"]["CompetitionPublic"];
 
 export function Competition(props: CompetitionProps) {
-  const { name, type, created_at, updated_at } = props;
+  const { name, type, created_at: createdAt, updated_at: updatedAt } = props;
+  const parsedCreatedDate = new Date(Date.parse(createdAt));
+  const parsedUpdatedDate = new Date(Date.parse(updatedAt));
   return (
-    <Container maxWidth="sm">
-      <Card>
-        <Link>{name}</Link>
-        <Typography variant="subtitle2">Type: {type}</Typography>
-        <Typography variant="subtitle2">Last Updated: {updated_at}</Typography>
-        <Typography variant="subtitle2">Created: {created_at}</Typography>
-      </Card>
-    </Container>
+    <Card style={{ padding: "1rem" }}>
+      <Link>{name}</Link>
+      <Typography variant="subtitle2">Type: {type}</Typography>
+      <Typography variant="subtitle2">
+        Created: {parsedCreatedDate.toDateString()}
+      </Typography>
+      <Typography variant="subtitle2">
+        Created: {parsedUpdatedDate.toDateString()}
+      </Typography>
+    </Card>
   );
 }
