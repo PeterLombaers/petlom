@@ -1,5 +1,5 @@
 import { CompetitionList } from "../competition/CompetitionList";
 
-export function CompetitionsPage() {
+export default function CompetitionListPage() {
   return <CompetitionList />;
 }

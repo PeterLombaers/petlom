@@ -1,2 +1,7 @@
-export { CompetitionsPage } from "./CompetitionsPage";
-export { HomePage } from "./HomePage";
+export { default as CompetitionListPage } from "./CompetitionListPage";
+export { default as CompetitionDetailPage } from "./CompetitionDetailPage";
+export { default as CompetitionRoundPage } from "./CompetitionRoundPage";
+export { default as PlayerListPage } from "./PlayerListPage";
+export { default as PlayerDetailPage } from "./PlayerDetailPage";
+export { default as HomePage } from "./HomePage";
+export { default as NotFoundPage } from "./NotFoundPage";
