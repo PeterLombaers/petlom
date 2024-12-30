@@ -99,6 +99,11 @@ class PlayerPublic(PlayerBase):
     ratings: list[PlayerRating]
 
 
+class PlayerPublicMinimal(SQLModel):
+    name: str
+    id: int
+
+
 class PlayerUpdate(PlayerBase):
     name: str = None
     ratings: list[PlayerRatingUpdate] | None = None
@@ -166,6 +171,8 @@ class MatchPublic(MatchBase):
     updated_at: datetime
     player_white_id: int
     player_black_id: int
+    player_white: PlayerPublicMinimal
+    player_black: PlayerPublicMinimal
     competition_name: str
     round: int
     board: int

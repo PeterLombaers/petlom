@@ -288,6 +288,8 @@ def test_get_match(match_obj: Match, client: TestClient):
     res = client.get(f"/matches/{match_obj.id}/")
     res.raise_for_status()
     res_match = res.json()
+    res_match.pop("player_white")
+    res_match.pop("player_black")
     assert res_match == jsonable_encoder(match_obj)
 
 
@@ -300,10 +302,13 @@ def test_list_matches(
     )
     res = client.get("/matches/")
     res.raise_for_status()
-    match_obj = res.json()
-    assert len(match_obj) == 2
-    assert jsonable_encoder(m0) == match_obj[0]
-    assert jsonable_encoder(m1) == match_obj[1]
+    match_objects = res.json()
+    for match_obj in match_objects:
+        match_obj.pop("player_white")
+        match_obj.pop("player_black")
+    assert len(match_objects) == 2
+    assert jsonable_encoder(m0) == match_objects[0]
+    assert jsonable_encoder(m1) == match_objects[1]
 
 
 def test_update_match(match_obj: Match, client: TestClient, session: Session):

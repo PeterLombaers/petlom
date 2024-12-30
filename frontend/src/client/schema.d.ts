@@ -314,6 +314,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            player_white: components["schemas"]["PlayerPublicMinimal"];
+            player_black: components["schemas"]["PlayerPublicMinimal"];
         };
         /** MatchUpdate */
         MatchUpdate: {
@@ -354,6 +356,13 @@ export interface components {
             updated_at: string;
             /** Ratings */
             ratings: components["schemas"]["PlayerRating"][];
+        };
+        /** PlayerPublicMinimal */
+        PlayerPublicMinimal: {
+            /** Name */
+            name: string;
+            /** Id */
+            id: number;
         };
         /** PlayerRating */
         PlayerRating: {
