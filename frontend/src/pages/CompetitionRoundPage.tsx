@@ -1,38 +1,8 @@
 import { useParams } from "react-router-dom";
-import { apiClient } from "../utils";
-import { components } from "../client/schema";
 import NotFoundPage from "./NotFoundPage";
 import { useQuery } from "@tanstack/react-query";
 import { Typography } from "@mui/material";
-
-type CompetitionPublic = components["schemas"]["CompetitionPublic"];
-type MatchPublic = components["schemas"]["MatchPublic"];
-
-const getCompetition = async (name: string): Promise<CompetitionPublic> => {
-  const { data, error } = await apiClient.GET("/competitions/{name}", {
-    params: { path: { name: name } },
-  });
-  if (error) {
-    throw new Error(`Error in fetching competitions: ${error.detail}`);
-  }
-  return data;
-};
-
-const getRoundMatches = async (
-  name: string,
-  round_nr: number
-): Promise<MatchPublic[]> => {
-  const { data, error } = await apiClient.GET(
-    "/competitions/{name}/round/{round_nr}",
-    {
-      params: { path: { name: name, round_nr: round_nr } },
-    }
-  );
-  if (error) {
-    throw new Error(`Error in fetching competitions: ${error.detail}`);
-  }
-  return data;
-};
+import { getCompetition, getRoundMatches } from "../client/api";
 
 export default function CompetitionRoundPage() {
   const { name, round } = useParams();

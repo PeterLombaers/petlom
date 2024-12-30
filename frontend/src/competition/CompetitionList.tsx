@@ -1,21 +1,10 @@
 import { Grid2 as Grid, Container } from "@mui/material";
 import { Competition } from "./Competition";
-import { apiClient } from "../utils";
-import { components } from "../client/schema";
 import { useQuery } from "@tanstack/react-query";
 import CreateButton from "./CreateButton";
-
-type CompetitionPublic = components["schemas"]["CompetitionPublic"];
+import { getCompetitionList } from "../client/api";
 
 export const CompetitionList = () => {
-  const getCompetitions = async (): Promise<CompetitionPublic[]> => {
-    const { data, error } = await apiClient.GET("/competitions/");
-    if (error) {
-      throw new Error(`Error in fetching competitions: ${error.detail}`);
-    }
-    return data;
-  };
-
   const {
     data: competitions,
     error,
@@ -23,7 +12,7 @@ export const CompetitionList = () => {
     isError,
   } = useQuery({
     queryKey: ["/competitions/", "GET"],
-    queryFn: getCompetitions,
+    queryFn: getCompetitionList,
   });
 
   if (isPending || !competitions) return "Loading...";

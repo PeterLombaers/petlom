@@ -1,5 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./utils";
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { CssBaseline } from "@mui/material";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import {
@@ -12,6 +11,8 @@ import {
   NotFoundPage,
 } from "./pages";
 import Layout from "./Layout";
+
+const queryClient = new QueryClient();
 
 function App() {
   return (

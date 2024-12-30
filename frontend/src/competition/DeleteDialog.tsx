@@ -10,8 +10,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "../utils";
 import React, { useState } from "react";
+import { apiClient } from "../client/api";
 
 export interface DeleteDialogProps {
   open: boolean;

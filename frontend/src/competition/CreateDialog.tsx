@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { apiClient } from "../utils";
+import { apiClient } from "../client/api";
 
 export interface CreateDialogProps {
   open: boolean;
