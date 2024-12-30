@@ -57,13 +57,19 @@ SessionDep = Annotated[Session, Depends(get_session)]
 T = TypeVar("SQLModel")
 
 
-def add_n_rounds(competition: Competition, session: SessionDep) -> CompetitionPublic:
-    """Add 'n_rounds' property to `Competetion` instance."""
+def add_n_rounds(competition: Competition, session: SessionDep) -> Competition:
+    """Add 'n_rounds' property to `Competition` instance."""
     n_rounds_stmt = select(func.max(Match.round)).where(
         Match.competition_name == competition.name
     )
     n_rounds = session.scalar(n_rounds_stmt) or 0
+    # I have to go via the `__dict__` attribute because if you set
+    # `competition.n_rounds` directly, Pydantic validation is triggered and will
+    # complain that `Competition` has no attribute `n_rounds`. This means that after you
+    # call `add_n_rounds` you can not fully rely on Pydantic validation, so you should
+    # only call it right before returning a competition from a route.
     competition.__dict__["n_rounds"] = n_rounds
+    return competition
 
 
 def find_object(model: Type[T], identifier: str | int, session: SessionDep) -> T:
@@ -104,8 +110,7 @@ def retrieve_competition(
     name: str, session: SessionDep
 ) -> CompetitionPublicWithNRounds:
     competition = find_object(model=Competition, identifier=name, session=session)
-    add_n_rounds(competition=competition, session=session)
-    return competition
+    return add_n_rounds(competition=competition, session=session)
 
 
 @app.delete("/competitions/{name}")
@@ -126,8 +131,7 @@ def update_competition(
     session.add(db_competition)
     session.commit()
     session.refresh(db_competition)
-    add_n_rounds(competition=db_competition, session=session)
-    return db_competition
+    return add_n_rounds(competition=db_competition, session=session)
 
 
 @app.get("/competitions/{name}/round/{round_nr}")
