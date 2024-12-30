@@ -87,10 +87,21 @@ def test_get_competition(competition: Competition, client: TestClient):
     res = client.get(f"/competitions/{competition.name}/")
     res.raise_for_status()
     res_competition = res.json()
+    assert res_competition.pop("n_rounds") == 0
     # The response gives matches as an emtpy list, the serialized object doesn't include
     # matches in this case.
-    assert res_competition.pop("matches") == []
     assert res_competition == jsonable_encoder(competition)
+
+
+def test_get_competition_n_rounds(
+    simkro_setup: tuple[Competition, list[Player], list[Match]], client: TestClient
+):
+    (competition, _, matches) = simkro_setup
+    n_rounds = max(m.round for m in matches)
+    res = client.get(f"/competitions/{competition.name}/")
+    res.raise_for_status()
+    res_competition = res.json()
+    assert res_competition.pop("n_rounds") == n_rounds
 
 
 def test_list_competition(competition_factory, client):
@@ -101,9 +112,7 @@ def test_list_competition(competition_factory, client):
     assert len(competition) == 2
     # The response gives matches as an emtpy list, the serialized object doesn't include
     # matches in this case.
-    assert competition[0].pop("matches") == []
     assert jsonable_encoder(c0) == competition[0]
-    assert competition[1].pop("matches") == []
     assert jsonable_encoder(c1) == competition[1]
 
 
@@ -337,10 +346,13 @@ def test_retrieve_competition_round(
     r1_matches = [m for m in matches if m.round == 1]
     res = client.get(f"/competitions/{competition.name}/round/1")
     res.raise_for_status()
-    for m in res.json():
+    res_competition = res.json()
+    assert res_competition["name"] == competition.name
+    res_matches = res_competition["matches"]
+    for m in res_matches:
         assert m["competition_name"] == competition.name
-    assert set(m["id"] for m in res.json()) == set(m.id for m in r1_matches)
-    assert other_match.id not in set(m["id"] for m in res.json())
+    assert set(m["id"] for m in res_matches) == set(m.id for m in r1_matches)
+    assert other_match.id not in set(m["id"] for m in res_matches)
 
 
 def test_create_competition_round(
@@ -379,7 +391,7 @@ def test_create_competition_round(
         json=player_ids,
     )
     res.raise_for_status()
-    created_matches = res.json()
+    created_matches = res.json()["matches"]
     assert len(created_matches) == len(player_ids) // 2
     created_player_ids = [m["player_white_id"] for m in created_matches] + [
         m["player_black_id"] for m in created_matches

@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Self
 
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
@@ -123,6 +124,15 @@ class Competition(CompetitionBase, table=True):
 
 
 class CompetitionPublic(CompetitionBase):
+    created_at: datetime
+    updated_at: datetime
+
+
+class CompetitionPublicWithNRounds(CompetitionPublic):
+    n_rounds: int
+
+
+class CompetitionRound(CompetitionBase):
     created_at: datetime
     updated_at: datetime
     matches: list["Match"]

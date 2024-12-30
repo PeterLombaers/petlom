@@ -3,6 +3,7 @@ from typing import Annotated, Type, TypeVar
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from backend.competitions.simkro import calculate_ranking, create_matchups
@@ -11,6 +12,8 @@ from backend.models import (
     Competition,
     CompetitionBase,
     CompetitionPublic,
+    CompetitionPublicWithNRounds,
+    CompetitionRound,
     CompetitionUpdate,
     Match,
     MatchBase,
@@ -54,6 +57,15 @@ SessionDep = Annotated[Session, Depends(get_session)]
 T = TypeVar("SQLModel")
 
 
+def add_n_rounds(competition: Competition, session: SessionDep) -> CompetitionPublic:
+    """Add 'n_rounds' property to `Competetion` instance."""
+    n_rounds_stmt = select(func.max(Match.round)).where(
+        Match.competition_name == competition.name
+    )
+    n_rounds = session.scalar(n_rounds_stmt) or 0
+    competition.__dict__["n_rounds"] = n_rounds
+
+
 def find_object(model: Type[T], identifier: str | int, session: SessionDep) -> T:
     obj = session.get(model, identifier)
     if not obj:
@@ -88,8 +100,12 @@ def list_competitions(
 
 
 @app.get("/competitions/{name}")
-def retrieve_competition(name: str, session: SessionDep) -> CompetitionPublic:
-    return find_object(model=Competition, identifier=name, session=session)
+def retrieve_competition(
+    name: str, session: SessionDep
+) -> CompetitionPublicWithNRounds:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    add_n_rounds(competition=competition, session=session)
+    return competition
 
 
 @app.delete("/competitions/{name}")
@@ -103,32 +119,35 @@ def delete_competition(name: str, session: SessionDep):
 @app.patch("/competitions/{name}")
 def update_competition(
     name: str, competition: CompetitionUpdate, session: SessionDep
-) -> CompetitionPublic:
+) -> CompetitionPublicWithNRounds:
     db_competition = find_object(model=Competition, identifier=name, session=session)
     db_competition.sqlmodel_update(competition.model_dump(exclude_unset=True))
     db_competition.updated_at = datetime.now()
     session.add(db_competition)
     session.commit()
     session.refresh(db_competition)
+    add_n_rounds(competition=db_competition, session=session)
     return db_competition
 
 
 @app.get("/competitions/{name}/round/{round_nr}")
 def retrieve_competition_round(
     name: str, round_nr: int, session: SessionDep
-) -> list[MatchPublic]:
+) -> CompetitionRound:
     matches = session.exec(
         select(Match)
         .where(Match.competition_name == name)
         .where(Match.round == round_nr)
     ).all()
-    return matches
+    competition = find_object(Competition, identifier=name, session=session)
+    competition.matches = matches
+    return competition
 
 
 @app.post("/competitions/{name}/round/{round_nr}")
 def create_competition_round(
     name: str, round_nr: int, player_ids: list[int], session: SessionDep
-) -> list[MatchPublic]:
+) -> CompetitionRound:
     competition = find_object(model=Competition, identifier=name, session=session)
 
     # Check if the previous round exists and the current or later rounds do not exist.
@@ -184,7 +203,8 @@ def create_competition_round(
     )
     session.add_all(matches)
     session.commit()
-    return matches
+    competition.matches = matches
+    return competition
 
 
 @app.delete("/competitions/{name}/round/{round_nr}")

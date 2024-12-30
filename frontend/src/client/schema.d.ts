@@ -230,6 +230,40 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** CompetitionPublicWithNRounds */
+        CompetitionPublicWithNRounds: {
+            /** Name */
+            name: string;
+            type: components["schemas"]["CompetitionType"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** N Rounds */
+            n_rounds: number;
+        };
+        /** CompetitionRound */
+        CompetitionRound: {
+            /** Name */
+            name: string;
+            type: components["schemas"]["CompetitionType"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
             /** Matches */
             matches: components["schemas"]["Match"][];
         };
@@ -547,7 +581,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionPublic"];
+                    "application/json": components["schemas"]["CompetitionPublicWithNRounds"];
                 };
             };
             /** @description Validation Error */
@@ -613,7 +647,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionPublic"];
+                    "application/json": components["schemas"]["CompetitionPublicWithNRounds"];
                 };
             };
             /** @description Validation Error */
@@ -645,7 +679,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MatchPublic"][];
+                    "application/json": components["schemas"]["CompetitionRound"];
                 };
             };
             /** @description Validation Error */
@@ -681,7 +715,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MatchPublic"][];
+                    "application/json": components["schemas"]["CompetitionRound"];
                 };
             };
             /** @description Validation Error */
