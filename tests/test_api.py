@@ -355,6 +355,21 @@ def test_retrieve_competition_round(
     assert other_match.id not in set(m["id"] for m in res_matches)
 
 
+def test_retrieve_competition_round_latest(
+    simkro_setup: tuple[Competition, list[Player], list[Match]], client: TestClient
+):
+    (competition, _, matches) = simkro_setup
+    latest_round_nr = max(m.round for m in matches)
+    latest_round_matches = [m for m in matches if m.round == latest_round_nr]
+    res = client.get(f"/competitions/{competition.name}/latest_round")
+    print(res.text)
+    res.raise_for_status()
+    res_matches = res.json()["matches"]
+    for m in res_matches:
+        assert m["round"] == latest_round_nr
+    assert set(m["id"] for m in res_matches) == set(m.id for m in latest_round_matches)
+
+
 def test_create_competition_round(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     player_factory: Callable[..., Player],

@@ -211,6 +211,17 @@ def create_competition_round(
     return competition
 
 
+@app.get("/competitions/{name}/latest_round")
+def retrieve_competition_latest_round(
+    name: str, session: SessionDep
+) -> CompetitionRound:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    add_n_rounds(competition=competition, session=session)
+    return retrieve_competition_round(
+        name=name, round_nr=competition.n_rounds, session=session
+    )
+
+
 @app.delete("/competitions/{name}/round/{round_nr}")
 def delete_competition_round(name: str, round_nr: int, session: SessionDep):
     competition = find_object(model=Competition, identifier=name, session=session)
