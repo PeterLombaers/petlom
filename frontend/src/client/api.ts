@@ -6,7 +6,7 @@ export const apiClient = createFetchClient<paths>({
 });
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
-type MatchPublic = components["schemas"]["MatchPublic"];
+type CompetitionRound = components["schemas"]["CompetitionRound"];
 
 export const getCompetitionList = async (): Promise<CompetitionPublic[]> => {
   const { data, error } = await apiClient.GET("/competitions/");
@@ -28,10 +28,10 @@ export const getCompetition = async (
   return data;
 };
 
-export const getRoundMatches = async (
+export const getCompetitionRound = async (
   name: string,
   round_nr: number
-): Promise<MatchPublic[]> => {
+): Promise<CompetitionRound> => {
   const { data, error } = await apiClient.GET(
     "/competitions/{name}/round/{round_nr}",
     {

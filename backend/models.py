@@ -135,7 +135,7 @@ class CompetitionPublicWithNRounds(CompetitionPublic):
 class CompetitionRound(CompetitionBase):
     created_at: datetime
     updated_at: datetime
-    matches: list["Match"]
+    matches: list["MatchPublic"]
 
 
 class CompetitionUpdate(CompetitionBase):

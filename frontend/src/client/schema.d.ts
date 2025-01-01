@@ -282,7 +282,7 @@ export interface components {
              */
             updated_at: string;
             /** Matches */
-            matches: components["schemas"]["Match"][];
+            matches: components["schemas"]["MatchPublic"][];
         };
         /**
          * CompetitionType
@@ -299,32 +299,6 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
-        };
-        /** Match */
-        Match: {
-            /** Player White Id */
-            player_white_id: number;
-            /** Player Black Id */
-            player_black_id: number;
-            /** Competition Name */
-            competition_name: string;
-            /** Round */
-            round: number;
-            /** Board */
-            board: number;
-            result?: components["schemas"]["Result"] | null;
-            /** Id */
-            id?: number | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at?: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at?: string;
         };
         /** MatchBase */
         MatchBase: {
