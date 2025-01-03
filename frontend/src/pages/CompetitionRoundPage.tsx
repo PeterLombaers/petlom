@@ -1,8 +1,20 @@
 import { useParams } from "react-router-dom";
 import NotFoundPage from "./NotFoundPage";
-import { useQuery } from "@tanstack/react-query";
-import { Typography } from "@mui/material";
-import { getCompetition, getRoundMatches } from "../client/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiClient, getCompetitionRound } from "../client/api";
+import {
+  Card,
+  Container,
+  List,
+  ListItem,
+  ListItemText,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { components } from "../client/schema";
+import ResultToggle from "../ResultToggle";
+
+type MatchUpdate = components["schemas"]["MatchUpdate"];
 
 export default function CompetitionRoundPage() {
   const { name, round } = useParams();
@@ -13,52 +25,75 @@ export default function CompetitionRoundPage() {
   if (!round_nr) {
     return <NotFoundPage />;
   }
-
+  const queryClient = useQueryClient();
+  const matchMutation = useMutation({
+    mutationFn: ({ id, update }: { id: number; update: MatchUpdate }) => {
+      console.log("Mutating Result!");
+      return apiClient.PATCH("/matches/{id}", {
+        params: { path: { id: id } },
+        body: update,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/competitions/", "GET", name, round_nr],
+      });
+    },
+    onError: (error) => {
+      console.log(error.message);
+    },
+  });
   const {
     data: competition,
-    error: errorCompetition,
-    isPending: isPendingCompetition,
-  } = useQuery({
-    queryKey: ["/competitions/", "GET", name],
-    queryFn: () => getCompetition(name),
-  });
-  const {
-    data: matches,
-    error: errorMatches,
-    isPending: isPendingMatches,
+    error,
+    isPending,
   } = useQuery({
     queryKey: ["/competitions/", "GET", name, round_nr],
-    queryFn: () => getRoundMatches(name, round_nr),
+    queryFn: () => getCompetitionRound(name, round_nr),
   });
 
-  if (isPendingCompetition) {
+  if (isPending) {
     return <div>Loading...</div>;
   }
-  if (errorCompetition || !competition) {
-    console.log(errorCompetition);
+  if (error || !competition) {
+    console.log(error);
     return <NotFoundPage />;
   }
 
-  if (isPendingMatches) {
-    return <div>Loading</div>;
-  }
-  if (errorMatches || !matches) {
-    console.log(errorMatches);
-    return <NotFoundPage />;
-  }
+  const parsedCreatedDate = new Date(Date.parse(competition.created_at));
+  const parsedUpdatedDate = new Date(Date.parse(competition.updated_at));
+
   return (
-    <>
-      <Typography variant="h2" align="center">
-        CompetitionDetailPage {competition.name}
-      </Typography>
-      {matches.map((match) => {
-        return (
-          <Typography variant="h6" key={match.id}>
-            Player {match.player_white_id} - Player {match.player_black_id}:{" "}
-            {match.result}
-          </Typography>
-        );
-      })}
-    </>
+    <Stack spacing={1}>
+      <Card>
+        <Typography>Competition {competition.name}</Typography>
+        <Typography>Type: {competition.type}</Typography>
+        <Typography>Created: {parsedCreatedDate.toDateString()}</Typography>
+        <Typography>Updated: {parsedUpdatedDate.toDateString()}</Typography>
+        <Typography> Round {round}</Typography>
+      </Card>
+      <Container maxWidth="sm">
+        <List>
+          {competition.matches.map((match) => {
+            return (
+              <ListItem key={match.id}>
+                <ListItemText>{match.board}.</ListItemText>
+                <ListItemText>{match.player_white.name}</ListItemText>
+                <ListItemText>{match.player_black.name}</ListItemText>
+                <ResultToggle
+                  result={match.result}
+                  setResult={(result) => {
+                    matchMutation.mutate({
+                      id: match.id,
+                      update: { result: result },
+                    });
+                  }}
+                />
+              </ListItem>
+            );
+          })}
+        </List>
+      </Container>
+    </Stack>
   );
 }
