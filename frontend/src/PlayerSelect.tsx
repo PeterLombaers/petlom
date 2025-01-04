@@ -5,11 +5,16 @@ import { components } from "./client/schema";
 
 type PlayerMinimal = components["schemas"]["PlayerPublicMinimal"];
 type PlayerSelectProps = {
-  player: PlayerMinimal | null;
-  setPlayer: (player: PlayerMinimal | null) => void;
+  player: PlayerMinimal;
+  setPlayer: (player: PlayerMinimal) => void;
+  label?: string;
 };
 
-export default function PlayerSelect({ player, setPlayer }: PlayerSelectProps) {
+export default function PlayerSelect({
+  player,
+  setPlayer,
+  label = "Player",
+}: PlayerSelectProps) {
   const {
     data: dbPlayers,
     error,
@@ -33,12 +38,14 @@ export default function PlayerSelect({ player, setPlayer }: PlayerSelectProps) {
       options={dbPlayers || []}
       value={isError ? { id: 0, name: "Error" } : player}
       onChange={(_, newValue) => {
-        setPlayer(newValue);
+        if (newValue) {
+          setPlayer(newValue);
+        }
       }}
       getOptionLabel={(player: PlayerMinimal) => {
         return player.name;
       }}
-      renderInput={(params) => <TextField {...params} label="Player" />}
+      renderInput={(params) => <TextField {...params} label={label} />}
       sx={{ minWidth: 200 }}
     />
   );

@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { components } from "../client/schema";
 import ResultToggle from "../ResultToggle";
+import PlayerSelect from "../PlayerSelect";
 
 type MatchUpdate = components["schemas"]["MatchUpdate"];
 
@@ -28,7 +29,6 @@ export default function CompetitionRoundPage() {
   const queryClient = useQueryClient();
   const matchMutation = useMutation({
     mutationFn: ({ id, update }: { id: number; update: MatchUpdate }) => {
-      console.log("Mutating Result!");
       return apiClient.PATCH("/matches/{id}", {
         params: { path: { id: id } },
         body: update,
@@ -78,8 +78,26 @@ export default function CompetitionRoundPage() {
             return (
               <ListItem key={match.id}>
                 <ListItemText>{match.board}.</ListItemText>
-                <ListItemText>{match.player_white.name}</ListItemText>
-                <ListItemText>{match.player_black.name}</ListItemText>
+                <PlayerSelect
+                  player={match.player_white}
+                  setPlayer={(player) =>
+                    matchMutation.mutate({
+                      id: match.id,
+                      update: { player_white_id: player.id },
+                    })
+                  }
+                  label="Player White"
+                />
+                <PlayerSelect
+                  player={match.player_black}
+                  setPlayer={(player) =>
+                    matchMutation.mutate({
+                      id: match.id,
+                      update: { player_black_id: player.id },
+                    })
+                  }
+                  label="Player Black"
+                />
                 <ResultToggle
                   result={match.result}
                   setResult={(result) => {
