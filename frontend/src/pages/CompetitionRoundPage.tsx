@@ -4,8 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getCompetitionRound } from "../client/api";
 import {
   Card,
+  FormControlLabel,
+  FormGroup,
   Paper,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -17,10 +20,15 @@ import {
 import { components } from "../client/schema";
 import ResultToggle from "../ResultToggle";
 import PlayerSelect from "../PlayerSelect";
+import { useState } from "react";
+import { resultToString } from "../utils";
 
 type MatchUpdate = components["schemas"]["MatchUpdate"];
 
 export default function CompetitionRoundPage() {
+  const [isResultEditable, setIsResultEditable] = useState(false);
+  const [isPlayersEditable, setIsPlayersEditable] = useState(false);
+
   const { name, round } = useParams();
   if (!name || !round) {
     return <NotFoundPage />;
@@ -74,6 +82,26 @@ export default function CompetitionRoundPage() {
         <Typography>Created: {parsedCreatedDate.toDateString()}</Typography>
         <Typography>Updated: {parsedUpdatedDate.toDateString()}</Typography>
         <Typography> Round {round}</Typography>
+        <FormGroup>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isResultEditable}
+                onChange={() => setIsResultEditable(!isResultEditable)}
+              />
+            }
+            label="Edit Results"
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isPlayersEditable}
+                onChange={() => setIsPlayersEditable(!isPlayersEditable)}
+              />
+            }
+            label="Edit Players"
+          />
+        </FormGroup>
       </Card>
       <TableContainer component={Paper}>
         <Table>
@@ -90,39 +118,51 @@ export default function CompetitionRoundPage() {
               <TableRow key={match.id}>
                 <TableCell>{match.board}.</TableCell>
                 <TableCell>
-                  <PlayerSelect
-                    player={match.player_white}
-                    setPlayer={(player) =>
-                      matchMutation.mutate({
-                        id: match.id,
-                        update: { player_white_id: player.id },
-                      })
-                    }
-                    label="Player White"
-                  />
+                  {isPlayersEditable ? (
+                    <PlayerSelect
+                      player={match.player_white}
+                      setPlayer={(player) =>
+                        matchMutation.mutate({
+                          id: match.id,
+                          update: { player_white_id: player.id },
+                        })
+                      }
+                      label="Player White"
+                    />
+                  ) : (
+                    match.player_white.name
+                  )}
                 </TableCell>
                 <TableCell>
-                  <PlayerSelect
-                    player={match.player_black}
-                    setPlayer={(player) =>
-                      matchMutation.mutate({
-                        id: match.id,
-                        update: { player_black_id: player.id },
-                      })
-                    }
-                    label="Player Black"
-                  />
+                  {isPlayersEditable ? (
+                    <PlayerSelect
+                      player={match.player_black}
+                      setPlayer={(player) =>
+                        matchMutation.mutate({
+                          id: match.id,
+                          update: { player_black_id: player.id },
+                        })
+                      }
+                      label="Player Black"
+                    />
+                  ) : (
+                    match.player_black.name
+                  )}
                 </TableCell>
                 <TableCell>
-                  <ResultToggle
-                    result={match.result}
-                    setResult={(result) => {
-                      matchMutation.mutate({
-                        id: match.id,
-                        update: { result: result },
-                      });
-                    }}
-                  />
+                  {isResultEditable ? (
+                    <ResultToggle
+                      result={match.result}
+                      setResult={(result) => {
+                        matchMutation.mutate({
+                          id: match.id,
+                          update: { result: result },
+                        });
+                      }}
+                    />
+                  ) : (
+                    resultToString(match.result)
+                  )}
                 </TableCell>
               </TableRow>
             ))}

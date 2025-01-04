@@ -45,7 +45,7 @@ export default function ResultToggle({ result, setResult }: ResultToggleProps) {
         aria-label="Black Win"
         sx={{ flex: 1, whiteSpace: "nowrap" }}
       >
-        <Typography>1-0</Typography>
+        <Typography>0-1</Typography>
       </ToggleButton>
       <ToggleButton
         value="null"
