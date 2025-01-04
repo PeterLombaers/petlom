@@ -7,6 +7,7 @@ export const apiClient = createFetchClient<paths>({
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 type CompetitionRound = components["schemas"]["CompetitionRound"];
+type PlayerPublic = components["schemas"]["PlayerPublic"];
 
 export const getCompetitionList = async (): Promise<CompetitionPublic[]> => {
   const { data, error } = await apiClient.GET("/competitions/");
@@ -40,6 +41,14 @@ export const getCompetitionRound = async (
   );
   if (error) {
     throw new Error(`Error in fetching competitions: ${error.detail}`);
+  }
+  return data;
+};
+
+export const getPlayerList = async (): Promise<PlayerPublic[]> => {
+  const { data, error } = await apiClient.GET("/players/");
+  if (error) {
+    throw new Error(`Error in fetching players: ${error.detail}`);
   }
   return data;
 };
