@@ -4,11 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getCompetitionRound } from "../client/api";
 import {
   Card,
-  Container,
-  List,
-  ListItem,
-  ListItemText,
+  Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from "@mui/material";
 import { components } from "../client/schema";
@@ -72,46 +75,60 @@ export default function CompetitionRoundPage() {
         <Typography>Updated: {parsedUpdatedDate.toDateString()}</Typography>
         <Typography> Round {round}</Typography>
       </Card>
-      <Container maxWidth="sm">
-        <List>
-          {competition.matches.map((match) => {
-            return (
-              <ListItem key={match.id}>
-                <ListItemText>{match.board}.</ListItemText>
-                <PlayerSelect
-                  player={match.player_white}
-                  setPlayer={(player) =>
-                    matchMutation.mutate({
-                      id: match.id,
-                      update: { player_white_id: player.id },
-                    })
-                  }
-                  label="Player White"
-                />
-                <PlayerSelect
-                  player={match.player_black}
-                  setPlayer={(player) =>
-                    matchMutation.mutate({
-                      id: match.id,
-                      update: { player_black_id: player.id },
-                    })
-                  }
-                  label="Player Black"
-                />
-                <ResultToggle
-                  result={match.result}
-                  setResult={(result) => {
-                    matchMutation.mutate({
-                      id: match.id,
-                      update: { result: result },
-                    });
-                  }}
-                />
-              </ListItem>
-            );
-          })}
-        </List>
-      </Container>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Board</TableCell>
+              <TableCell>White</TableCell>
+              <TableCell>Black</TableCell>
+              <TableCell>Result</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {competition.matches.map((match) => (
+              <TableRow key={match.id}>
+                <TableCell>{match.board}.</TableCell>
+                <TableCell>
+                  <PlayerSelect
+                    player={match.player_white}
+                    setPlayer={(player) =>
+                      matchMutation.mutate({
+                        id: match.id,
+                        update: { player_white_id: player.id },
+                      })
+                    }
+                    label="Player White"
+                  />
+                </TableCell>
+                <TableCell>
+                  <PlayerSelect
+                    player={match.player_black}
+                    setPlayer={(player) =>
+                      matchMutation.mutate({
+                        id: match.id,
+                        update: { player_black_id: player.id },
+                      })
+                    }
+                    label="Player Black"
+                  />
+                </TableCell>
+                <TableCell>
+                  <ResultToggle
+                    result={match.result}
+                    setResult={(result) => {
+                      matchMutation.mutate({
+                        id: match.id,
+                        update: { result: result },
+                      });
+                    }}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Stack>
   );
 }
