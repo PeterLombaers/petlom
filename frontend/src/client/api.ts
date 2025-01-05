@@ -6,6 +6,8 @@ export const apiClient = createFetchClient<paths>({
 });
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
+type CompetitionPublicWithNRounds =
+  components["schemas"]["CompetitionPublicWithNRounds"];
 type CompetitionRound = components["schemas"]["CompetitionRound"];
 type PlayerPublic = components["schemas"]["PlayerPublic"];
 
@@ -19,7 +21,7 @@ export const getCompetitionList = async (): Promise<CompetitionPublic[]> => {
 
 export const getCompetition = async (
   name: string
-): Promise<CompetitionPublic> => {
+): Promise<CompetitionPublicWithNRounds> => {
   const { data, error } = await apiClient.GET("/competitions/{name}", {
     params: { path: { name: name } },
   });
