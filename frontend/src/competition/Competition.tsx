@@ -10,7 +10,9 @@ export function Competition(props: CompetitionProps) {
   const parsedUpdatedDate = new Date(Date.parse(updatedAt));
   return (
     <Card style={{ padding: "1rem" }}>
-      <Link href={`/competitions/${name}`}>{name}</Link>
+      <Link href={`/competitions/${name}`} underline="hover">
+        {name}
+      </Link>
       <Typography variant="subtitle2">Type: {type}</Typography>
       <Typography variant="subtitle2">
         Created: {parsedCreatedDate.toDateString()}

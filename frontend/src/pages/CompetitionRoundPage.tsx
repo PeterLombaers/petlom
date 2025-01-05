@@ -3,9 +3,11 @@ import NotFoundPage from "./NotFoundPage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getCompetitionRound } from "../client/api";
 import {
+  Breadcrumbs,
   Card,
   FormControlLabel,
   FormGroup,
+  Link,
   Paper,
   Stack,
   Switch,
@@ -76,6 +78,22 @@ export default function CompetitionRoundPage() {
 
   return (
     <Stack spacing={1}>
+      <Breadcrumbs>
+        <Link href="/" underline="hover" color="inherit">
+          PetLom
+        </Link>
+        <Link href="/competitions" underline="hover" color="inherit">
+          Competitions
+        </Link>
+        <Link
+          href={`/competitions/${competition.name}`}
+          underline="hover"
+          color="inherit"
+        >
+          {competition.name}
+        </Link>
+        <Typography sx={{ color: "text.primary" }}>Round {round_nr}</Typography>
+      </Breadcrumbs>
       <Card>
         <Typography>Competition {competition.name}</Typography>
         <Typography>Type: {competition.type}</Typography>
