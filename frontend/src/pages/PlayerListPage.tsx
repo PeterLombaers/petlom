@@ -1,3 +1,5 @@
+import { PlayerList } from "../players/PlayerList";
+
 export default function PlayerListPage() {
-  return <div>PlayerListPage</div>;
+  return <PlayerList />;
 }
