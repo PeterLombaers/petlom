@@ -327,8 +327,13 @@ def list_players(
     session: SessionDep,
     offset: int = 0,
     limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
+    is_active: bool | None = None,
 ) -> list[PlayerPublic]:
-    players = session.exec(select(Player).offset(offset).limit(limit)).all()
+    query = select(Player)
+    if is_active is not None:
+        query = query.where(Player.is_active == is_active)
+    query = query.offset(offset).limit(limit)
+    players = session.exec(query).all()
     return players
 
 

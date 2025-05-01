@@ -187,7 +187,7 @@ def test_get_player(player: Player, client: TestClient):
     assert res_player == jsonable_encoder(player)
 
 
-def test_list_player(player_factory, client):
+def test_list_player(player_factory: Callable[..., Player], client):
     p0, p1 = player_factory(), player_factory()
     res = client.get("/players/")
     res.raise_for_status()
@@ -197,6 +197,17 @@ def test_list_player(player_factory, client):
     assert jsonable_encoder(p0) == res_players[0]
     assert res_players[1].pop("ratings") == []
     assert jsonable_encoder(p1) == res_players[1]
+
+    player_factory(is_active=False)
+    res = client.get("/players/")
+    res.raise_for_status()
+    res_players = res.json()
+    assert len(res_players) == 3
+
+    res = client.get("/players/", params={"is_active": True})
+    res.raise_for_status()
+    res_players = res.json()
+    assert len(res_players) == 2
 
 
 def test_update_player(player, client, session):

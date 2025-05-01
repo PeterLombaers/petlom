@@ -56,6 +56,7 @@ class PlayerRating(SQLModel, table=True):
 
 class PlayerBase(SQLModel):
     name: str
+    is_active: bool = True
 
 
 class Player(PlayerBase, table=True):
@@ -103,10 +104,12 @@ class PlayerPublic(PlayerBase):
 class PlayerPublicMinimal(SQLModel):
     name: str
     id: int
+    is_active: bool
 
 
 class PlayerUpdate(PlayerBase):
-    name: str = None
+    name: str | None = None
+    is_active: bool | None = None
     ratings: list[PlayerRatingUpdate] | None = None
 
 
