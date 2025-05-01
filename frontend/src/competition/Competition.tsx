@@ -18,7 +18,7 @@ export function Competition(props: CompetitionProps) {
         Created: {parsedCreatedDate.toDateString()}
       </Typography>
       <Typography variant="subtitle2">
-        Created: {parsedUpdatedDate.toDateString()}
+        Updated: {parsedUpdatedDate.toDateString()}
       </Typography>
       <DeleteButton name={name} />
     </Card>
