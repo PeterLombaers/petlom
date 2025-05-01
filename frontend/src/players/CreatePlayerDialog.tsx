@@ -32,7 +32,7 @@ export default function CreatePlayerDialog({
   const mutation = useMutation({
     mutationFn: (name: string) =>
       apiClient.POST("/players/", {
-        body: { name: name },
+        body: { name: name, is_active: true },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/players/"] });

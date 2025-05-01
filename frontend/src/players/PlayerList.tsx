@@ -1,11 +1,43 @@
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { getPlayerList } from "../client/api";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { DataGrid, GridColDef, Toolbar, ToolbarButton } from "@mui/x-data-grid";
+import { Tooltip } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+
+import { getPlayerList } from "../client/api";
+import CreatePlayerDialog from "./CreatePlayerDialog";
 
 const columns: GridColDef[] = [
   { field: "id", headerName: "", width: 50 },
-  { field: "name", headerName: "Name", width: 200 },
+  { field: "name", headerName: "Name", width: 200, editable: true },
 ];
+
+function CustomToolbar() {
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
+
+  const handleAddPlayerClose = () => {
+    setAddPlayerOpen(false);
+  };
+
+  const handleAddPlayerClick = () => {
+    setAddPlayerOpen(true);
+  };
+
+  return (
+    <Toolbar>
+      <Tooltip title="Add player">
+        <ToolbarButton onClick={handleAddPlayerClick}>
+          <AddIcon fontSize="small" />
+          <CreatePlayerDialog
+            open={addPlayerOpen}
+            setOpen={setAddPlayerOpen}
+            onClose={handleAddPlayerClose}
+          ></CreatePlayerDialog>
+        </ToolbarButton>
+      </Tooltip>
+    </Toolbar>
+  );
+}
 
 export const PlayerList = () => {
   const {
@@ -25,5 +57,12 @@ export const PlayerList = () => {
     return `An error occured: ${error.message}`;
   }
 
-  return <DataGrid rows={players} columns={columns} />;
+  return (
+    <DataGrid
+      rows={players}
+      columns={columns}
+      slots={{ toolbar: CustomToolbar }}
+      showToolbar
+    />
+  );
 };
