@@ -360,11 +360,8 @@ export interface components {
         PlayerCreate: {
             /** Name */
             name: string;
-            /**
-             * Is Active
-             * @default true
-             */
-            is_active: boolean;
+            /** Is Active */
+            is_active?: boolean | null;
             /** Ratings */
             ratings?: components["schemas"]["PlayerRatingUpdate"][] | null;
         };

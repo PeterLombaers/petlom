@@ -91,6 +91,7 @@ class Player(PlayerBase, table=True):
 
 
 class PlayerCreate(PlayerBase):
+    is_active: bool | None = None
     ratings: list[PlayerRatingUpdate] | None = None
 
 
