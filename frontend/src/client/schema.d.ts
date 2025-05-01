@@ -360,6 +360,11 @@ export interface components {
         PlayerCreate: {
             /** Name */
             name: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
             /** Ratings */
             ratings?: components["schemas"]["PlayerRatingUpdate"][] | null;
         };
@@ -367,6 +372,11 @@ export interface components {
         PlayerPublic: {
             /** Name */
             name: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
             /** Id */
             id: number;
             /**
@@ -388,6 +398,8 @@ export interface components {
             name: string;
             /** Id */
             id: number;
+            /** Is Active */
+            is_active: boolean;
         };
         /** PlayerRating */
         PlayerRating: {
@@ -418,7 +430,9 @@ export interface components {
         /** PlayerUpdate */
         PlayerUpdate: {
             /** Name */
-            name?: string;
+            name?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
             /** Ratings */
             ratings?: components["schemas"]["PlayerRatingUpdate"][] | null;
         };
@@ -1013,6 +1027,7 @@ export interface operations {
             query?: {
                 offset?: number;
                 limit?: number;
+                is_active?: boolean | null;
             };
             header?: never;
             path?: never;
