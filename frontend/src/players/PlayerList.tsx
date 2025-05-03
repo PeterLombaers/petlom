@@ -28,13 +28,12 @@ function CustomToolbar() {
       <Tooltip title="Add player">
         <ToolbarButton onClick={handleAddPlayerClick}>
           <AddIcon fontSize="small" />
-          <CreatePlayerDialog
-            open={addPlayerOpen}
-            setOpen={setAddPlayerOpen}
-            onClose={handleAddPlayerClose}
-          ></CreatePlayerDialog>
         </ToolbarButton>
       </Tooltip>
+      <CreatePlayerDialog
+        open={addPlayerOpen}
+        setOpen={setAddPlayerOpen}
+      ></CreatePlayerDialog>
     </Toolbar>
   );
 }

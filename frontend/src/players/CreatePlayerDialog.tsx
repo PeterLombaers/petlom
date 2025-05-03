@@ -14,20 +14,14 @@ import { apiClient } from "../client/api";
 export interface CreateDialogProps {
   open: boolean;
   setOpen: (value: boolean) => void;
-  onClose: (value: string) => void;
 }
 
 export default function CreatePlayerDialog({
   open,
   setOpen,
-  onClose,
 }: CreateDialogProps) {
   const [name, setName] = useState("");
-  const handleNameChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setName(e.target.value);
-  };
+  const [inputError, setInputError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (name: string) =>
@@ -36,12 +30,36 @@ export default function CreatePlayerDialog({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/players/"] });
+      setName("");
       setOpen(false);
     },
   });
 
+  const handleNameChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setName(e.target.value);
+    setInputError(null);
+  };
+
+  const handleClick = () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setInputError("Name cannot be empty.");
+      return;
+    }
+    mutation.mutate(trimmed);
+  };
+
+  const handleClose = () => {
+    setName("");
+    setInputError(null);
+    mutation.reset();
+    setOpen(false);
+  };
+
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={handleClose}>
       <DialogTitle>Add new player</DialogTitle>
       <DialogContent dividers>
         <TextField
@@ -51,14 +69,14 @@ export default function CreatePlayerDialog({
           name="player-name"
           id="player-name"
           label="Name"
+          value={name}
           onChange={handleNameChange}
+          error={inputError !== null}
+          helperText={inputError}
         />
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={() => mutation.mutate(name)}
-          disabled={mutation.isPending}
-        >
+        <Button onClick={handleClick} disabled={mutation.isPending}>
           <Typography>Add</Typography>
         </Button>
       </DialogActions>
