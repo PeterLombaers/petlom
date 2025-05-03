@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
-from typing import Self
 
+from pydantic import constr
 from sqlalchemy.orm import RelationshipProperty
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
@@ -55,7 +55,7 @@ class PlayerRating(SQLModel, table=True):
 
 
 class PlayerBase(SQLModel):
-    name: str
+    name: constr(strip_whitespace=True, min_length=1)  # type: ignore
     is_active: bool = True
 
 
@@ -91,7 +91,7 @@ class Player(PlayerBase, table=True):
 
 
 class PlayerCreate(PlayerBase):
-    is_active: bool | None = None
+    is_active: bool = True
     ratings: list[PlayerRatingUpdate] | None = None
 
 
@@ -109,7 +109,7 @@ class PlayerPublicMinimal(SQLModel):
 
 
 class PlayerUpdate(PlayerBase):
-    name: str | None = None
+    name: constr(strip_whitespace=True, min_length=1) | None = None
     is_active: bool | None = None
     ratings: list[PlayerRatingUpdate] | None = None
 

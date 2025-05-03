@@ -179,6 +179,13 @@ def test_create_player_with_rating(
     assert player.ratings[0].rating == 2300
 
 
+def test_create_player_empty_name_fail(client: TestClient):
+    res = client.post("/players/", json={"name": ""})
+    assert res.status_code == 422
+    res = client.post("/players/", json={"name": " "})
+    assert res.status_code == 422
+
+
 def test_get_player(player: Player, client: TestClient):
     res = client.get(f"/players/{player.id}/")
     res.raise_for_status()
@@ -216,6 +223,14 @@ def test_update_player(player, client, session):
     res.raise_for_status()
     session.refresh(player)
     assert player.name == new_name
+    assert player.is_active
+
+
+def test_update_player_empty_name_fail(player, client):
+    res = client.patch(f"/players/{player.id}/", json={"name": ""})
+    assert res.status_code == 422
+    res = client.patch(f"/players/{player.id}/", json={"name": " \n"})
+    assert res.status_code == 422
 
 
 def test_update_player_with_rating(
