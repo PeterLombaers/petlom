@@ -33,6 +33,9 @@ export default function CreatePlayerDialog({
       setName("");
       setOpen(false);
     },
+    onError: (error) => {
+      console.log(error.message);
+    },
   });
 
   const handleNameChange = (
