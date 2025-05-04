@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from backend.competitions.simkro import calculate_ranking, create_matchups
@@ -330,7 +331,7 @@ def list_players(
     limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
     is_active: bool | None = None,
 ) -> list[PlayerPublic]:
-    query = select(Player)
+    query = select(Player).options(selectinload(Player.ratings))
     if is_active is not None:
         query = query.where(Player.is_active == is_active)
     query = query.offset(offset).limit(limit)
