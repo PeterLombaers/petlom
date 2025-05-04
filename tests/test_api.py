@@ -273,6 +273,17 @@ def test_delete_player_cascade_ratings(
     assert len(all_ratings) == 0
 
 
+def test_delete_player_is_active_false(
+    player: Player, client: TestClient, session: Session, match_factory
+):
+    match_factory(player_white=player, player_black=player)
+    assert player.is_active
+    res = client.delete(f"/players/{player.id}/")
+    res.raise_for_status()
+    session.refresh(player)
+    assert not player.is_active
+
+
 def test_create_match(
     competition: Competition,
     player_factory: Callable[..., Player],

@@ -4,6 +4,7 @@ from typing import Annotated, Type, TypeVar
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from backend.competitions.simkro import calculate_ranking, create_matchups
@@ -348,8 +349,14 @@ def retrieve_player(player_id: int, session: SessionDep) -> PlayerPublic:
 @app.delete("/players/{player_id}/")
 def delete_player(player_id: int, session: SessionDep):
     player = find_object(model=Player, identifier=player_id, session=session)
-    session.delete(player)
-    session.commit()
+    try:
+        session.delete(player)
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        player.is_active = False
+        session.add(player)
+        session.commit()
     return {"ok": True}
 
 
