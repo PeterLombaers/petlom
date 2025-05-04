@@ -57,7 +57,7 @@ export const PlayerList = () => {
     isError,
   } = useQuery({
     queryKey: ["/players/", "GET"],
-    queryFn: getPlayerList,
+    queryFn: () => getPlayerList(true),
   });
 
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
@@ -67,11 +67,24 @@ export const PlayerList = () => {
   > | null>(null);
 
   const queryClient = useQueryClient();
-  const mutation = useMutation({
+  const updateMutation = useMutation({
     mutationFn: ({ id, ...rest }: PlayerUpdateInput) =>
       apiClient.PATCH("/players/{player_id}/", {
         params: { path: { player_id: id } },
         body: rest,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/players/"] });
+    },
+    onError: (error) => {
+      console.log(error.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiClient.DELETE("/players/{player_id}/", {
+        params: { path: { player_id: id } },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/players/"] });
@@ -101,7 +114,18 @@ export const PlayerList = () => {
   };
   const handleEditClick = (id: GridRowId) => () =>
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
-  const handleDeleteClick = (id: GridRowId) => () => {};
+  const handleDeleteClick = (id: GridRowId) => async () => {
+    const response = await deleteMutation.mutateAsync(id as number);
+    if (!!response.error) {
+      let message = `Failed to delete player ${id}; Error: ${response.error.detail}`;
+      setSnackbar({ children: message, severity: "error" });
+    } else {
+      setSnackbar({
+        children: "Player successfully deleted",
+        severity: "success",
+      });
+    }
+  };
 
   const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
     setRowModesModel(newRowModesModel);
@@ -110,7 +134,10 @@ export const PlayerList = () => {
   const processRowUpdate = useCallback(
     async (newRow: GridRowModel) => {
       // Make the HTTP request to save in the backend
-      const response = await mutation.mutateAsync({ id: newRow.id, ...newRow });
+      const response = await updateMutation.mutateAsync({
+        id: newRow.id,
+        ...newRow,
+      });
       if (!!response?.error) {
         const details = response.error.detail;
 
@@ -138,7 +165,7 @@ export const PlayerList = () => {
       const updatedRow = response?.data ?? newRow;
       return updatedRow;
     },
-    [mutation.mutateAsync]
+    [updateMutation.mutateAsync]
   );
 
   const handleProcessRowUpdateError = useCallback((error: Error) => {

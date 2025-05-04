@@ -47,8 +47,13 @@ export const getCompetitionRound = async (
   return data;
 };
 
-export const getPlayerList = async (): Promise<PlayerPublic[]> => {
-  const { data, error } = await apiClient.GET("/players/");
+export const getPlayerList = async (
+  is_active: boolean | null
+): Promise<PlayerPublic[]> => {
+  const params = is_active !== null ? { query: { is_active: true } } : {};
+  const { data, error } = await apiClient.GET("/players/", {
+    params: params,
+  });
   if (error) {
     throw new Error(`Error in fetching players: ${error.detail}`);
   }
