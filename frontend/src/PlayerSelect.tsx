@@ -8,16 +8,20 @@ type PlayerSelectProps = {
   player: PlayerMinimal;
   setPlayer: (player: PlayerMinimal) => void;
   label?: string;
+  error?: boolean;
+  helperText?: string;
 };
 
 export default function PlayerSelect({
   player,
   setPlayer,
   label = "Player",
+  error = false,
+  helperText = "",
 }: PlayerSelectProps) {
   const {
     data: dbPlayers,
-    error,
+    error: mutateError,
     isPending,
     isError,
   } = useQuery({
@@ -26,7 +30,7 @@ export default function PlayerSelect({
   });
 
   if (isError) {
-    console.log(error.message);
+    console.log(mutateError.message);
   }
 
   return (
@@ -36,7 +40,7 @@ export default function PlayerSelect({
       disabled={isError}
       isOptionEqualToValue={(option, value) => option.id === value.id}
       options={dbPlayers || []}
-      value={isError ? { id: 0, name: "Error" } : player}
+      value={isError ? { id: 0, name: "Error", is_active: true } : player}
       onChange={(_, newValue) => {
         if (newValue) {
           setPlayer(newValue);
@@ -45,7 +49,14 @@ export default function PlayerSelect({
       getOptionLabel={(player: PlayerMinimal) => {
         return player.name;
       }}
-      renderInput={(params) => <TextField {...params} label={label} />}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={label}
+          error={error}
+          helperText={helperText}
+        />
+      )}
       sx={{ minWidth: 200 }}
     />
   );
