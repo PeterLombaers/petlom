@@ -15,7 +15,6 @@ from backend.models import (
     CompetitionBase,
     CompetitionPublic,
     CompetitionPublicWithNRounds,
-    CompetitionRound,
     CompetitionUpdate,
     Match,
     MatchBase,
@@ -139,21 +138,18 @@ def update_competition(
 @app.get("/competitions/{name}/round/{round_nr}")
 def retrieve_competition_round(
     name: str, round_nr: int, session: SessionDep
-) -> CompetitionRound:
-    matches = session.exec(
+) -> list[MatchPublic]:
+    return session.exec(
         select(Match)
         .where(Match.competition_name == name)
         .where(Match.round == round_nr)
     ).all()
-    competition = find_object(Competition, identifier=name, session=session)
-    competition.matches = matches
-    return competition
 
 
 @app.post("/competitions/{name}/round/{round_nr}")
 def create_competition_round(
     name: str, round_nr: int, player_ids: list[int], session: SessionDep
-) -> CompetitionRound:
+) -> list[MatchPublic]:
     competition = find_object(model=Competition, identifier=name, session=session)
 
     # Check if the previous round exists and the current or later rounds do not exist.
@@ -209,19 +205,19 @@ def create_competition_round(
     )
     session.add_all(matches)
     session.commit()
-    competition.matches = matches
-    return competition
+    return matches
 
 
 @app.get("/competitions/{name}/latest_round")
 def retrieve_competition_latest_round(
     name: str, session: SessionDep
-) -> CompetitionRound:
+) -> tuple[list[MatchPublic], int]:
     competition = find_object(model=Competition, identifier=name, session=session)
     add_n_rounds(competition=competition, session=session)
-    return retrieve_competition_round(
+    matches = retrieve_competition_round(
         name=name, round_nr=competition.n_rounds, session=session
     )
+    return (matches, competition.n_rounds)
 
 
 @app.delete("/competitions/{name}/round/{round_nr}")

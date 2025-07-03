@@ -266,24 +266,6 @@ export interface components {
             /** N Rounds */
             n_rounds: number;
         };
-        /** CompetitionRound */
-        CompetitionRound: {
-            /** Name */
-            name: string;
-            type: components["schemas"]["CompetitionType"];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Matches */
-            matches: components["schemas"]["MatchPublic"][];
-        };
         /**
          * CompetitionType
          * @enum {string}
@@ -360,8 +342,11 @@ export interface components {
         PlayerCreate: {
             /** Name */
             name: string;
-            /** Is Active */
-            is_active?: boolean | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
             /** Ratings */
             ratings?: components["schemas"]["PlayerRatingUpdate"][] | null;
         };
@@ -681,7 +666,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionRound"];
+                    "application/json": components["schemas"]["MatchPublic"][];
                 };
             };
             /** @description Validation Error */
@@ -717,7 +702,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionRound"];
+                    "application/json": components["schemas"]["MatchPublic"][];
                 };
             };
             /** @description Validation Error */
@@ -780,7 +765,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionRound"];
+                    "application/json": [
+                        components["schemas"]["MatchPublic"][],
+                        number
+                    ];
                 };
             };
             /** @description Validation Error */

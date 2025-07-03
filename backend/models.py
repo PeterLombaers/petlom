@@ -136,12 +136,6 @@ class CompetitionPublicWithNRounds(CompetitionPublic):
     n_rounds: int
 
 
-class CompetitionRound(CompetitionBase):
-    created_at: datetime
-    updated_at: datetime
-    matches: list["MatchPublic"]
-
-
 class CompetitionUpdate(CompetitionBase):
     name: str | None = None
     type: CompetitionType | None = None

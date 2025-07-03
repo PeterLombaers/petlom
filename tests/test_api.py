@@ -383,9 +383,7 @@ def test_retrieve_competition_round(
     r1_matches = [m for m in matches if m.round == 1]
     res = client.get(f"/competitions/{competition.name}/round/1")
     res.raise_for_status()
-    res_competition = res.json()
-    assert res_competition["name"] == competition.name
-    res_matches = res_competition["matches"]
+    res_matches = res.json()
     for m in res_matches:
         assert m["competition_name"] == competition.name
     assert set(m["id"] for m in res_matches) == set(m.id for m in r1_matches)
@@ -399,9 +397,9 @@ def test_retrieve_competition_round_latest(
     latest_round_nr = max(m.round for m in matches)
     latest_round_matches = [m for m in matches if m.round == latest_round_nr]
     res = client.get(f"/competitions/{competition.name}/latest_round")
-    print(res.text)
     res.raise_for_status()
-    res_matches = res.json()["matches"]
+    res_matches, round_nr = res.json()
+    assert round_nr == latest_round_nr
     for m in res_matches:
         assert m["round"] == latest_round_nr
     assert set(m["id"] for m in res_matches) == set(m.id for m in latest_round_matches)
@@ -443,7 +441,7 @@ def test_create_competition_round(
         json=player_ids,
     )
     res.raise_for_status()
-    created_matches = res.json()["matches"]
+    created_matches = res.json()
     assert len(created_matches) == len(player_ids) // 2
     created_player_ids = [m["player_white_id"] for m in created_matches] + [
         m["player_black_id"] for m in created_matches
