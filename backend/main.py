@@ -390,9 +390,13 @@ def update_player(
 @app.post("/matches/")
 def create_match(match_obj: MatchBase, session: SessionDep) -> MatchPublic:
     db_match = Match.model_validate(match_obj)
-    session.add(db_match)
-    session.commit()
-    session.refresh(db_match)
+    try:
+        session.add(db_match)
+        session.commit()
+        session.refresh(db_match)
+    except IntegrityError as e:
+        error_message = f"IntegrityError: {e.orig}"
+        raise HTTPException(400, detail=error_message)
     return db_match
 
 
@@ -425,7 +429,11 @@ def update_match(id: int, match_obj: MatchUpdate, session: SessionDep) -> MatchP
     db_match = find_object(model=Match, identifier=id, session=session)
     db_match.sqlmodel_update(match_obj.model_dump(exclude_unset=True))
     db_match.updated_at = datetime.now()
-    session.add(db_match)
-    session.commit()
-    session.refresh(db_match)
+    try:
+        session.add(db_match)
+        session.commit()
+        session.refresh(db_match)
+    except IntegrityError as e:
+        error_message = f"IntegrityError: {e.orig}"
+        raise HTTPException(400, detail=error_message)
     return db_match

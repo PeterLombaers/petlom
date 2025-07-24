@@ -371,6 +371,35 @@ def test_delete_match(match_obj: Match, client: TestClient, session: Session):
     assert len(session.scalars(select(Match)).all()) == 0
 
 
+def test_create_match_unique_constraint(
+    match_obj: Match, client: TestClient, session: Session
+):
+    data = {
+        # The following three should be unique together, so we should get an error.
+        "competition_name": match_obj.competition.name,
+        "round": match_obj.round,
+        "board": match_obj.board,
+        # The following don't need to be unique together.
+        "player_white_id": match_obj.player_white_id,
+        "player_black_id": match_obj.player_black_id,
+    }
+    res = client.post("/matches/", json=data)
+    assert res.status_code == 400
+
+
+def test_update_match_unique_constraint(
+    match_factory: Callable[..., Match], client: TestClient, session: Session
+):
+    match_obj_1 = match_factory()
+    match_obj_2 = match_factory(competition=match_obj_1.competition)
+    update_data = {
+        "round": match_obj_1.round,
+        "board": match_obj_1.board,
+    }
+    res = client.patch(f"/matches/{match_obj_2.id}/", json=update_data)
+    assert res.status_code == 400
+
+
 def test_retrieve_competition_round(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     client: TestClient,
