@@ -31,7 +31,6 @@ export default function CreatePlayerDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/players/"] });
       setName("");
-      setOpen(false);
     },
     onError: (error) => {
       console.log(error.message);
@@ -45,18 +44,32 @@ export default function CreatePlayerDialog({
     setInputError(null);
   };
 
-  const handleClick = () => {
+  const resetErrors = () => {
+    setInputError(null);
+  };
+
+  const resetData = () => {
+    setName("");
+  };
+
+  const handleClick = (closeOnSucces: boolean) => {
     const trimmed = name.trim();
     if (!trimmed) {
       setInputError("Name cannot be empty.");
       return;
     }
     mutation.mutate(trimmed);
+    if (mutation.isSuccess) {
+      resetErrors();
+      resetData();
+      if (closeOnSucces) {
+        setOpen(false);
+      }
+    }
   };
 
   const handleClose = () => {
-    setName("");
-    setInputError(null);
+    resetErrors();
     mutation.reset();
     setOpen(false);
   };
@@ -79,8 +92,14 @@ export default function CreatePlayerDialog({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClick} disabled={mutation.isPending}>
-          <Typography>Add</Typography>
+        <Button onClick={() => handleClick(true)} disabled={mutation.isPending}>
+          <Typography>Add player and close</Typography>
+        </Button>
+        <Button
+          onClick={() => handleClick(false)}
+          disabled={mutation.isPending}
+        >
+          <Typography>Add player and next </Typography>
         </Button>
       </DialogActions>
     </Dialog>

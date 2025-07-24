@@ -67,10 +67,6 @@ export default function CreateMatchDialog({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/matches/"] });
-      setPlayerWhite(null);
-      setPlayerBlack(null);
-      setBoard(default_board);
-      setOpen(false);
     },
     onError: (error) => {
       setSnackbar({ children: error.message, severity: "error" });
@@ -78,7 +74,20 @@ export default function CreateMatchDialog({
     },
   });
 
-  const handleClick = () => {
+  const resetErrors = () => {
+    setInputErrorWhite("");
+    setInputErrorBlack("");
+    setInputErrorBoard("");
+    setSnackbar(null);
+  };
+
+  const resetData = () => {
+    setPlayerWhite(null);
+    setPlayerBlack(null);
+    setBoard(default_board);
+  };
+
+  const handleClick = (closeOnSucces: boolean) => {
     if (playerWhite === null || playerBlack === null || board === null) {
       if (playerWhite === null) {
         setInputErrorWhite("White player should be set.");
@@ -93,15 +102,23 @@ export default function CreateMatchDialog({
     }
 
     mutation.mutate({ white: playerWhite, black: playerBlack, board: board });
+
+    if (mutation.isSuccess) {
+      resetErrors();
+      resetData();
+      // After creating a match we want the next match to have a board value of one
+      // higher.
+      setBoard(board + 1);
+      if (closeOnSucces) {
+        setOpen(false);
+      }
+    }
   };
 
   const handleCloseSnackbar = () => setSnackbar(null);
 
   const handleClose = () => {
-    setInputErrorWhite("");
-    setInputErrorBlack("");
-    setInputErrorBoard("");
-    setSnackbar(null);
+    resetErrors();
     mutation.reset();
     setOpen(false);
   };
@@ -147,8 +164,17 @@ export default function CreateMatchDialog({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClick} disabled={mutation.isPending}>
-            <Typography>Add</Typography>
+          <Button
+            onClick={() => handleClick(true)}
+            disabled={mutation.isPending}
+          >
+            <Typography>Add match and close</Typography>
+          </Button>
+          <Button
+            onClick={() => handleClick(false)}
+            disabled={mutation.isPending}
+          >
+            <Typography>Add match and next </Typography>
           </Button>
         </DialogActions>
       </Dialog>
