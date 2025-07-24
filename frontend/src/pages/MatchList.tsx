@@ -235,7 +235,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   }, []);
 
   const columns: GridColDef[] = [
-    { field: "board", headerName: "", width: 50 },
+    { field: "board", headerName: "", width: 50, editable: true },
     {
       field: "player_white",
       headerName: "White Player",
