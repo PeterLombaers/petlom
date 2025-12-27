@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,6 +41,12 @@ export default function CreateDialog({
     },
   });
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      mutation.mutate(name);
+    }
+  };
+
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>Create New Competition</DialogTitle>
@@ -52,15 +59,18 @@ export default function CreateDialog({
           id="competition-name"
           label="Name"
           onChange={handleNameChange}
+          onKeyDown={handleKeyDown}
         />
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={() => mutation.mutate(name)}
-          disabled={mutation.isPending}
-        >
-          <Typography>Create</Typography>
-        </Button>
+        <Tooltip title="Enter">
+          <Button
+            onClick={() => mutation.mutate(name)}
+            disabled={mutation.isPending}
+          >
+            <Typography>Create</Typography>
+          </Button>
+        </Tooltip>
       </DialogActions>
     </Dialog>
   );
