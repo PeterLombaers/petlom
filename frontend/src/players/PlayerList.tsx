@@ -22,7 +22,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 import { apiClient, getPlayerList } from "../client/api";
 import CreatePlayerDialog from "./CreatePlayerDialog";
-import { components } from "../client/schema";
+import { components } from "@client/schema";
 
 type PlayerUpdate = components["schemas"]["PlayerUpdate"];
 type PlayerUpdateInput = { id: number } & PlayerUpdate;

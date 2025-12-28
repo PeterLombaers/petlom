@@ -1,6 +1,6 @@
 import { Button } from "@mui/material";
 import { useState } from "react";
-import { DeleteDialog } from "./DeleteDialog";
+import { DeleteDialog } from "../competition/DeleteDialog";
 
 export default function DeleteButton({ name }: { name: string }) {
   const [open, setOpen] = useState(false);

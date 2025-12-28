@@ -1,6 +1,6 @@
 import { Card, Link, Typography } from "@mui/material";
-import type { components } from "../client/schema";
-import DeleteButton from "./DeleteButton";
+import type { components } from "@client/schema";
+import DeleteButton from "@components/DeleteButton";
 
 type CompetitionProps = components["schemas"]["CompetitionPublic"];
 

@@ -12,9 +12,9 @@ import {
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createMatch } from "../client/api";
-import { components } from "../client/schema";
-import PlayerSelect from "../PlayerSelect";
+import { createMatch } from "@client/api";
+import { components } from "@client/schema";
+import PlayerSelect from "@components/PlayerSelect";
 
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 

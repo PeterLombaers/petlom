@@ -1,7 +1,7 @@
 import { Autocomplete, TextField } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { getPlayerList } from "./client/api";
-import { components } from "./client/schema";
+import { getPlayerList } from "@client/api";
+import { components } from "@client/schema";
 
 type PlayerMinimal = components["schemas"]["PlayerPublicMinimal"];
 type PlayerSelectProps = {

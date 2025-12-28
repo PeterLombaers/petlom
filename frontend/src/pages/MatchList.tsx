@@ -31,9 +31,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 import { apiClient, getCompetitionRound } from "../client/api";
 import CreateMatchDialog from "./CreateMatchDialog";
-import { components } from "../client/schema";
-import ResultToggle from "../ResultToggle";
-import PlayerSelect from "../PlayerSelect";
+import { components } from "@client/schema";
+import ResultToggle from "@components/ResultToggle";
+import PlayerSelect from "@components/PlayerSelect";
 
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 type MatchUpdate = components["schemas"]["MatchUpdate"];

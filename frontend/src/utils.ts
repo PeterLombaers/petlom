@@ -1,4 +1,4 @@
-import { components } from "./client/schema";
+import { components } from "@client/schema";
 
 type Result = components["schemas"]["Result"];
 
