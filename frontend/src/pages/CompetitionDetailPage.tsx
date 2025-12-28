@@ -3,7 +3,7 @@ import NotFoundPage from "./NotFoundPage";
 import { useQuery } from "@tanstack/react-query";
 import { getCompetition } from "../client/api";
 import { Breadcrumbs, Link, Stack, Typography } from "@mui/material";
-import { Competition } from "../competition/Competition";
+import { Competition } from "../competitions/Competition";
 
 export default function CompetitionDetailPage() {
   const { name } = useParams();

@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import NotFoundPage from "./NotFoundPage";
-import { MatchList } from "./MatchList";
+import { MatchList } from "../matches/MatchList";
 
 export default function CompetitionRoundPage() {
   const { name, round } = useParams();
