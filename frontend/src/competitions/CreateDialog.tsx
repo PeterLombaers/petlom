@@ -8,9 +8,9 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { apiClient } from "../client/api";
+import { $api } from "@client/api";
 
 export interface CreateDialogProps {
   open: boolean;
@@ -30,20 +30,20 @@ export default function CreateDialog({
     setName(e.target.value);
   };
   const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: (name: string) =>
-      apiClient.POST("/competitions/", {
-        body: { name: name, type: "simkro" },
-      }),
+  const { mutate, isPending } = $api.useMutation("post", "/competitions/", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/competitions/"] });
       setOpen(false);
     },
   });
 
+  const handleClick = () => {
+    mutate({ body: { name: name, type: "simkro" } });
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      mutation.mutate(name);
+      handleClick();
     }
   };
 
@@ -64,10 +64,7 @@ export default function CreateDialog({
       </DialogContent>
       <DialogActions>
         <Tooltip title="Enter">
-          <Button
-            onClick={() => mutation.mutate(name)}
-            disabled={mutation.isPending}
-          >
+          <Button onClick={handleClick} disabled={isPending}>
             <Typography>Create</Typography>
           </Button>
         </Tooltip>

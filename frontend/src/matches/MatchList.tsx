@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DataGrid,
   GridActionsCellItem,
@@ -29,15 +29,13 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-import { apiClient, getCompetitionRound } from "../client/api";
+import { $api } from "@client/api";
 import CreateMatchDialog from "./CreateMatchDialog";
 import { components } from "@client/schema";
 import ResultToggle from "@components/ResultToggle";
 import PlayerSelect from "@components/PlayerSelect";
 
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
-type MatchUpdate = components["schemas"]["MatchUpdate"];
-type MatchUpdateInput = { id: number } & MatchUpdate;
 type MatchListProps = {
   competition_name: string;
   round: number;
@@ -107,9 +105,8 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
     error,
     isPending,
     isError,
-  } = useQuery({
-    queryKey: ["/matches/", "GET"],
-    queryFn: () => getCompetitionRound(competition_name, round),
+  } = $api.useQuery("get", "/competitions/{name}/round/{round_nr}", {
+    params: { path: { name: competition_name, round_nr: round } },
   });
 
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
@@ -119,33 +116,28 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   > | null>(null);
 
   const queryClient = useQueryClient();
-  const updateMutation = useMutation({
-    mutationFn: ({ id, ...rest }: MatchUpdateInput) => {
-      return apiClient.PATCH("/matches/{id}", {
-        params: { path: { id } },
-        body: rest,
-      });
-    },
+  const {
+    mutateAsync: updateMutateAsync,
+    data: updateData,
+    error: updateError,
+  } = $api.useMutation("patch", "/matches/{id}", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/matches/"] });
     },
     onError: (error) => {
-      console.log(error.message);
+      console.log(error.detail?.[0]?.msg);
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiClient.DELETE("/matches/{id}", {
-        params: { path: { id } },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/matches/"] });
-    },
-    onError: (error) => {
-      console.log(error.message);
-    },
-  });
+  const { mutateAsync: deleteMutateAsync, error: deleteError } =
+    $api.useMutation("delete", "/matches/{id}", {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/matches/"] });
+      },
+      onError: (error) => {
+        console.log(error.detail?.[0]?.msg);
+      },
+    });
 
   const handleCloseSnackbar = () => setSnackbar(null);
   const handleRowEditStop: GridEventListener<"rowEditStop"> = (
@@ -168,9 +160,11 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   const handleEditClick = (id: GridRowId) => () =>
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
   const handleDeleteClick = (id: GridRowId) => async () => {
-    const response = await deleteMutation.mutateAsync(id as number);
-    if (!!response.error) {
-      let message = `Failed to delete match ${id}; Error: ${response.error.detail}`;
+    await deleteMutateAsync({
+      params: { path: { id: id as number } },
+    });
+    if (!!deleteError) {
+      let message = `Failed to delete match ${id}; Error: ${deleteError.detail}`;
       setSnackbar({ children: message, severity: "error" });
     } else {
       setSnackbar({
@@ -193,12 +187,12 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       newRow.player_black_id = newRow.player_black?.id ?? null;
 
       // Make the HTTP request to save in the backend
-      const response = await updateMutation.mutateAsync({
-        id: newRow.id,
-        ...newRow,
+      await updateMutateAsync({
+        params: { path: { id: newRow.id } },
+        body: newRow,
       });
-      if (!!response?.error) {
-        const details = response.error.detail;
+      if (!!updateError) {
+        const details = updateError.detail;
 
         let message = "Failed to update match";
 
@@ -218,7 +212,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         throw new Error(message);
       }
 
-      const updatedRow = response?.data ?? newRow;
+      const updatedRow = updateData ?? newRow;
 
       setSnackbar({
         children: "Match successfully saved",
@@ -227,7 +221,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
 
       return updatedRow;
     },
-    [updateMutation.mutateAsync]
+    [updateMutateAsync]
   );
 
   const handleProcessRowUpdateError = useCallback((error: Error) => {
@@ -312,8 +306,8 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   if (isPending || !matches) return "Loading...";
 
   if (isError) {
-    console.log(error.message);
-    return `An error occured: ${error.message}`;
+    console.log(error.detail?.[0]?.msg);
+    return `An error occured: ${error.detail?.[0]?.msg}`;
   }
 
   const maxBoard =

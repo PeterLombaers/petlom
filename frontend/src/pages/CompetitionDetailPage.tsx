@@ -1,7 +1,6 @@
 import { useParams } from "react-router-dom";
 import NotFoundPage from "./NotFoundPage";
-import { useQuery } from "@tanstack/react-query";
-import { getCompetition } from "../client/api";
+import { $api } from "@client/api";
 import { Breadcrumbs, Link, Stack, Typography } from "@mui/material";
 import { Competition } from "../competitions/Competition";
 
@@ -15,9 +14,8 @@ export default function CompetitionDetailPage() {
     data: competition,
     error,
     isPending,
-  } = useQuery({
-    queryKey: ["/competitions/", "GET", name],
-    queryFn: () => getCompetition(name),
+  } = $api.useQuery("get", "/competitions/{name}", {
+    params: { path: { name: name } },
   });
   if (isPending) {
     return <div>Loading...</div>;

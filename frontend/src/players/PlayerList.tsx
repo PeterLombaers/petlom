@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DataGrid,
   GridActionsCellItem,
@@ -20,12 +20,8 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-import { apiClient, getPlayerList } from "../client/api";
+import { $api } from "@client/api";
 import CreatePlayerDialog from "./CreatePlayerDialog";
-import { components } from "@client/schema";
-
-type PlayerUpdate = components["schemas"]["PlayerUpdate"];
-type PlayerUpdateInput = { id: number } & PlayerUpdate;
 
 function CustomToolbar() {
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
@@ -55,10 +51,7 @@ export const PlayerList = () => {
     error,
     isPending,
     isError,
-  } = useQuery({
-    queryKey: ["/players/", "GET"],
-    queryFn: () => getPlayerList(true),
-  });
+  } = $api.useQuery("get", "/players/");
 
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
   const [snackbar, setSnackbar] = useState<Pick<
@@ -67,32 +60,28 @@ export const PlayerList = () => {
   > | null>(null);
 
   const queryClient = useQueryClient();
-  const updateMutation = useMutation({
-    mutationFn: ({ id, ...rest }: PlayerUpdateInput) =>
-      apiClient.PATCH("/players/{player_id}/", {
-        params: { path: { player_id: id } },
-        body: rest,
-      }),
+  const {
+    mutateAsync: updateMutateAsync,
+    data: updateData,
+    error: updateError,
+  } = $api.useMutation("patch", "/players/{player_id}/", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/players/"] });
     },
     onError: (error) => {
-      console.log(error.message);
+      console.log(error.detail?.[0]?.msg);
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiClient.DELETE("/players/{player_id}/", {
-        params: { path: { player_id: id } },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/players/"] });
-    },
-    onError: (error) => {
-      console.log(error.message);
-    },
-  });
+  const { mutateAsync: deleteMutateAsync, error: deleteError } =
+    $api.useMutation("delete", "/players/{player_id}/", {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/players/"] });
+      },
+      onError: (error) => {
+        console.log(error.detail?.[0]?.msg);
+      },
+    });
 
   const handleCloseSnackbar = () => setSnackbar(null);
   const handleRowEditStop: GridEventListener<"rowEditStop"> = (
@@ -115,9 +104,11 @@ export const PlayerList = () => {
   const handleEditClick = (id: GridRowId) => () =>
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
   const handleDeleteClick = (id: GridRowId) => async () => {
-    const response = await deleteMutation.mutateAsync(id as number);
-    if (!!response.error) {
-      let message = `Failed to delete player ${id}; Error: ${response.error.detail}`;
+    await deleteMutateAsync({
+      params: { path: { player_id: id as number } },
+    });
+    if (!!deleteError) {
+      let message = `Failed to delete player ${id}; Error: ${deleteError.detail}`;
       setSnackbar({ children: message, severity: "error" });
     } else {
       setSnackbar({
@@ -134,12 +125,12 @@ export const PlayerList = () => {
   const processRowUpdate = useCallback(
     async (newRow: GridRowModel) => {
       // Make the HTTP request to save in the backend
-      const response = await updateMutation.mutateAsync({
-        id: newRow.id,
-        ...newRow,
+      await updateMutateAsync({
+        params: { path: { player_id: newRow.id } },
+        body: newRow,
       });
-      if (!!response?.error) {
-        const details = response.error.detail;
+      if (!!updateError) {
+        const details = updateError.detail;
 
         let message = "Failed to update player";
 
@@ -162,10 +153,10 @@ export const PlayerList = () => {
         children: "Player successfully saved",
         severity: "success",
       });
-      const updatedRow = response?.data ?? newRow;
+      const updatedRow = updateData ?? newRow;
       return updatedRow;
     },
-    [updateMutation.mutateAsync]
+    [updateMutateAsync]
   );
 
   const handleProcessRowUpdateError = useCallback((error: Error) => {
@@ -218,8 +209,8 @@ export const PlayerList = () => {
   if (isPending || !players) return "Loading...";
 
   if (isError) {
-    console.log(error.message);
-    return `An error occured: ${error.message}`;
+    console.log(error.detail?.[0]?.msg);
+    return `An error occured: ${error.detail?.[0]?.msg}`;
   }
 
   return (

@@ -8,9 +8,9 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
-import { apiClient } from "../client/api";
+import { $api } from "@client/api";
 
 export interface CreateDialogProps {
   open: boolean;
@@ -38,20 +38,20 @@ export default function CreatePlayerDialog({
     }
   }, [open]);
 
-  const mutation = useMutation({
-    mutationFn: (name: string) =>
-      apiClient.POST("/players/", {
-        body: { name: name, is_active: true },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/players/"] });
-      setName("");
-      inputRef.current?.focus();
-    },
-    onError: (error) => {
-      console.log(error.message);
-    },
-  });
+  const { mutate, reset, isSuccess, isPending } = $api.useMutation(
+    "post",
+    "/players/",
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/players/"] });
+        setName("");
+        inputRef.current?.focus();
+      },
+      onError: (error) => {
+        console.log(error.detail?.[0]?.msg);
+      },
+    }
+  );
 
   const handleNameChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -74,8 +74,8 @@ export default function CreatePlayerDialog({
       setInputError("Name cannot be empty.");
       return;
     }
-    mutation.mutate(trimmed);
-    if (mutation.isSuccess) {
+    mutate({body: {name: trimmed, is_active: true}});
+    if (isSuccess) {
       resetErrors();
       resetData();
       if (closeOnSucces) {
@@ -86,7 +86,7 @@ export default function CreatePlayerDialog({
 
   const handleClose = () => {
     resetErrors();
-    mutation.reset();
+    reset();
     setOpen(false);
   };
 
@@ -125,7 +125,7 @@ export default function CreatePlayerDialog({
         <Tooltip title="Enter">
           <Button
             onClick={() => handleClick(true)}
-            disabled={mutation.isPending}
+            disabled={isPending}
           >
             <Typography>Add player and close</Typography>
           </Button>
@@ -133,7 +133,7 @@ export default function CreatePlayerDialog({
         <Tooltip title="Shift+Enter">
           <Button
             onClick={() => handleClick(false)}
-            disabled={mutation.isPending}
+            disabled={isPending}
           >
             <Typography>Add player and next </Typography>
           </Button>

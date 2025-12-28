@@ -9,9 +9,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { apiClient } from "../client/api";
+import { $api } from "@client/api";
 
 export interface DeleteDialogProps {
   open: boolean;
@@ -33,16 +33,24 @@ export function DeleteDialog({
     setDeleteInput(e.target.value);
   };
   const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: (name: string) =>
-      apiClient.DELETE("/competitions/{name}", {
-        params: { path: { name: name } },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/competitions/"] });
-      setOpen(false);
-    },
-  });
+  const { mutate, isSuccess, isPending } = $api.useMutation(
+    "delete",
+    "/competitions/{name}",
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/competitions/"] });
+        setOpen(false);
+      },
+    }
+  );
+
+  const handleClick = () => {
+    mutate({
+      params: {
+        path: { name: name },
+      },
+    });
+  };
 
   return (
     <Dialog open={open} onClose={onClose}>
@@ -67,10 +75,10 @@ export function DeleteDialog({
       </DialogContent>
       <DialogActions>
         <Button
-          onClick={() => mutation.mutate(name)}
-          disabled={deleteInput !== name || mutation.isPending}
+          onClick={handleClick}
+          disabled={deleteInput !== name || isPending}
         >
-          {mutation.isSuccess ? (
+          {isSuccess ? (
             <Typography>Deleted!</Typography>
           ) : (
             <Typography>Delete {name}</Typography>

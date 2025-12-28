@@ -1,6 +1,5 @@
 import { Autocomplete, TextField } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import { getPlayerList } from "@client/api";
+import { $api } from "@client/api";
 import { components } from "@client/schema";
 
 type PlayerMinimal = components["schemas"]["PlayerPublicMinimal"];
@@ -24,13 +23,10 @@ export default function PlayerSelect({
     error: mutateError,
     isPending,
     isError,
-  } = useQuery({
-    queryKey: ["/players/", "GET"],
-    queryFn: getPlayerList,
-  });
+  } = $api.useQuery("get", "/players/");
 
   if (isError) {
-    console.log(mutateError.message);
+    console.log(mutateError.detail);
   }
 
   return (

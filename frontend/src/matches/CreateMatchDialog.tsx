@@ -10,9 +10,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createMatch } from "@client/api";
+import { $api } from "@client/api";
 import { components } from "@client/schema";
 import PlayerSelect from "@components/PlayerSelect";
 
@@ -48,31 +48,22 @@ export default function CreateMatchDialog({
     "children" | "severity"
   > | null>(null);
   const queryClient = useQueryClient();
-  const mutation = useMutation({
-    mutationFn: ({
-      white,
-      black,
-      board,
-    }: {
-      white: PlayerPublicMinimal;
-      black: PlayerPublicMinimal;
-      board: number;
-    }) =>
-      createMatch({
-        player_white_id: white.id,
-        player_black_id: black.id,
-        competition_name,
-        round,
-        board,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/matches/"] });
-    },
-    onError: (error) => {
-      setSnackbar({ children: error.message, severity: "error" });
-      console.error(error.message);
-    },
-  });
+  const { mutate, reset, isSuccess, isPending } = $api.useMutation(
+    "post",
+    "/matches/",
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/matches/"] });
+      },
+      onError: (error) => {
+        setSnackbar({
+          children: error.detail?.[0]?.msg || "An error occured",
+          severity: "error",
+        });
+        console.error(error.detail);
+      },
+    }
+  );
 
   const resetErrors = () => {
     setInputErrorWhite("");
@@ -100,10 +91,17 @@ export default function CreateMatchDialog({
       }
       return;
     }
+    mutate({
+      body: {
+        player_white_id: playerWhite.id,
+        player_black_id: playerBlack.id,
+        competition_name: competition_name,
+        round: round,
+        board: board,
+      },
+    });
 
-    mutation.mutate({ white: playerWhite, black: playerBlack, board: board });
-
-    if (mutation.isSuccess) {
+    if (isSuccess) {
       resetErrors();
       resetData();
       // After creating a match we want the next match to have a board value of one
@@ -119,7 +117,7 @@ export default function CreateMatchDialog({
 
   const handleClose = () => {
     resetErrors();
-    mutation.reset();
+    reset();
     setOpen(false);
   };
 
@@ -164,16 +162,10 @@ export default function CreateMatchDialog({
           />
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => handleClick(true)}
-            disabled={mutation.isPending}
-          >
+          <Button onClick={() => handleClick(true)} disabled={isPending}>
             <Typography>Add match and close</Typography>
           </Button>
-          <Button
-            onClick={() => handleClick(false)}
-            disabled={mutation.isPending}
-          >
+          <Button onClick={() => handleClick(false)} disabled={isPending}>
             <Typography>Add match and next </Typography>
           </Button>
         </DialogActions>

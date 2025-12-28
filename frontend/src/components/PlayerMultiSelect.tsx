@@ -1,6 +1,5 @@
 import { Autocomplete, TextField } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import { getPlayerList } from "@client/api";
+import { $api } from "@client/api";
 import { components } from "@client/schema";
 
 type PlayerMinimal = components["schemas"]["PlayerPublicMinimal"];
@@ -18,13 +17,10 @@ export default function PlayerMultiSelect({
     error,
     isPending,
     isError,
-  } = useQuery({
-    queryKey: ["/players/", "GET"],
-    queryFn: getPlayerList,
-  });
+  } = $api.useQuery("get", "/players/");
 
   if (isError) {
-    console.log(error.message);
+    console.log(error.detail);
   }
 
   return (
@@ -35,7 +31,7 @@ export default function PlayerMultiSelect({
       disabled={isError}
       isOptionEqualToValue={(option, value) => option.id === value.id}
       options={dbPlayers || []}
-      value={isError ? [{ id: 0, name: "Error" }] : players}
+      value={isError ? [{ id: 0, name: "Error", is_active: true }] : players}
       onChange={(_, newValue) => {
         setPlayers(newValue);
       }}
