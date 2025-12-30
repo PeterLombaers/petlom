@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
-import { $api } from "@client/api";
+import { $api, formatHTTPValidationError } from "@client/api";
 
 export interface CreateDialogProps {
   open: boolean;
@@ -48,7 +48,7 @@ export default function CreatePlayerDialog({
         inputRef.current?.focus();
       },
       onError: (error) => {
-        console.log(error.detail?.[0]?.msg);
+        console.log(formatHTTPValidationError(error));
       },
     }
   );
@@ -74,7 +74,7 @@ export default function CreatePlayerDialog({
       setInputError("Name cannot be empty.");
       return;
     }
-    mutate({body: {name: trimmed, is_active: true}});
+    mutate({ body: { name: trimmed, is_active: true } });
     if (isSuccess) {
       resetErrors();
       resetData();
@@ -123,18 +123,12 @@ export default function CreatePlayerDialog({
       </DialogContent>
       <DialogActions>
         <Tooltip title="Enter">
-          <Button
-            onClick={() => handleClick(true)}
-            disabled={isPending}
-          >
+          <Button onClick={() => handleClick(true)} disabled={isPending}>
             <Typography>Add player and close</Typography>
           </Button>
         </Tooltip>
         <Tooltip title="Shift+Enter">
-          <Button
-            onClick={() => handleClick(false)}
-            disabled={isPending}
-          >
+          <Button onClick={() => handleClick(false)} disabled={isPending}>
             <Typography>Add player and next </Typography>
           </Button>
         </Tooltip>

@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { $api } from "@client/api";
+import { $api, formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
 import PlayerSelect from "@components/PlayerSelect";
 
@@ -57,7 +57,7 @@ export default function CreateMatchDialog({
       },
       onError: (error) => {
         setSnackbar({
-          children: error.detail?.[0]?.msg || "An error occured",
+          children: formatHTTPValidationError(error) || "An error occured",
           severity: "error",
         });
         console.error(error.detail);

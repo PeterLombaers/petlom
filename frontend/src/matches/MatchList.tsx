@@ -29,7 +29,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-import { $api } from "@client/api";
+import { $api, formatHTTPValidationError } from "@client/api";
 import CreateMatchDialog from "./CreateMatchDialog";
 import { components } from "@client/schema";
 import ResultToggle from "@components/ResultToggle";
@@ -125,7 +125,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       queryClient.invalidateQueries({ queryKey: ["/matches/"] });
     },
     onError: (error) => {
-      console.log(error.detail?.[0]?.msg);
+      console.log(formatHTTPValidationError(error));
     },
   });
 
@@ -135,7 +135,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         queryClient.invalidateQueries({ queryKey: ["/matches/"] });
       },
       onError: (error) => {
-        console.log(error.detail?.[0]?.msg);
+        console.log(formatHTTPValidationError(error));
       },
     });
 
@@ -306,8 +306,9 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   if (isPending || !matches) return "Loading...";
 
   if (isError) {
-    console.log(error.detail?.[0]?.msg);
-    return `An error occured: ${error.detail?.[0]?.msg}`;
+    const errorMessage = formatHTTPValidationError(error);
+    console.log(errorMessage);
+    return `An error occured: ${errorMessage}`;
   }
 
   const maxBoard =

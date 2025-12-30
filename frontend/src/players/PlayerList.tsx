@@ -20,7 +20,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-import { $api } from "@client/api";
+import { $api, formatHTTPValidationError } from "@client/api";
 import CreatePlayerDialog from "./CreatePlayerDialog";
 
 function CustomToolbar() {
@@ -69,7 +69,7 @@ export const PlayerList = () => {
       queryClient.invalidateQueries({ queryKey: ["/players/"] });
     },
     onError: (error) => {
-      console.log(error.detail?.[0]?.msg);
+      console.log(formatHTTPValidationError(error));
     },
   });
 
@@ -79,7 +79,7 @@ export const PlayerList = () => {
         queryClient.invalidateQueries({ queryKey: ["/players/"] });
       },
       onError: (error) => {
-        console.log(error.detail?.[0]?.msg);
+        console.log(formatHTTPValidationError(error));
       },
     });
 
@@ -209,8 +209,9 @@ export const PlayerList = () => {
   if (isPending || !players) return "Loading...";
 
   if (isError) {
-    console.log(error.detail?.[0]?.msg);
-    return `An error occured: ${error.detail?.[0]?.msg}`;
+    const errorMessage = formatHTTPValidationError(error);
+    console.log(errorMessage);
+    return `An error occured: ${errorMessage}`;
   }
 
   return (
