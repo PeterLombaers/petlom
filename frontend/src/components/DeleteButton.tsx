@@ -20,7 +20,6 @@ interface DeleteButtonProps {
   entityId: number | string;
   entityName: string;
   mutation: UseMutationResult<any, any, any, any>;
-  queryKeysToInvalidate: string[];
 }
 
 export default function DeleteButton({
