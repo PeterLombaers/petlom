@@ -1,5 +1,5 @@
-import { CompetitionList } from "../competitions/CompetitionList";
+import CompetitionTable from "@/competitions/CompetitionTable";
 
 export default function CompetitionListPage() {
-  return <CompetitionList />;
+  return <CompetitionTable />;
 }
