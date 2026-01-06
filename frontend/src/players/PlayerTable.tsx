@@ -15,20 +15,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
-  createReadOnlyDateCell,
+  createReadOnlyNumberCell,
   createTextCell,
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
 
-type CompetitionPublic = components["schemas"]["CompetitionPublic"];
+type PlayerPublic = components["schemas"]["PlayerPublic"];
 
 const tableCells = {
-  name: createTextCell("competition-name", "Name"),
-  created_at: createReadOnlyDateCell(),
-  updated_at: createReadOnlyDateCell(),
+  id: createReadOnlyNumberCell(),
+  name: createTextCell("player-name", "Name"),
 };
 
-const validateCompetitionName = createNonEmptyStringValidator("name");
+const validatePlayerName = createNonEmptyStringValidator("name");
 
 const createDialogConfig: CreateDialogConfig<{ name: string }> = {
   getInitialFormData: () => {
@@ -38,22 +37,22 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
   },
   validateForm: (formData) => {
     const errors: Record<string, string> = {};
-    validateCompetitionName(formData.name, errors);
+    validatePlayerName(formData.name, errors);
     return errors;
   },
   sanitizeForm: (formData) => ({
     ...formData,
     name: formData.name.trim(),
   }),
-  getRequestBody: (formData) => ({ ...formData, type: "simkro" }),
+  getRequestBody: (formData) => ({ ...formData }),
   renderContent: ({ formData, errors, onChange }) => {
     return (
       <TextField
         autoFocus
         fullWidth
         required
-        name="competition-name"
-        id="competition-name"
+        name="player-name"
+        id="player-name"
         label="Name"
         value={formData.name}
         error={!!errors.name}
@@ -64,21 +63,21 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
   },
 };
 
-export default function CompetitionTable() {
-  const [editableId, setEditableId] = useState("");
+export default function PlayerTable() {
+  const [editableId, setEditableId] = useState(-1);
 
   const {
-    data: competitions,
+    data: players,
     error,
     isPending,
     isError,
-  } = $api.useQuery("get", "/competitions/");
+  } = $api.useQuery("get", "/players/");
 
   const queryClient = useQueryClient();
 
-  const createMutation = $api.useMutation("post", "/competitions/", {
+  const createMutation = $api.useMutation("post", "/players/", {
     onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/players/"] });
     },
     onError: async (error) => {
       const errorMessage = formatHTTPValidationError(error);
@@ -86,9 +85,9 @@ export default function CompetitionTable() {
     },
   });
 
-  const editMutation = $api.useMutation("patch", "/competitions/{name}", {
+  const editMutation = $api.useMutation("patch", "/players/{id}/", {
     onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/players/"] });
     },
     onError: async (error) => {
       const errorMessage = formatHTTPValidationError(error);
@@ -96,9 +95,9 @@ export default function CompetitionTable() {
     },
   });
 
-  const deleteMutation = $api.useMutation("delete", "/competitions/{name}", {
+  const deleteMutation = $api.useMutation("delete", "/players/{id}/", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/players/"] });
     },
     onError: (error) => {
       const errorMessage = formatHTTPValidationError(error);
@@ -106,20 +105,20 @@ export default function CompetitionTable() {
     },
   });
 
-  const setIsEditing = (name: string, isEditing: boolean) => {
-    setEditableId(isEditing ? name : "");
+  const setIsEditing = (playerId: number, isEditing: boolean) => {
+    setEditableId(isEditing ? playerId : -1);
   };
 
-  const sanitizeData = (competition: CompetitionPublic) => {
-    return { ...competition, name: competition.name.trim() };
+  const sanitizeData = (player: PlayerPublic) => {
+    return { ...player, name: player.name.trim() };
   };
-  const validateData = (competition: CompetitionPublic) => {
+  const validateData = (player: PlayerPublic) => {
     const errors: Record<string, string> = {};
-    validateCompetitionName(competition.name, errors);
+    validatePlayerName(player.name, errors);
     return errors;
   };
-  const getRequestBody = (competition: CompetitionPublic) => {
-    return competition;
+  const getRequestBody = (player: PlayerPublic) => {
+    return player;
   };
 
   if (isPending) {
@@ -132,8 +131,8 @@ export default function CompetitionTable() {
     return `An error occured: ${errorMessage}`;
   }
 
-  const sortedCompetitions = [...competitions].sort((a, b) =>
-    b.updated_at.localeCompare(a.updated_at)
+  const sortedPlayers = [...players].sort((a, b) =>
+    a.name.localeCompare(b.name)
   );
 
   return (
@@ -147,30 +146,29 @@ export default function CompetitionTable() {
               colSpan={Object.keys(tableCells).length + 1}
             >
               <CreateButton
-                entityType="competition"
+                entityType="player"
                 mutation={createMutation}
                 dialogConfig={createDialogConfig}
               />
             </TableCell>
           </TableRow>
           <TableRow>
+            <TableCell>ID</TableCell>
             <TableCell>Name</TableCell>
-            <TableCell>Created Date</TableCell>
-            <TableCell>Updated Date</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedCompetitions.map((competition) => (
-            <EditableRow<CompetitionPublic>
-              key={competition.name}
-              data={competition}
-              isEditing={editableId === competition.name}
+          {sortedPlayers.map((player) => (
+            <EditableRow<PlayerPublic>
+              key={player.id}
+              data={player}
+              isEditing={editableId === player.id}
               setIsEditing={(isEditing: boolean) =>
-                setIsEditing(competition.name, isEditing)
+                setIsEditing(player.id, isEditing)
               }
               cells={tableCells}
-              entityIdField="name"
+              entityIdField="id"
               editConfig={{
                 editMutation,
                 validateData,
@@ -179,7 +177,7 @@ export default function CompetitionTable() {
               }}
               deleteConfig={{
                 deleteMutation,
-                entityType: "competition",
+                entityType: "player",
                 entityNameField: "name",
               }}
             />

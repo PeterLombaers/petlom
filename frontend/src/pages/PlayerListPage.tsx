@@ -1,9 +1,5 @@
-import { PlayerList } from "../players/PlayerList";
+import PlayerTable from "@/players/PlayerTable";
 
 export default function PlayerListPage() {
-  return (
-    <>
-      <PlayerList />
-    </>
-  );
+  return <PlayerTable />;
 }
