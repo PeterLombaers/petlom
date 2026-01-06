@@ -14,39 +14,17 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { components } from "@/client/schema";
+import {
+  createReadOnlyDateCell,
+  createTextCell,
+} from "@/components/cellConfigs";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString();
-};
-
 const tableCells = {
-  name: {
-    renderValue: (props: { value: string }) => props.value,
-    renderEdit: (props: {
-      editValue: string;
-      error: string;
-      onChange: (newValue: string) => void;
-    }) => {
-      return (
-        <TextField
-          name="competition-name"
-          label="Name"
-          value={props.editValue}
-          error={!!props.error}
-          helperText={props.error}
-          onChange={(e) => props.onChange(e.target.value)}
-        />
-      );
-    },
-  },
-  created_at: {
-    renderValue: (props: { value: string }) => formatDate(props.value),
-  },
-  updated_at: {
-    renderValue: (props: { value: string }) => formatDate(props.value),
-  },
+  name: createTextCell("competition-name", "Name"),
+  created_at: createReadOnlyDateCell(),
+  updated_at: createReadOnlyDateCell(),
 };
 
 const sanitizeCompetitionName = (name: string) => {
