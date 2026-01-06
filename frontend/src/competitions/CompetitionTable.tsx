@@ -17,6 +17,7 @@ import { components } from "@/client/schema";
 import {
   createReadOnlyDateCell,
   createTextCell,
+  createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
@@ -27,18 +28,7 @@ const tableCells = {
   updated_at: createReadOnlyDateCell(),
 };
 
-const sanitizeCompetitionName = (name: string) => {
-  return name.trim();
-};
-
-const validateCompetitionName = (
-  name: string,
-  errors: Record<string, string>
-) => {
-  if (!name) {
-    errors.name = "Name should not be empty";
-  }
-};
+const validateCompetitionName = createNonEmptyStringValidator("name");
 
 const createDialogConfig: CreateDialogConfig<{ name: string }> = {
   getInitialFormData: () => {
@@ -53,7 +43,7 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
   },
   sanitizeForm: (formData) => ({
     ...formData,
-    name: sanitizeCompetitionName(formData.name),
+    name: formData.name.trim(),
   }),
   getRequestBody: (formData) => ({ ...formData, type: "simkro" }),
   renderContent: ({ formData, errors, onChange }) => {
@@ -121,7 +111,7 @@ export default function CompetitionTable() {
   };
 
   const sanitizeData = (competition: CompetitionPublic) => {
-    return { ...competition, name: sanitizeCompetitionName(competition.name) };
+    return { ...competition, name: competition.name.trim() };
   };
   const validateData = (competition: CompetitionPublic) => {
     const errors: Record<string, string> = {};

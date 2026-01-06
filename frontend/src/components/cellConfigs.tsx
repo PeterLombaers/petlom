@@ -54,3 +54,10 @@ export const createNumberCell = (fieldName: string, label: string) => ({
 export const createReadOnlyNumberCell = () => ({
   renderValue: (props: { value: number }) => props.value.toString(),
 });
+
+export const createNonEmptyStringValidator =
+  (field: string) => (value: string, errors: Record<string, string>) => {
+    if (!value) {
+      errors[field] = "Value should not be empty";
+    }
+  };
