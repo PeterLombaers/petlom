@@ -166,7 +166,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/players/{player_id}/": {
+    "/players/{id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -174,15 +174,15 @@ export interface paths {
             cookie?: never;
         };
         /** Retrieve Player */
-        get: operations["retrieve_player_players__player_id___get"];
+        get: operations["retrieve_player_players__id___get"];
         put?: never;
         post?: never;
         /** Delete Player */
-        delete: operations["delete_player_players__player_id___delete"];
+        delete: operations["delete_player_players__id___delete"];
         options?: never;
         head?: never;
         /** Update Player */
-        patch: operations["update_player_players__player_id___patch"];
+        patch: operations["update_player_players__id___patch"];
         trace?: never;
     };
     "/matches/": {
@@ -1073,12 +1073,12 @@ export interface operations {
             };
         };
     };
-    retrieve_player_players__player_id___get: {
+    retrieve_player_players__id___get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                player_id: number;
+                id: number;
             };
             cookie?: never;
         };
@@ -1104,12 +1104,12 @@ export interface operations {
             };
         };
     };
-    delete_player_players__player_id___delete: {
+    delete_player_players__id___delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                player_id: number;
+                id: number;
             };
             cookie?: never;
         };
@@ -1135,12 +1135,12 @@ export interface operations {
             };
         };
     };
-    update_player_players__player_id___patch: {
+    update_player_players__id___patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                player_id: number;
+                id: number;
             };
             cookie?: never;
         };

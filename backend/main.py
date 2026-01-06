@@ -335,17 +335,17 @@ def list_players(
     return players
 
 
-@app.get("/players/{player_id}/")
-def retrieve_player(player_id: int, session: SessionDep) -> PlayerPublic:
-    player = session.get(Player, player_id)
+@app.get("/players/{id}/")
+def retrieve_player(id: int, session: SessionDep) -> PlayerPublic:
+    player = session.get(Player, id)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
     return player
 
 
-@app.delete("/players/{player_id}/")
-def delete_player(player_id: int, session: SessionDep):
-    player = find_object(model=Player, identifier=player_id, session=session)
+@app.delete("/players/{id}/")
+def delete_player(id: int, session: SessionDep):
+    player = find_object(model=Player, identifier=id, session=session)
     try:
         session.delete(player)
         session.commit()
@@ -357,11 +357,11 @@ def delete_player(player_id: int, session: SessionDep):
     return {"ok": True}
 
 
-@app.patch("/players/{player_id}/")
+@app.patch("/players/{id}/")
 def update_player(
-    player_id: int, player: PlayerUpdate, session: SessionDep
+    id: int, player: PlayerUpdate, session: SessionDep
 ) -> PlayerPublic:
-    db_player = find_object(model=Player, identifier=player_id, session=session)
+    db_player = find_object(model=Player, identifier=id, session=session)
     db_player.sqlmodel_update(player.model_dump(exclude_unset=True))
     db_player.updated_at = datetime.now()
     if player.ratings is not None:

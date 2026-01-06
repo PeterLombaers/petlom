@@ -64,7 +64,7 @@ export const PlayerList = () => {
     mutateAsync: updateMutateAsync,
     data: updateData,
     error: updateError,
-  } = $api.useMutation("patch", "/players/{player_id}/", {
+  } = $api.useMutation("patch", "/players/{id}/", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/players/"] });
     },
@@ -74,7 +74,7 @@ export const PlayerList = () => {
   });
 
   const { mutateAsync: deleteMutateAsync, error: deleteError } =
-    $api.useMutation("delete", "/players/{player_id}/", {
+    $api.useMutation("delete", "/players/{id}/", {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["/players/"] });
       },
@@ -105,7 +105,7 @@ export const PlayerList = () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
   const handleDeleteClick = (id: GridRowId) => async () => {
     await deleteMutateAsync({
-      params: { path: { player_id: id as number } },
+      params: { path: { id: id as number } },
     });
     if (!!deleteError) {
       let message = `Failed to delete player ${id}; Error: ${deleteError.detail}`;
@@ -126,7 +126,7 @@ export const PlayerList = () => {
     async (newRow: GridRowModel) => {
       // Make the HTTP request to save in the backend
       await updateMutateAsync({
-        params: { path: { player_id: newRow.id } },
+        params: { path: { id: newRow.id } },
         body: newRow,
       });
       if (!!updateError) {
