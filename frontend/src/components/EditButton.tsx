@@ -1,17 +1,39 @@
-import { Edit, Save } from "@mui/icons-material";
-import { IconButton } from "@mui/material";
-import { useState } from "react";
+import { IconButton, Stack } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 
-export default function EditButton() {
-  const [isEditing, setIsEditing] = useState(false);
+interface EditButtonProps {
+  isEditing: boolean;
+  isPending: boolean;
+  onEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
 
-  const handleClick = () => {
-    setIsEditing(!isEditing);
-  };
+export function EditButton({
+  isEditing,
+  isPending,
+  onEdit,
+  onSave,
+  onCancel,
+}: EditButtonProps) {
+  if (!isEditing) {
+    return (
+      <IconButton onClick={onEdit} disabled={isPending} aria-label="Edit">
+        <EditIcon />
+      </IconButton>
+    );
+  }
 
   return (
-    <IconButton onClick={handleClick}>
-      {isEditing ? <Save /> : <Edit />}
-    </IconButton>
+    <Stack direction="row">
+      <IconButton onClick={onSave} disabled={isPending} aria-label="Save">
+        <CheckIcon />
+      </IconButton>
+      <IconButton onClick={onCancel} disabled={isPending} aria-label="Cancel">
+        <CloseIcon />
+      </IconButton>
+    </Stack>
   );
 }

@@ -1,10 +1,8 @@
 import { $api, formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
-import DeleteButton from "@/components/DeleteButton";
-import EditButton from "@/components/EditButton";
+import EditableRow from "@/components/EditableRow";
 import {
   Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -14,9 +12,54 @@ import {
   TextField,
 } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { components } from "@/client/schema";
+
+type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString();
+};
+
+const tableCells = {
+  name: {
+    renderValue: (props: { value: string }) => props.value,
+    renderEdit: (props: {
+      editValue: string;
+      error: string;
+      onChange: (newValue: string) => void;
+    }) => {
+      return (
+        <TextField
+          name="competition-name"
+          label="Name"
+          value={props.editValue}
+          error={!!props.error}
+          helperText={props.error}
+          onChange={(e) => props.onChange(e.target.value)}
+        />
+      );
+    },
+  },
+  created_at: {
+    renderValue: (props: { value: string }) => formatDate(props.value),
+  },
+  updated_at: {
+    renderValue: (props: { value: string }) => formatDate(props.value),
+  },
+};
+
+const sanitizeCompetitionName = (name: string) => {
+  return name.trim();
+};
+
+const validateCompetitionName = (
+  name: string,
+  errors: Record<string, string>
+) => {
+  if (!name) {
+    errors.name = "Name should not be empty";
+  }
 };
 
 const createDialogConfig: CreateDialogConfig<{ name: string }> = {
@@ -27,12 +70,13 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
   },
   validateForm: (formData) => {
     const errors: Record<string, string> = {};
-    if (!formData.name) {
-      errors.name = "Name should not be empty";
-    }
+    validateCompetitionName(formData.name, errors);
     return errors;
   },
-  sanitizeForm: (formData) => ({ name: formData.name.trim() }),
+  sanitizeForm: (formData) => ({
+    ...formData,
+    name: sanitizeCompetitionName(formData.name),
+  }),
   getRequestBody: (formData) => ({ ...formData, type: "simkro" }),
   renderContent: ({ formData, errors, onChange }) => {
     return (
@@ -53,6 +97,8 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
 };
 
 export default function CompetitionTable() {
+  const [editableId, setEditableId] = useState("");
+
   const {
     data: competitions,
     error,
@@ -72,6 +118,16 @@ export default function CompetitionTable() {
     },
   });
 
+  const editMutation = $api.useMutation("patch", "/competitions/{name}", {
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
+    },
+    onError: async (error) => {
+      const errorMessage = formatHTTPValidationError(error);
+      console.log(errorMessage);
+    },
+  });
+
   const deleteMutation = $api.useMutation("delete", "/competitions/{name}", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
@@ -81,6 +137,22 @@ export default function CompetitionTable() {
       console.error(errorMessage);
     },
   });
+
+  const setIsEditing = (name: string, isEditing: boolean) => {
+    setEditableId(isEditing ? name : "");
+  };
+
+  const sanitizeData = (competition: CompetitionPublic) => {
+    return { ...competition, name: sanitizeCompetitionName(competition.name) };
+  };
+  const validateData = (competition: CompetitionPublic) => {
+    const errors: Record<string, string> = {};
+    validateCompetitionName(competition.name, errors);
+    return errors;
+  };
+  const getRequestBody = (competition: CompetitionPublic) => {
+    return competition;
+  };
 
   if (isPending) {
     return "Loading...";
@@ -93,7 +165,7 @@ export default function CompetitionTable() {
   }
 
   const sortedCompetitions = [...competitions].sort((a, b) =>
-    a.updated_at.localeCompare(b.updated_at)
+    b.updated_at.localeCompare(a.updated_at)
   );
 
   return (
@@ -118,22 +190,27 @@ export default function CompetitionTable() {
         </TableHead>
         <TableBody>
           {sortedCompetitions.map((competition) => (
-            <TableRow key={competition.name}>
-              <TableCell>{competition.name}</TableCell>
-              <TableCell>{formatDate(competition.created_at)}</TableCell>
-              <TableCell>{formatDate(competition.updated_at)}</TableCell>
-              <TableCell align="right">
-                <Stack direction="row" justifyContent="flex-end">
-                  <EditButton />
-                  <DeleteButton
-                    entityId={competition.name}
-                    entityName={competition.name}
-                    entityType="competition"
-                    mutation={deleteMutation}
-                  />
-                </Stack>
-              </TableCell>
-            </TableRow>
+            <EditableRow<CompetitionPublic>
+              key={competition.name}
+              data={competition}
+              isEditing={editableId === competition.name}
+              setIsEditing={(isEditing: boolean) =>
+                setIsEditing(competition.name, isEditing)
+              }
+              cells={tableCells}
+              entityIdField="name"
+              editConfig={{
+                editMutation,
+                validateData,
+                sanitizeData,
+                getRequestBody,
+              }}
+              deleteConfig={{
+                deleteMutation,
+                entityType: "competition",
+                entityNameField: "name",
+              }}
+            />
           ))}
         </TableBody>
       </Table>

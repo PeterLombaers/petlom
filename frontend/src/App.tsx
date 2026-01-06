@@ -11,7 +11,6 @@ import {
 import {
   HomePage,
   CompetitionListPage,
-  CompetitionDetailPage,
   CompetitionRoundPage,
   PlayerListPage,
   PlayerDetailPage,
@@ -72,10 +71,10 @@ function App() {
                 path="/competitions"
                 element={<CompetitionListPage />}
               ></Route>
-              <Route
+              {/* <Route
                 path="/competitions/:name"
                 element={<CompetitionDetailPage />}
-              ></Route>
+              ></Route> */}
               <Route
                 path="/competitions/:name/round/:round"
                 element={<CompetitionRoundPage />}
