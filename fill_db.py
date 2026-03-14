@@ -1,6 +1,6 @@
 import factory
 from faker import Faker
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, create_engine
 
 from backend.competitions import CompetitionType
 from backend.models import Competition, Match, Player, RatingType, Result

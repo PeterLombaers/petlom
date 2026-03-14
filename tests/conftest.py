@@ -8,7 +8,8 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from backend.competitions import CompetitionType
-from backend.main import app, get_session
+from backend.dependencies import get_session
+from backend.main import app
 from backend.models import Competition, Match, Player, RatingType, Result
 
 fake = Faker()
