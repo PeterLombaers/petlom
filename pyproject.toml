@@ -9,6 +9,9 @@ dependencies = [
     "sqlmodel>=0.0.22",
 ]
 
+[tool.setuptools]
+packages = ["backend"]
+
 [dependency-groups]
 dev = [
     "factory-boy>=3.3.1",
