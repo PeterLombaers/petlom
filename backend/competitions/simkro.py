@@ -404,6 +404,8 @@ def calculate_penalty_score(
     matches: list[Match], players: list[Player]
 ) -> dict[Player, dict[Player, float]]:
     penalty_score = {}
+    if not matches:
+        return penalty_score
     base_penalty_score = calculate_base_penalty_score(matches, players)
     current_round = max(m.round for m in matches) + 1
     turnus_pairs = played_in_turnus_pairs(matches, current_round)

@@ -230,7 +230,7 @@ def delete_competition_round(name: str, round_nr: int, session: SessionDep):
     )
     for m in round_matches:
         session.delete(m)
-    {"ok": True}
+    return {"ok": True}
 
 
 @app.get("/competitions/{name}/round/{round_nr}/ranking")
@@ -368,7 +368,7 @@ def update_player(
         for rating in player.ratings:
             updated = False
             for db_rating in db_player.ratings:
-                if db_rating.name == rating.rating_type_name:
+                if db_rating.rating_type_name == rating.rating_type_name:
                     db_rating.rating = rating.rating
                     updated = True
                     break
