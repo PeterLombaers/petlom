@@ -1,4 +1,10 @@
 import { TextField } from "@mui/material";
+import { components } from "@client/schema";
+import PlayerSelect from "@components/PlayerSelect";
+import ResultToggle from "@components/ResultToggle";
+
+type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
+type Result = components["schemas"]["Result"];
 
 export const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString();
@@ -53,6 +59,33 @@ export const createNumberCell = (fieldName: string, label: string) => ({
 
 export const createReadOnlyNumberCell = () => ({
   renderValue: (props: { value: number }) => props.value.toString(),
+});
+
+export const createPlayerSelectCell = (label: string) => ({
+  renderValue: (props: { value: PlayerPublicMinimal }) => props.value.name,
+  renderEdit: (props: {
+    editValue: PlayerPublicMinimal;
+    error: string;
+    onChange: (newValue: PlayerPublicMinimal) => void;
+  }) => (
+    <PlayerSelect
+      player={props.editValue}
+      setPlayer={props.onChange}
+      label={label}
+      error={!!props.error}
+      helperText={props.error}
+    />
+  ),
+});
+
+export const createResultToggleCell = () => ({
+  renderValue: (props: { value: Result | null }) =>
+    props.value ?? "—",
+  renderEdit: (props: {
+    editValue: Result | null;
+    error: string;
+    onChange: (newValue: Result | null) => void;
+  }) => <ResultToggle result={props.editValue} setResult={props.onChange} />,
 });
 
 export const createNonEmptyStringValidator =
