@@ -37,7 +37,6 @@ const tableCells = {
 type MatchListProps = {
   competition_name: string;
   round: number;
-  max_board: number;
 };
 
 type MatchFormData = {
