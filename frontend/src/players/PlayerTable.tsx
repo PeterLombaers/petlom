@@ -107,7 +107,7 @@ export default function PlayerTable() {
 
   return (
     <TableContainer component={Paper}>
-      <Table>
+      <Table size="small">
         <TableHead>
           <TableRow>
             <TableCell

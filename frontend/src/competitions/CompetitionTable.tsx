@@ -112,7 +112,7 @@ export default function CompetitionTable() {
 
   return (
     <TableContainer component={Paper}>
-      <Table>
+      <Table size="small">
         <TableHead>
           <TableRow>
             <TableCell

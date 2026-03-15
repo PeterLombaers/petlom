@@ -164,7 +164,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
 
   return (
     <TableContainer component={Paper}>
-      <Table>
+      <Table size="small">
         <TableHead>
           <TableRow>
             <TableCell colSpan={Object.keys(tableCells).length + 1}>
