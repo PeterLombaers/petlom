@@ -1,4 +1,4 @@
-import { $api, formatHTTPValidationError } from "@/client/api";
+import { formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
 import {
@@ -11,7 +11,6 @@ import {
   TableRow,
   TextField,
 } from "@mui/material";
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
@@ -19,6 +18,7 @@ import {
   createTextCell,
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
+import { useCompetitions } from "./useCompetitions";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
@@ -66,45 +66,15 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
 
 export default function CompetitionTable() {
   const [editableId, setEditableId] = useState("");
-
   const {
-    data: competitions,
+    competitions,
     error,
     isPending,
     isError,
-  } = $api.useQuery("get", "/competitions/");
-
-  const queryClient = useQueryClient();
-
-  const createMutation = $api.useMutation("post", "/competitions/", {
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
-    },
-    onError: async (error) => {
-      const errorMessage = formatHTTPValidationError(error);
-      console.log(errorMessage);
-    },
-  });
-
-  const editMutation = $api.useMutation("patch", "/competitions/{name}", {
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
-    },
-    onError: async (error) => {
-      const errorMessage = formatHTTPValidationError(error);
-      console.log(errorMessage);
-    },
-  });
-
-  const deleteMutation = $api.useMutation("delete", "/competitions/{name}", {
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
-    },
-    onError: (error) => {
-      const errorMessage = formatHTTPValidationError(error);
-      console.error(errorMessage);
-    },
-  });
+    createMutation,
+    editMutation,
+    deleteMutation,
+  } = useCompetitions();
 
   const setIsEditing = (name: string, isEditing: boolean) => {
     setEditableId(isEditing ? name : "");
@@ -132,7 +102,7 @@ export default function CompetitionTable() {
     return `An error occured: ${errorMessage}`;
   }
 
-  const sortedCompetitions = [...competitions].sort((a, b) =>
+  const sortedCompetitions = [...(competitions ?? [])].sort((a, b) =>
     b.updated_at.localeCompare(a.updated_at)
   );
 

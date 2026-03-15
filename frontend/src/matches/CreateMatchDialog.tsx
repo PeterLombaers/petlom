@@ -10,11 +10,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { $api, formatHTTPValidationError } from "@client/api";
+import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
 import PlayerSelect from "@components/PlayerSelect";
+import { useMatches } from "./useMatches";
 
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 
@@ -24,6 +24,7 @@ export interface CreateDialogProps {
   competition_name: string;
   round: number;
   default_board: number;
+  createMutation: ReturnType<typeof useMatches>["createMutation"];
 }
 
 export default function CreateMatchDialog({
@@ -32,6 +33,7 @@ export default function CreateMatchDialog({
   competition_name,
   round,
   default_board,
+  createMutation,
 }: CreateDialogProps) {
   const [playerWhite, setPlayerWhite] = useState<PlayerPublicMinimal | null>(
     null
@@ -47,23 +49,8 @@ export default function CreateMatchDialog({
     AlertProps,
     "children" | "severity"
   > | null>(null);
-  const queryClient = useQueryClient();
-  const { mutate, reset, isSuccess, isPending } = $api.useMutation(
-    "post",
-    "/matches/",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["/matches/"] });
-      },
-      onError: (error) => {
-        setSnackbar({
-          children: formatHTTPValidationError(error) || "An error occured",
-          severity: "error",
-        });
-        console.error(error.detail);
-      },
-    }
-  );
+
+  const { mutate, reset, isSuccess, isPending } = createMutation;
 
   const resetErrors = () => {
     setInputErrorWhite("");

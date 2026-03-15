@@ -1,4 +1,4 @@
-import { $api, formatHTTPValidationError } from "@/client/api";
+import { formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
 import {
@@ -11,7 +11,6 @@ import {
   TableRow,
   TextField,
 } from "@mui/material";
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
@@ -19,6 +18,7 @@ import {
   createTextCell,
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
+import { usePlayers } from "./usePlayers";
 
 type PlayerPublic = components["schemas"]["PlayerPublic"];
 
@@ -65,45 +65,15 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
 
 export default function PlayerTable() {
   const [editableId, setEditableId] = useState(-1);
-
   const {
-    data: players,
+    players,
     error,
     isPending,
     isError,
-  } = $api.useQuery("get", "/players/");
-
-  const queryClient = useQueryClient();
-
-  const createMutation = $api.useMutation("post", "/players/", {
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/players/"] });
-    },
-    onError: async (error) => {
-      const errorMessage = formatHTTPValidationError(error);
-      console.log(errorMessage);
-    },
-  });
-
-  const editMutation = $api.useMutation("patch", "/players/{id}/", {
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/players/"] });
-    },
-    onError: async (error) => {
-      const errorMessage = formatHTTPValidationError(error);
-      console.log(errorMessage);
-    },
-  });
-
-  const deleteMutation = $api.useMutation("delete", "/players/{id}/", {
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/players/"] });
-    },
-    onError: (error) => {
-      const errorMessage = formatHTTPValidationError(error);
-      console.error(errorMessage);
-    },
-  });
+    createMutation,
+    editMutation,
+    deleteMutation,
+  } = usePlayers();
 
   const setIsEditing = (playerId: number, isEditing: boolean) => {
     setEditableId(isEditing ? playerId : -1);
@@ -131,8 +101,8 @@ export default function PlayerTable() {
     return `An error occured: ${errorMessage}`;
   }
 
-  const sortedPlayers = [...players].sort((a, b) =>
-    a.name.localeCompare(b.name)
+  const sortedPlayers = [...(players ?? [])].sort((a, b) =>
+    a.name.localeCompare(b.name),
   );
 
   return (

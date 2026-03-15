@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   Paper,
@@ -14,7 +13,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
-import { $api, formatHTTPValidationError } from "@client/api";
+import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
 import EditableRow from "@components/EditableRow";
 import {
@@ -23,6 +22,7 @@ import {
   createResultToggleCell,
 } from "@components/cellConfigs";
 import CreateMatchDialog from "./CreateMatchDialog";
+import { useMatches } from "./useMatches";
 
 type MatchPublic = components["schemas"]["MatchPublic"];
 
@@ -42,39 +42,15 @@ type MatchListProps = {
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
   const [editableId, setEditableId] = useState(-1);
   const [addMatchOpen, setAddMatchOpen] = useState(false);
-
   const {
-    data: matches,
+    matches,
     error,
     isPending,
     isError,
-  } = $api.useQuery("get", "/competitions/{name}/round/{round_nr}", {
-    params: { path: { name: competition_name, round_nr: round } },
-  });
-
-  const queryClient = useQueryClient();
-
-  const editMutation = $api.useMutation("patch", "/matches/{id}", {
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["get", "/competitions/{name}/round/{round_nr}"],
-      });
-    },
-    onError: (error) => {
-      console.log(formatHTTPValidationError(error));
-    },
-  });
-
-  const deleteMutation = $api.useMutation("delete", "/matches/{id}", {
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["get", "/competitions/{name}/round/{round_nr}"],
-      });
-    },
-    onError: (error) => {
-      console.log(formatHTTPValidationError(error));
-    },
-  });
+    createMutation,
+    editMutation,
+    deleteMutation,
+  } = useMatches(competition_name, round);
 
   const setIsEditing = (matchId: number, isEditing: boolean) => {
     setEditableId(isEditing ? matchId : -1);
@@ -177,6 +153,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         competition_name={competition_name}
         round={round}
         default_board={maxBoard + 1}
+        createMutation={createMutation}
       />
     </TableContainer>
   );
