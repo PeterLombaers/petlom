@@ -10,14 +10,14 @@ export function useMatches(competitionName: string, round: number) {
     error,
     isPending,
     isError,
-  } = $api.useQuery("get", "/competitions/{name}/round/{round_nr}", {
-    params: { path: { name: competitionName, round_nr: round } },
+  } = $api.useQuery("get", "/competitions/{name}/pairing", {
+    params: { path: { name: competitionName }, query: { round_nr: round } },
   });
 
   const queryClient = useQueryClient();
   const onSuccess = () =>
     queryClient.invalidateQueries({
-      queryKey: ["get", "/competitions/{name}/round/{round_nr}"],
+      queryKey: ["get", "/competitions/{name}/pairing"],
     });
   const onError = (error: HTTPValidationError) => {
     const errorMessage = formatHTTPValidationError(error);

@@ -400,7 +400,7 @@ def test_update_match_unique_constraint(
     assert res.status_code == 400
 
 
-def test_retrieve_competition_round(
+def test_retrieve_pairing(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     client: TestClient,
     competition_factory: Callable[..., Competition],
@@ -410,7 +410,9 @@ def test_retrieve_competition_round(
     other_competition = competition_factory(name="other")
     other_match = match_factory(competition=other_competition, round=1)
     r1_matches = [m for m in matches if m.round == 1]
-    res = client.get(f"/competitions/{competition.name}/round/1")
+    res = client.get(
+        f"/competitions/{competition.name}/pairing", params={"round_nr": 1}
+    )
     res.raise_for_status()
     res_matches = res.json()
     for m in res_matches:
@@ -419,22 +421,21 @@ def test_retrieve_competition_round(
     assert other_match.id not in set(m["id"] for m in res_matches)
 
 
-def test_retrieve_competition_round_latest(
+def test_retrieve_pairing_latest(
     simkro_setup: tuple[Competition, list[Player], list[Match]], client: TestClient
 ):
     (competition, _, matches) = simkro_setup
     latest_round_nr = max(m.round for m in matches)
     latest_round_matches = [m for m in matches if m.round == latest_round_nr]
-    res = client.get(f"/competitions/{competition.name}/latest_round")
+    res = client.get(f"/competitions/{competition.name}/pairing")
     res.raise_for_status()
-    res_matches, round_nr = res.json()
-    assert round_nr == latest_round_nr
+    res_matches = res.json()
     for m in res_matches:
         assert m["round"] == latest_round_nr
     assert set(m["id"] for m in res_matches) == set(m.id for m in latest_round_matches)
 
 
-def test_create_competition_round(
+def test_create_pairing(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     player_factory: Callable[..., Player],
     competition_factory: Callable[..., Competition],
@@ -454,20 +455,20 @@ def test_create_competition_round(
     # Check only the next round can be created.
     for round_nr in range(1, max_round_nr + 1):
         res = client.post(
-            f"/competitions/{competition.name}/round/{round_nr}",
-            json=player_ids,
+            f"/competitions/{competition.name}/pairing",
+            json={"round_nr": round_nr, "player_ids": player_ids},
         )
         assert res.status_code == 400
     res = client.post(
-        f"/competitions/{competition.name}/round/{max_round_nr + 2}",
-        json=player_ids,
+        f"/competitions/{competition.name}/pairing",
+        json={"round_nr": max_round_nr + 2, "player_ids": player_ids},
     )
     assert res.status_code == 400
 
     correct_round_nr = max_round_nr + 1
     res = client.post(
-        f"/competitions/{competition.name}/round/{correct_round_nr}",
-        json=player_ids,
+        f"/competitions/{competition.name}/pairing",
+        json={"round_nr": correct_round_nr, "player_ids": player_ids},
     )
     res.raise_for_status()
     created_matches = res.json()
@@ -482,14 +483,16 @@ def test_create_competition_round(
     assert other_match.id not in set(m["id"] for m in created_matches)
 
 
-def test_delete_competition_round(
+def test_delete_pairing(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     client: TestClient,
     session: Session,
 ):
     (competition, _, matches) = simkro_setup
     assert len(list(m for m in matches if m.round == 2)) > 0
-    res = client.delete(f"/competitions/{competition.name}/round/2")
+    res = client.delete(
+        f"/competitions/{competition.name}/pairing", params={"round_nr": 2}
+    )
     res.raise_for_status()
     db_matches = session.exec(select(Match)).all()
     for m in matches:
@@ -503,13 +506,16 @@ def test_competition_ranking(
     simkro_setup: tuple[Competition, list[Player], list[Match]], client: TestClient
 ):
     competition, players, _ = simkro_setup
+    # Without round_nr defaults to latest round (all players).
     res = client.get(f"/competitions/{competition.name}/ranking")
     res.raise_for_status()
     ranking = res.json()
     assert len(ranking) == len(players)
 
     # Last two players did not play in the first round.
-    res = client.get(f"/competitions/{competition.name}/round/1/ranking")
+    res = client.get(
+        f"/competitions/{competition.name}/ranking", params={"round_nr": 1}
+    )
     res.raise_for_status()
     ranking = res.json()
     assert len(ranking) == len(players) - 2

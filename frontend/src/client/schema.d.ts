@@ -41,54 +41,20 @@ export interface paths {
         patch: operations["update_competition_competitions__name__patch"];
         trace?: never;
     };
-    "/competitions/{name}/round/{round_nr}": {
+    "/competitions/{name}/pairing": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Retrieve Competition Round */
-        get: operations["retrieve_competition_round_competitions__name__round__round_nr__get"];
+        /** Retrieve Pairing */
+        get: operations["retrieve_pairing_competitions__name__pairing_get"];
         put?: never;
-        /** Create Competition Round */
-        post: operations["create_competition_round_competitions__name__round__round_nr__post"];
-        /** Delete Competition Round */
-        delete: operations["delete_competition_round_competitions__name__round__round_nr__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/competitions/{name}/latest_round": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Retrieve Competition Latest Round */
-        get: operations["retrieve_competition_latest_round_competitions__name__latest_round_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/competitions/{name}/round/{round_nr}/ranking": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Retrieve Competition Round Ranking */
-        get: operations["retrieve_competition_round_ranking_competitions__name__round__round_nr__ranking_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
+        /** Create Pairing */
+        post: operations["create_pairing_competitions__name__pairing_post"];
+        /** Delete Pairing */
+        delete: operations["delete_pairing_competitions__name__pairing_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -101,51 +67,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Retrieve Competition Ranking */
-        get: operations["retrieve_competition_ranking_competitions__name__ranking_get"];
+        /** Retrieve Ranking */
+        get: operations["retrieve_ranking_competitions__name__ranking_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/rating_types/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Rating Types */
-        get: operations["list_rating_types_rating_types__get"];
-        put?: never;
-        /** Create Rating Type */
-        post: operations["create_rating_type_rating_types__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/rating_types/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Retrieve Rating Type */
-        get: operations["retrieve_rating_type_rating_types__name__get"];
-        put?: never;
-        post?: never;
-        /** Delete Rating Type */
-        delete: operations["delete_rating_type_rating_types__name__delete"];
-        options?: never;
-        head?: never;
-        /** Update Rating Type */
-        patch: operations["update_rating_type_rating_types__name__patch"];
         trace?: never;
     };
     "/players/": {
@@ -220,6 +149,43 @@ export interface paths {
         head?: never;
         /** Update Match */
         patch: operations["update_match_matches__id__patch"];
+        trace?: never;
+    };
+    "/rating_types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Rating Types */
+        get: operations["list_rating_types_rating_types__get"];
+        put?: never;
+        /** Create Rating Type */
+        post: operations["create_rating_type_rating_types__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rating_types/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve Rating Type */
+        get: operations["retrieve_rating_type_rating_types__name__get"];
+        put?: never;
+        post?: never;
+        /** Delete Rating Type */
+        delete: operations["delete_rating_type_rating_types__name__delete"];
+        options?: never;
+        head?: never;
+        /** Update Rating Type */
+        patch: operations["update_rating_type_rating_types__name__patch"];
         trace?: never;
     };
 }
@@ -337,6 +303,13 @@ export interface components {
             /** Board */
             board?: number | null;
             result?: components["schemas"]["Result"] | null;
+        };
+        /** PairingCreate */
+        PairingCreate: {
+            /** Round Nr */
+            round_nr: number;
+            /** Player Ids */
+            player_ids: number[];
         };
         /** PlayerCreate */
         PlayerCreate: {
@@ -648,271 +621,11 @@ export interface operations {
             };
         };
     };
-    retrieve_competition_round_competitions__name__round__round_nr__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-                round_nr: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MatchPublic"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_competition_round_competitions__name__round__round_nr__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-                round_nr: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": number[];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MatchPublic"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_competition_round_competitions__name__round__round_nr__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-                round_nr: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    retrieve_competition_latest_round_competitions__name__latest_round_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": [
-                        components["schemas"]["MatchPublic"][],
-                        number
-                    ];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    retrieve_competition_round_ranking_competitions__name__round__round_nr__ranking_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-                round_nr: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SimkroRank"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    retrieve_competition_ranking_competitions__name__ranking_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SimkroRank"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_rating_types_rating_types__get: {
+    retrieve_pairing_competitions__name__pairing_get: {
         parameters: {
             query?: {
-                offset?: number;
-                limit?: number;
+                round_nr?: number | null;
             };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RatingTypePublic"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_rating_type_rating_types__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RatingTypeBase"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RatingTypePublic"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    retrieve_rating_type_rating_types__name__get: {
-        parameters: {
-            query?: never;
             header?: never;
             path: {
                 name: string;
@@ -927,7 +640,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RatingTypePublic"];
+                    "application/json": components["schemas"]["MatchPublic"][];
                 };
             };
             /** @description Validation Error */
@@ -941,9 +654,46 @@ export interface operations {
             };
         };
     };
-    delete_rating_type_rating_types__name__delete: {
+    create_pairing_competitions__name__pairing_post: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchPublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_pairing_competitions__name__pairing_delete: {
+        parameters: {
+            query: {
+                round_nr: number;
+            };
             header?: never;
             path: {
                 name: string;
@@ -972,20 +722,18 @@ export interface operations {
             };
         };
     };
-    update_rating_type_rating_types__name__patch: {
+    retrieve_ranking_competitions__name__ranking_get: {
         parameters: {
-            query?: never;
+            query?: {
+                round_nr?: number | null;
+            };
             header?: never;
             path: {
                 name: string;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RatingTypeUpdate"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -993,7 +741,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RatingTypePublic"];
+                    "application/json": components["schemas"]["SimkroRank"][];
                 };
             };
             /** @description Validation Error */
@@ -1319,6 +1067,168 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_rating_types_rating_types__get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingTypePublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_rating_type_rating_types__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatingTypeBase"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingTypePublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retrieve_rating_type_rating_types__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingTypePublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_rating_type_rating_types__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_rating_type_rating_types__name__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatingTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingTypePublic"];
                 };
             };
             /** @description Validation Error */

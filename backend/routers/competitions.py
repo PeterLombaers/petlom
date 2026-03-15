@@ -15,6 +15,7 @@ from backend.models import (
     CompetitionUpdate,
     Match,
     MatchPublic,
+    PairingCreate,
     Player,
     SimkroRank,
 )
@@ -22,12 +23,16 @@ from backend.models import (
 router = APIRouter(prefix="/competitions", tags=["competitions"])
 
 
-def add_n_rounds(competition: Competition, session: SessionDep) -> Competition:
-    """Add 'n_rounds' property to `Competition` instance."""
+def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
     n_rounds_stmt = select(func.max(Match.round)).where(
         Match.competition_name == competition.name
     )
-    n_rounds = session.scalar(n_rounds_stmt) or 0
+    return session.scalar(n_rounds_stmt) or 0
+
+
+def add_n_rounds(competition: Competition, session: SessionDep) -> Competition:
+    """Add 'n_rounds' property to `Competition` instance."""
+    n_rounds = get_latest_round_nr(competition, session)
     # I have to go via the `__dict__` attribute because if you set
     # `competition.n_rounds` directly, Pydantic validation is triggered and will
     # complain that `Competition` has no attribute `n_rounds`. This means that after you
@@ -87,22 +92,27 @@ def update_competition(
     return add_n_rounds(competition=db_competition, session=session)
 
 
-@router.get("/{name}/round/{round_nr}")
-def retrieve_competition_round(
-    name: str, round_nr: int, session: SessionDep
+@router.get("/{name}/pairing")
+def retrieve_pairing(
+    name: str, session: SessionDep, round_nr: int | None = None
 ) -> list[MatchPublic]:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    if round_nr is None:
+        round_nr = get_latest_round_nr(competition, session)
     return session.exec(
         select(Match)
-        .where(Match.competition_name == name)
+        .where(Match.competition_name == competition.name)
         .where(Match.round == round_nr)
     ).all()
 
 
-@router.post("/{name}/round/{round_nr}")
-def create_competition_round(
-    name: str, round_nr: int, player_ids: list[int], session: SessionDep
+@router.post("/{name}/pairing")
+def create_pairing(
+    name: str, pairing: PairingCreate, session: SessionDep
 ) -> list[MatchPublic]:
     competition = find_object(model=Competition, identifier=name, session=session)
+    round_nr = pairing.round_nr
+    player_ids = pairing.player_ids
 
     # Check if the previous round exists and the current or later rounds do not exist.
     if round_nr > 1:
@@ -160,20 +170,8 @@ def create_competition_round(
     return matches
 
 
-@router.get("/{name}/latest_round")
-def retrieve_competition_latest_round(
-    name: str, session: SessionDep
-) -> tuple[list[MatchPublic], int]:
-    competition = find_object(model=Competition, identifier=name, session=session)
-    add_n_rounds(competition=competition, session=session)
-    matches = retrieve_competition_round(
-        name=name, round_nr=competition.n_rounds, session=session
-    )
-    return (matches, competition.n_rounds)
-
-
-@router.delete("/{name}/round/{round_nr}")
-def delete_competition_round(name: str, round_nr: int, session: SessionDep):
+@router.delete("/{name}/pairing")
+def delete_pairing(name: str, round_nr: int, session: SessionDep):
     competition = find_object(model=Competition, identifier=name, session=session)
     round_matches = session.exec(
         select(Match)
@@ -185,21 +183,16 @@ def delete_competition_round(name: str, round_nr: int, session: SessionDep):
     return {"ok": True}
 
 
-@router.get("/{name}/round/{round_nr}/ranking")
-def retrieve_competition_round_ranking(
-    name: str, round_nr: int, session: SessionDep
+@router.get("/{name}/ranking")
+def retrieve_ranking(
+    name: str, session: SessionDep, round_nr: int | None = None
 ) -> list[SimkroRank]:
     competition = find_object(model=Competition, identifier=name, session=session)
+    if round_nr is None:
+        round_nr = get_latest_round_nr(competition, session)
     matches = session.exec(
         select(Match)
         .where(Match.round <= round_nr)
         .where(Match.competition == competition)
     ).all()
-    return calculate_ranking(matches)
-
-
-@router.get("/{name}/ranking")
-def retrieve_competition_ranking(name: str, session: SessionDep) -> list[SimkroRank]:
-    competition = find_object(model=Competition, identifier=name, session=session)
-    matches = session.exec(select(Match).where(Match.competition == competition)).all()
     return calculate_ranking(matches)

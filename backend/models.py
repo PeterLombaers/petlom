@@ -136,6 +136,11 @@ class CompetitionPublicWithNRounds(CompetitionPublic):
     n_rounds: int
 
 
+class PairingCreate(SQLModel):
+    round_nr: int
+    player_ids: list[int]
+
+
 class CompetitionUpdate(CompetitionBase):
     name: str | None = None
     type: CompetitionType | None = None
