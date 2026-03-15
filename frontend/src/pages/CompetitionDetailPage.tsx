@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchList } from "@/matches/MatchTable";
+import RankingTable from "@/competitions/RankingTable";
 import NotFoundPage from "./NotFoundPage";
 
 export default function CompetitionDetailPage() {
@@ -98,7 +99,7 @@ function CompetitionDetail({
       <MatchList competition_name={name} round={currentRound} />
 
       <Typography variant="h6">Rankings after round {currentRound}</Typography>
-      <Typography color="text.secondary">Coming soon</Typography>
+      <RankingTable competitionName={name} roundNr={currentRound} />
     </Stack>
   );
 }
