@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Button,
   Paper,
   Stack,
   Table,
@@ -9,9 +8,9 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 
 import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
@@ -21,10 +20,12 @@ import {
   createPlayerSelectCell,
   createResultToggleCell,
 } from "@components/cellConfigs";
-import CreateMatchDialog from "./CreateMatchDialog";
+import { CreateButton, CreateDialogConfig } from "@components/CreateButton";
+import PlayerSelect from "@components/PlayerSelect";
 import { useMatches } from "./useMatches";
 
 type MatchPublic = components["schemas"]["MatchPublic"];
+type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 
 const tableCells = {
   board: createNumberCell("board", "Board"),
@@ -39,9 +40,16 @@ type MatchListProps = {
   max_board: number;
 };
 
+type MatchFormData = {
+  board: number | null;
+  player_white: PlayerPublicMinimal | null;
+  player_black: PlayerPublicMinimal | null;
+};
+
+const emptyPlayer: PlayerPublicMinimal = { id: 0, name: "", is_active: true };
+
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
   const [editableId, setEditableId] = useState(-1);
-  const [addMatchOpen, setAddMatchOpen] = useState(false);
   const {
     matches,
     error,
@@ -90,6 +98,71 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   const maxBoard =
     matches.length > 0 ? Math.max(...matches.map((match) => match.board)) : 0;
 
+  const createDialogConfig: CreateDialogConfig<MatchFormData> = {
+    getInitialFormData: () => ({
+      board: maxBoard + 1,
+      player_white: null,
+      player_black: null,
+    }),
+    getNextFormData: (submitted) => ({
+      board: submitted.board !== null ? submitted.board + 1 : null,
+      player_white: null,
+      player_black: null,
+    }),
+    validateForm: (formData) => {
+      const errors: Record<string, string> = {};
+      if (formData.board === null || formData.board < 1) {
+        errors.board = "Board must be at least 1";
+      } else if (matches.some((m) => m.board === formData.board)) {
+        errors.board = `Board ${formData.board} already exists in this round`;
+      }
+      if (!formData.player_white || !formData.player_white.id) {
+        errors.player_white = "White player is required";
+      }
+      if (!formData.player_black || !formData.player_black.id) {
+        errors.player_black = "Black player is required";
+      }
+      return errors;
+    },
+    sanitizeForm: (formData) => formData,
+    getRequestBody: (formData) => ({
+      player_white_id: formData.player_white!.id,
+      player_black_id: formData.player_black!.id,
+      competition_name,
+      round,
+      board: formData.board!,
+    }),
+    renderContent: ({ formData, errors, onChange }) => (
+      <>
+        <TextField
+          label="Board Number"
+          type="number"
+          value={formData.board ?? ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            onChange("board", value === "" ? null : Number(value));
+          }}
+          error={!!errors.board}
+          helperText={errors.board}
+        />
+        <PlayerSelect
+          player={formData.player_white ?? emptyPlayer}
+          setPlayer={(player) => onChange("player_white", player)}
+          label="White Player"
+          error={!!errors.player_white}
+          helperText={errors.player_white}
+        />
+        <PlayerSelect
+          player={formData.player_black ?? emptyPlayer}
+          setPlayer={(player) => onChange("player_black", player)}
+          label="Black Player"
+          error={!!errors.player_black}
+          helperText={errors.player_black}
+        />
+      </>
+    ),
+  };
+
   return (
     <TableContainer component={Paper}>
       <Table>
@@ -104,12 +177,11 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
                 <Typography>
                   {competition_name} — Round {round}
                 </Typography>
-                <Button
-                  startIcon={<AddIcon />}
-                  onClick={() => setAddMatchOpen(true)}
-                >
-                  Add match
-                </Button>
+                <CreateButton
+                  entityType="match"
+                  mutation={createMutation}
+                  dialogConfig={createDialogConfig}
+                />
               </Stack>
             </TableCell>
           </TableRow>
@@ -147,14 +219,6 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
           ))}
         </TableBody>
       </Table>
-      <CreateMatchDialog
-        open={addMatchOpen}
-        setOpen={setAddMatchOpen}
-        competition_name={competition_name}
-        round={round}
-        default_board={maxBoard + 1}
-        createMutation={createMutation}
-      />
     </TableContainer>
   );
 };

@@ -14,6 +14,7 @@ import { formatHTTPValidationError } from "@/client/api";
 
 export interface CreateDialogConfig<T = any> {
   getInitialFormData: () => T;
+  getNextFormData?: (submitted: T) => T;
   validateForm: (formData: T) => Record<string, string>;
   sanitizeForm: (formData: T) => T;
   getRequestBody: (formData: T) => any;
@@ -35,6 +36,7 @@ export function CreateButton<T = any>({
   mutation,
   dialogConfig: {
     getInitialFormData,
+    getNextFormData,
     validateForm,
     sanitizeForm,
     getRequestBody,
@@ -61,9 +63,13 @@ export function CreateButton<T = any>({
     }
   };
 
-  const resetForm = () => {
+  const resetForm = (submitted?: T) => {
     setFormErrors({});
-    setFormData(getInitialFormData());
+    setFormData(
+      submitted && getNextFormData
+        ? getNextFormData(submitted)
+        : getInitialFormData()
+    );
   };
 
   const handleSubmit = (next: boolean) => {
@@ -80,7 +86,7 @@ export function CreateButton<T = any>({
           if (!next) {
             handleDialogClose();
           }
-          resetForm();
+          resetForm(sanitizedFormData);
         },
         onError: (error) => {
           const errorMessage = formatHTTPValidationError(error);
