@@ -11,7 +11,7 @@ import {
 import {
   HomePage,
   CompetitionListPage,
-  CompetitionRoundPage,
+  CompetitionDetailPage,
   PlayerListPage,
   PlayerDetailPage,
   NotFoundPage,
@@ -71,13 +71,13 @@ function App() {
                 path="/competitions"
                 element={<CompetitionListPage />}
               ></Route>
-              {/* <Route
+              <Route
                 path="/competitions/:name"
                 element={<CompetitionDetailPage />}
-              ></Route> */}
+              ></Route>
               <Route
                 path="/competitions/:name/round/:round"
-                element={<CompetitionRoundPage />}
+                element={<CompetitionDetailPage />}
               ></Route>
               <Route path="/players" element={<PlayerListPage />}></Route>
               <Route

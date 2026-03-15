@@ -4,6 +4,12 @@ import { useQueryClient } from "@tanstack/react-query";
 
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 
+export function useCompetition(name: string) {
+  return $api.useQuery("get", "/competitions/{name}", {
+    params: { path: { name } },
+  });
+}
+
 export function useCompetitions() {
   const {
     data: competitions,

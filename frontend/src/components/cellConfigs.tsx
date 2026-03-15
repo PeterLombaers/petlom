@@ -1,4 +1,4 @@
-import { TextField } from "@mui/material";
+import { Link, TextField } from "@mui/material";
 import { components } from "@client/schema";
 import PlayerSelect from "@components/PlayerSelect";
 import ResultToggle from "@components/ResultToggle";
@@ -79,13 +79,37 @@ export const createPlayerSelectCell = (label: string) => ({
 });
 
 export const createResultToggleCell = () => ({
-  renderValue: (props: { value: Result | null }) =>
-    props.value ?? "—",
+  renderValue: (props: { value: Result | null }) => props.value ?? "—",
   renderEdit: (props: {
     editValue: Result | null;
     error: string;
     onChange: (newValue: Result | null) => void;
   }) => <ResultToggle result={props.editValue} setResult={props.onChange} />,
+});
+
+export const createLinkTextCell = (
+  fieldName: string,
+  label: string,
+  getHref: (value: string) => string,
+) => ({
+  renderValue: (props: { value: string }) => (
+    <Link href={getHref(props.value)}>{props.value}</Link>
+  ),
+  renderEdit: (props: {
+    editValue: string;
+    error: string;
+    onChange: (newValue: string) => void;
+  }) => (
+    <TextField
+      name={fieldName}
+      label={label}
+      value={props.editValue}
+      error={!!props.error}
+      helperText={props.error}
+      onChange={(e) => props.onChange(e.target.value)}
+      fullWidth
+    />
+  ),
 });
 
 export const createNonEmptyStringValidator =

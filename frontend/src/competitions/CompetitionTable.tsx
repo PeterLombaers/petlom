@@ -14,8 +14,8 @@ import {
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
+  createLinkTextCell,
   createReadOnlyDateCell,
-  createTextCell,
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
 import { useCompetitions } from "./useCompetitions";
@@ -23,7 +23,11 @@ import { useCompetitions } from "./useCompetitions";
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
 const tableCells = {
-  name: createTextCell("competition-name", "Name"),
+  name: createLinkTextCell(
+    "competition-name",
+    "Name",
+    (name) => `/competitions/${name}`,
+  ),
   created_at: createReadOnlyDateCell(),
   updated_at: createReadOnlyDateCell(),
 };
@@ -103,7 +107,7 @@ export default function CompetitionTable() {
   }
 
   const sortedCompetitions = [...(competitions ?? [])].sort((a, b) =>
-    b.updated_at.localeCompare(a.updated_at)
+    b.updated_at.localeCompare(a.updated_at),
   );
 
   return (
