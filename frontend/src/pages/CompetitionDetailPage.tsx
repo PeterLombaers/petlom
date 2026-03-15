@@ -31,6 +31,7 @@ function CompetitionDetail({
   roundNr?: number;
 }) {
   const { data: competition, isPending, isError } = useCompetition(name);
+  const navigate = useNavigate();
 
   if (isPending) return <Typography>Loading...</Typography>;
   if (isError || !competition) return <NotFoundPage />;
@@ -50,8 +51,6 @@ function CompetitionDetail({
       </Stack>
     );
   }
-
-  const navigate = useNavigate();
 
   const handleRoundChange = (roundValue: number) => {
     if (roundValue === nRounds) {
