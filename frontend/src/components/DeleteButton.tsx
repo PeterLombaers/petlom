@@ -20,6 +20,7 @@ interface DeleteButtonProps {
   entityId: number | string;
   entityName: string;
   mutation: UseMutationResult<any, any, any, any>;
+  requireTypedConfirmation?: boolean;
 }
 
 export default function DeleteButton({
@@ -27,6 +28,7 @@ export default function DeleteButton({
   entityId,
   entityName,
   mutation,
+  requireTypedConfirmation = true,
 }: DeleteButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmDialogInput, setConfirmDialogInput] = useState("");
@@ -65,7 +67,8 @@ export default function DeleteButton({
     );
   };
 
-  const isConfirmed = confirmDialogInput === entityName;
+  const isConfirmed =
+    !requireTypedConfirmation || confirmDialogInput === entityName;
 
   return (
     <>
@@ -81,17 +84,25 @@ export default function DeleteButton({
         <DialogContent dividers>
           <Stack>
             <DialogContentText>
-              Do you want to delete the {entityType} {entityName}? This action
-              is irreversible. Type <b>{entityName}</b> to confirm.
+              Do you want to delete the {entityType} {entityName}?
+              {requireTypedConfirmation && (
+                <>
+                  {" "}
+                  This action is irreversible. Type <b>{entityName}</b> to
+                  confirm.
+                </>
+              )}
             </DialogContentText>
-            <TextField
-              autoComplete="off"
-              required
-              name={`${entityType}-name`}
-              id={`${entityType}-name`}
-              label="Name"
-              onChange={handleConfirmDialogInputChange}
-            />
+            {requireTypedConfirmation && (
+              <TextField
+                autoComplete="off"
+                required
+                name={`${entityType}-name`}
+                id={`${entityType}-name`}
+                label="Name"
+                onChange={handleConfirmDialogInputChange}
+              />
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>

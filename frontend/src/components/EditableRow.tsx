@@ -9,6 +9,7 @@ interface DeleteConfig<T = any> {
   deleteMutation: UseMutationResult<any, any, any, any>;
   entityType: string;
   entityNameField: keyof T;
+  requireTypedConfirmation?: boolean;
 }
 
 interface EditConfig<T = any> {
@@ -126,6 +127,7 @@ export default function EditableRow<T = any>({
               entityName={data[deleteConfig.entityNameField] as string}
               entityId={entityId}
               mutation={deleteConfig.deleteMutation}
+              requireTypedConfirmation={deleteConfig.requireTypedConfirmation}
             />
           )}
         </Stack>

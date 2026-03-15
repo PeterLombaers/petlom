@@ -214,6 +214,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
                 deleteMutation,
                 entityType: "match",
                 entityNameField: "id",
+                requireTypedConfirmation: false,
               }}
             />
           ))}
