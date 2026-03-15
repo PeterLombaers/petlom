@@ -240,6 +240,20 @@ def test_pick_color(competition: Competition, player_factory, match_factory):
     }
 
 
+def test_create_matchups_no_previous_matches(
+    competition: Competition, player_factory: Callable[..., Player]
+):
+    players = [player_factory() for _ in range(4)]
+    matchups = create_matchups(
+        matches=[], players=players, round_nr=1, competition=competition
+    )
+    assert len(matchups) == 2
+    paired_players = [m.player_white for m in matchups] + [
+        m.player_black for m in matchups
+    ]
+    assert set(paired_players) == set(players)
+
+
 def test_create_matchups(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     player_factory: Callable[..., Player],

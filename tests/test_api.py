@@ -4,7 +4,15 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from backend.competitions import CompetitionType
-from backend.models import Competition, Match, Player, PlayerRating, RatingType, Result
+from backend.models import (
+    Competition,
+    Match,
+    Player,
+    PlayerRating,
+    RatingType,
+    Result,
+    RoundPlayer,
+)
 
 
 def test_create_rating_type(session: Session, client: TestClient):
@@ -530,3 +538,169 @@ def test_competition_ranking(
     res.raise_for_status()
     ranking = res.json()
     assert len(ranking) == len(players) - 2
+
+
+def test_create_round_players(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    client: TestClient,
+):
+    competition, _, _ = simkro_setup
+    # Creating for a round that already has matches should fail.
+    res = client.post(
+        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+    )
+    assert res.status_code == 400
+
+    # Creating for the next round (no matches yet) should succeed.
+    res = client.post(
+        f"/competitions/{competition.name}/players", params={"round_nr": 5}
+    )
+    res.raise_for_status()
+    assert res.json() == []
+
+
+def test_round_players_add_remove(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    client: TestClient,
+    session: Session,
+):
+    p1, p2, p3 = player_factory(), player_factory(), player_factory()
+    # Create the round player list.
+    client.post(
+        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+    ).raise_for_status()
+
+    # Add players.
+    res = client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [p1.id, p2.id, p3.id]},
+    )
+    res.raise_for_status()
+    assert len(res.json()) == 3
+
+    # Adding duplicate should not create a second entry.
+    res = client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [p1.id]},
+    )
+    res.raise_for_status()
+    assert len(res.json()) == 3
+
+    # Remove a player.
+    res = client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"player_ids_to_remove": [p2.id]},
+    )
+    res.raise_for_status()
+    players = res.json()
+    assert len(players) == 2
+    assert set(rp["player"]["id"] for rp in players) == {p1.id, p3.id}
+
+    # Adding a non-existent player should fail.
+    res = client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [9999]},
+    )
+    assert res.status_code == 404
+
+
+def test_round_players_bye(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    client: TestClient,
+):
+    p1, p2, p3 = player_factory(), player_factory(), player_factory()
+    client.post(
+        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+    ).raise_for_status()
+    client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [p1.id, p2.id, p3.id]},
+    ).raise_for_status()
+
+    # Set bye player.
+    res = client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"bye_player_id": p2.id},
+    )
+    res.raise_for_status()
+    players = res.json()
+    bye_players = [rp for rp in players if rp["is_bye"]]
+    assert len(bye_players) == 1
+    assert bye_players[0]["player"]["id"] == p2.id
+
+    # Change bye player.
+    res = client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"bye_player_id": p3.id},
+    )
+    res.raise_for_status()
+    players = res.json()
+    bye_players = [rp for rp in players if rp["is_bye"]]
+    assert len(bye_players) == 1
+    assert bye_players[0]["player"]["id"] == p3.id
+
+    # Clear bye.
+    res = client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"clear_bye": True},
+    )
+    res.raise_for_status()
+    players = res.json()
+    assert all(not rp["is_bye"] for rp in players)
+
+
+def test_delete_round_players(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    client: TestClient,
+    session: Session,
+):
+    p1, p2 = player_factory(), player_factory()
+    client.post(
+        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+    ).raise_for_status()
+    client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [p1.id, p2.id]},
+    ).raise_for_status()
+
+    res = client.delete(
+        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+    )
+    res.raise_for_status()
+    assert len(session.exec(select(RoundPlayer)).all()) == 0
+
+
+def test_retrieve_round_players(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    client: TestClient,
+):
+    p1, p2 = player_factory(), player_factory()
+    client.post(
+        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+    ).raise_for_status()
+    client.patch(
+        f"/competitions/{competition.name}/players",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [p1.id, p2.id]},
+    ).raise_for_status()
+
+    res = client.get(
+        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+    )
+    res.raise_for_status()
+    players = res.json()
+    assert len(players) == 2
+    assert set(rp["player"]["id"] for rp in players) == {p1.id, p2.id}

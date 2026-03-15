@@ -405,6 +405,13 @@ def calculate_penalty_score(
 ) -> dict[Player, dict[Player, float]]:
     penalty_score = {}
     if not matches:
+        for player1, player2 in itertools.combinations(players, 2):
+            penalty_score.setdefault(player1, {})[player2] = (
+                RANDOM_PENALTY_WEIGHT * RNG.random()
+            )
+            penalty_score.setdefault(player2, {})[player1] = (
+                RANDOM_PENALTY_WEIGHT * RNG.random()
+            )
         return penalty_score
     base_penalty_score = calculate_base_penalty_score(matches, players)
     current_round = max(m.round for m in matches) + 1

@@ -1,0 +1,82 @@
+import { $api, formatHTTPValidationError } from "@/client/api";
+import { components } from "@/client/schema";
+import { useQueryClient } from "@tanstack/react-query";
+
+type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+
+export function useRoundPlayers(competitionName: string, roundNr: number) {
+  const {
+    data: roundPlayers,
+    error,
+    isPending,
+    isError,
+  } = $api.useQuery("get", "/competitions/{name}/players", {
+    params: { path: { name: competitionName }, query: { round_nr: roundNr } },
+  });
+
+  const queryClient = useQueryClient();
+  const onSuccess = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["get", "/competitions/{name}/players"],
+    });
+  };
+  const onError = (error: HTTPValidationError) => {
+    const errorMessage = formatHTTPValidationError(error);
+    console.error(errorMessage);
+  };
+
+  const updateMutation = $api.useMutation(
+    "patch",
+    "/competitions/{name}/players",
+    { onSuccess, onError },
+  );
+
+  const deleteMutation = $api.useMutation(
+    "delete",
+    "/competitions/{name}/players",
+    { onSuccess, onError },
+  );
+
+  const createPairingMutation = $api.useMutation(
+    "post",
+    "/competitions/{name}/pairing",
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/competitions/{name}/pairing"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/competitions/{name}"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/competitions/"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/competitions/{name}/players"],
+        });
+      },
+      onError,
+    },
+  );
+
+  return {
+    roundPlayers,
+    error,
+    isError,
+    isPending,
+    updateMutation,
+    deleteMutation,
+    createPairingMutation,
+  };
+}
+
+export function useCreateRoundPlayers() {
+  const queryClient = useQueryClient();
+  return $api.useMutation("post", "/competitions/{name}/players", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["get", "/competitions/{name}/players"],
+      });
+    },
+  });
+}

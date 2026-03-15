@@ -11,6 +11,8 @@ import {
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchList } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
+import RoundPlayerList from "@/competitions/RoundPlayerList";
+import { useRoundPlayers, useCreateRoundPlayers } from "@/competitions/useRoundPlayers";
 import NotFoundPage from "./NotFoundPage";
 
 export default function CompetitionDetailPage() {
@@ -32,22 +34,57 @@ function CompetitionDetail({
 }) {
   const { data: competition, isPending, isError } = useCompetition(name);
   const navigate = useNavigate();
+  const createRoundPlayersMutation = useCreateRoundPlayers();
+
+  // Always query for next round's draft players.
+  // nRounds isn't available until competition loads, so we use 0 as fallback
+  // and the query will just return empty.
+  const nRounds = competition?.n_rounds ?? 0;
+  const nextRound = nRounds + 1;
+  const { roundPlayers: draftPlayers } = useRoundPlayers(name, nextRound);
 
   if (isPending) return <Typography>Loading...</Typography>;
   if (isError || !competition) return <NotFoundPage />;
 
-  const nRounds = competition.n_rounds;
   const currentRound = roundNr ?? nRounds;
   const isLatestRound = currentRound === nRounds;
+  const hasDraft = (draftPlayers && draftPlayers.length > 0) || createRoundPlayersMutation.isSuccess;
+
+  const handleCreateDraft = () => {
+    createRoundPlayersMutation.mutate({
+      params: {
+        path: { name },
+        query: { round_nr: nextRound },
+      },
+    });
+  };
+
+  const handlePairingCreated = () => {
+    createRoundPlayersMutation.reset();
+    navigate(`/competitions/${name}`);
+  };
 
   if (currentRound === 0) {
     return (
       <Stack spacing={2}>
-        <Typography variant="h5">{name}</Typography>
-        <Typography>No rounds yet.</Typography>
-        <Button variant="contained" disabled>
-          Create pairing for round 1
-        </Button>
+        <Breadcrumbs>
+          <Link href="/competitions">Competitions</Link>
+          <Typography>{name}</Typography>
+        </Breadcrumbs>
+        {hasDraft ? (
+          <RoundPlayerList
+            competitionName={name}
+            roundNr={nextRound}
+            onPairingCreated={handlePairingCreated}
+          />
+        ) : (
+          <>
+            <Typography>No rounds yet.</Typography>
+            <Button variant="contained" onClick={handleCreateDraft}>
+              Create pairing for round 1
+            </Button>
+          </>
+        )}
       </Stack>
     );
   }
@@ -88,12 +125,20 @@ function CompetitionDetail({
           ))}
         </TextField>
 
-        {isLatestRound && (
-          <Button variant="contained" disabled>
-            Create pairing for round {nRounds + 1}
+        {isLatestRound && !hasDraft && (
+          <Button variant="contained" onClick={handleCreateDraft}>
+            Create pairing for round {nextRound}
           </Button>
         )}
       </Stack>
+
+      {isLatestRound && hasDraft && (
+        <RoundPlayerList
+          competitionName={name}
+          roundNr={nextRound}
+          onPairingCreated={handlePairingCreated}
+        />
+      )}
 
       <MatchList competition_name={name} round={currentRound} />
 

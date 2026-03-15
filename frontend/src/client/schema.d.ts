@@ -77,6 +77,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/competitions/{name}/players": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve Round Players */
+        get: operations["retrieve_round_players_competitions__name__players_get"];
+        put?: never;
+        /** Create Round Players */
+        post: operations["create_round_players_competitions__name__players_post"];
+        /** Delete Round Players */
+        delete: operations["delete_round_players_competitions__name__players_delete"];
+        options?: never;
+        head?: never;
+        /** Update Round Players */
+        patch: operations["update_round_players_competitions__name__players_patch"];
+        trace?: never;
+    };
     "/players/": {
         parameters: {
             query?: never;
@@ -421,6 +441,25 @@ export interface components {
          * @enum {string}
          */
         Result: "1-0" | "1/2-1/2" | "0-1";
+        /** RoundPlayerPublic */
+        RoundPlayerPublic: {
+            /** Id */
+            id: number;
+            player: components["schemas"]["PlayerPublicMinimal"];
+            /** Is Bye */
+            is_bye: boolean;
+        };
+        /** RoundPlayerUpdate */
+        RoundPlayerUpdate: {
+            /** Player Ids To Add */
+            player_ids_to_add?: number[] | null;
+            /** Player Ids To Remove */
+            player_ids_to_remove?: number[] | null;
+            /** Bye Player Id */
+            bye_player_id?: number | null;
+            /** Clear Bye */
+            clear_bye?: boolean | null;
+        };
         /** SimkroRank */
         SimkroRank: {
             /** Position */
@@ -742,6 +781,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SimkroRank"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retrieve_round_players_competitions__name__players_get: {
+        parameters: {
+            query: {
+                round_nr: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundPlayerPublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_round_players_competitions__name__players_post: {
+        parameters: {
+            query: {
+                round_nr: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundPlayerPublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_round_players_competitions__name__players_delete: {
+        parameters: {
+            query: {
+                round_nr: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_round_players_competitions__name__players_patch: {
+        parameters: {
+            query: {
+                round_nr: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoundPlayerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundPlayerPublic"][];
                 };
             };
             /** @description Validation Error */

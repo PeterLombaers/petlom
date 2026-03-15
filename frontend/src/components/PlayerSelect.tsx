@@ -9,6 +9,7 @@ type PlayerSelectProps = {
   label?: string;
   error?: boolean;
   helperText?: string;
+  filterOptions?: (options: PlayerMinimal[]) => PlayerMinimal[];
 };
 
 export default function PlayerSelect({
@@ -17,6 +18,7 @@ export default function PlayerSelect({
   label = "Player",
   error = false,
   helperText = "",
+  filterOptions,
 }: PlayerSelectProps) {
   const {
     data: dbPlayers,
@@ -35,7 +37,7 @@ export default function PlayerSelect({
       loading={isPending}
       disabled={isError}
       isOptionEqualToValue={(option, value) => option.id === value.id}
-      options={dbPlayers || []}
+      options={filterOptions ? filterOptions(dbPlayers || []) : dbPlayers || []}
       value={isError ? { id: 0, name: "Error", is_active: true } : player}
       onChange={(_, newValue) => {
         if (newValue) {

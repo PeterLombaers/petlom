@@ -201,6 +201,30 @@ class MatchUpdate(MatchBase):
     result: Result | None = None
 
 
+class RoundPlayer(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("competition_name", "round", "player_id"),)
+    id: int | None = Field(default=None, primary_key=True)
+    competition_name: str = Field(foreign_key="competition.name", ondelete="CASCADE")
+    round: int
+    player_id: int = Field(foreign_key="player.id")
+    is_bye: bool = False
+    created_at: datetime = Field(default_factory=datetime.now)
+    player: Player = Relationship()
+
+
+class RoundPlayerPublic(SQLModel):
+    id: int
+    player: PlayerPublicMinimal
+    is_bye: bool
+
+
+class RoundPlayerUpdate(SQLModel):
+    player_ids_to_add: list[int] | None = None
+    player_ids_to_remove: list[int] | None = None
+    bye_player_id: int | None = None
+    clear_bye: bool | None = None
+
+
 class SimkroRank(SQLModel):
     position: int
     player: PlayerPublic

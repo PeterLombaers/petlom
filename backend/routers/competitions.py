@@ -17,6 +17,9 @@ from backend.models import (
     MatchPublic,
     PairingCreate,
     Player,
+    RoundPlayer,
+    RoundPlayerPublic,
+    RoundPlayerUpdate,
     SimkroRank,
 )
 
@@ -201,3 +204,142 @@ def retrieve_ranking(
         .where(Match.competition == competition)
     ).all()
     return calculate_ranking(matches)
+
+
+@router.post("/{name}/players")
+def create_round_players(
+    name: str, round_nr: int, session: SessionDep
+) -> list[RoundPlayerPublic]:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    # Check that matches don't already exist for this round.
+    existing_match = session.exec(
+        select(Match).where(
+            Match.competition_name == competition.name,
+            Match.round == round_nr,
+        )
+    ).first()
+    if existing_match:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pairing for round {round_nr} already exists.",
+        )
+    return session.exec(
+        select(RoundPlayer).where(
+            RoundPlayer.competition_name == competition.name,
+            RoundPlayer.round == round_nr,
+        )
+    ).all()
+
+
+@router.get("/{name}/players")
+def retrieve_round_players(
+    name: str, round_nr: int, session: SessionDep
+) -> list[RoundPlayerPublic]:
+    find_object(model=Competition, identifier=name, session=session)
+    round_players = session.exec(
+        select(RoundPlayer).where(
+            RoundPlayer.competition_name == name,
+            RoundPlayer.round == round_nr,
+        )
+    ).all()
+    return round_players
+
+
+@router.patch("/{name}/players")
+def update_round_players(
+    name: str, round_nr: int, update: RoundPlayerUpdate, session: SessionDep
+) -> list[RoundPlayerPublic]:
+    competition = find_object(model=Competition, identifier=name, session=session)
+
+    if update.player_ids_to_add:
+        # Validate players exist.
+        db_players = session.exec(
+            select(Player).where(Player.id.in_(update.player_ids_to_add))
+        ).all()
+        db_player_ids = {p.id for p in db_players}
+        missing = [pid for pid in update.player_ids_to_add if pid not in db_player_ids]
+        if missing:
+            raise HTTPException(
+                status_code=404, detail=f"Player ids not found: {missing}"
+            )
+        for player_id in update.player_ids_to_add:
+            # Skip if already in the list.
+            existing = session.exec(
+                select(RoundPlayer).where(
+                    RoundPlayer.competition_name == competition.name,
+                    RoundPlayer.round == round_nr,
+                    RoundPlayer.player_id == player_id,
+                )
+            ).first()
+            if not existing:
+                session.add(
+                    RoundPlayer(
+                        competition_name=competition.name,
+                        round=round_nr,
+                        player_id=player_id,
+                    )
+                )
+
+    if update.player_ids_to_remove:
+        for player_id in update.player_ids_to_remove:
+            rp = session.exec(
+                select(RoundPlayer).where(
+                    RoundPlayer.competition_name == competition.name,
+                    RoundPlayer.round == round_nr,
+                    RoundPlayer.player_id == player_id,
+                )
+            ).first()
+            if rp:
+                session.delete(rp)
+
+    if update.clear_bye or update.bye_player_id is not None:
+        all_rps = session.exec(
+            select(RoundPlayer)
+            .where(
+                RoundPlayer.competition_name == competition.name,
+                RoundPlayer.round == round_nr,
+                RoundPlayer.is_bye,
+            )
+        ).all()
+        for rp in all_rps:
+            rp.is_bye = False
+            session.add(rp)
+    if update.bye_player_id is not None:
+        rp = session.exec(
+            select(RoundPlayer).where(
+                RoundPlayer.competition_name == competition.name,
+                RoundPlayer.round == round_nr,
+                RoundPlayer.player_id == update.bye_player_id,
+            )
+        ).first()
+        if not rp:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Player id for bye is not found: {update.bye_player_id}",
+            )
+        rp.is_bye = True
+        session.add(rp)
+
+    session.commit()
+
+    return session.exec(
+        select(RoundPlayer).where(
+            RoundPlayer.competition_name == competition.name,
+            RoundPlayer.round == round_nr,
+        )
+    ).all()
+
+
+@router.delete("/{name}/players")
+def delete_round_players(name: str, round_nr: int, session: SessionDep):
+    competition = find_object(model=Competition, identifier=name, session=session)
+    round_players = session.exec(
+        select(RoundPlayer).where(
+            RoundPlayer.competition_name == competition.name,
+            RoundPlayer.round == round_nr,
+        )
+    ).all()
+    for rp in round_players:
+        session.delete(rp)
+    session.commit()
+    return {"ok": True}
