@@ -166,6 +166,8 @@ def create_pairing(
         competition=competition,
     )
     session.add_all(matches)
+    competition.updated_at = datetime.now()
+    session.add(competition)
     session.commit()
     return matches
 
@@ -180,6 +182,9 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep):
     )
     for m in round_matches:
         session.delete(m)
+    competition.updated_at = datetime.now()
+    session.add(competition)
+    session.commit()
     return {"ok": True}
 
 

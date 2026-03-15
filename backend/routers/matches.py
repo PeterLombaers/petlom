@@ -6,9 +6,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
-from backend.models import Match, MatchBase, MatchPublic, MatchUpdate
+from backend.models import Competition, Match, MatchBase, MatchPublic, MatchUpdate
 
 router = APIRouter(prefix="/matches", tags=["matches"])
+
+
+def touch_competition(session: SessionDep, competition_name: str):
+    competition = session.get(Competition, competition_name)
+    if competition:
+        competition.updated_at = datetime.now()
+        session.add(competition)
 
 
 @router.post("/")
@@ -16,6 +23,7 @@ def create_match(match_obj: MatchBase, session: SessionDep) -> MatchPublic:
     db_match = Match.model_validate(match_obj)
     try:
         session.add(db_match)
+        touch_competition(session, db_match.competition_name)
         session.commit()
         session.refresh(db_match)
     except IntegrityError as e:
@@ -44,6 +52,7 @@ def retrieve_match(id: int, session: SessionDep) -> MatchPublic:
 def delete_match(id: int, session: SessionDep):
     match_obj = find_object(model=Match, identifier=id, session=session)
     session.delete(match_obj)
+    touch_competition(session, match_obj.competition_name)
     session.commit()
     return {"ok": True}
 
@@ -55,6 +64,7 @@ def update_match(id: int, match_obj: MatchUpdate, session: SessionDep) -> MatchP
     db_match.updated_at = datetime.now()
     try:
         session.add(db_match)
+        touch_competition(session, db_match.competition_name)
         session.commit()
         session.refresh(db_match)
     except IntegrityError as e:

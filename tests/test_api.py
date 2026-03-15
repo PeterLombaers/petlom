@@ -292,6 +292,7 @@ def test_create_match(
 ):
     player_white = player_factory()
     player_black = player_factory()
+    old_updated_at = competition.updated_at
     data = {
         "competition_name": competition.name,
         "player_white_id": player_white.id,
@@ -305,6 +306,8 @@ def test_create_match(
     assert len(matches) == 1
     match_obj = matches[0]
     assert match_obj.competition == competition
+    session.refresh(competition)
+    assert competition.updated_at > old_updated_at
     assert match_obj.player_white == player_white
     assert match_obj.player_black == player_black
     assert match_obj.round == 1
@@ -359,16 +362,24 @@ def test_list_matches(
 
 def test_update_match(match_obj: Match, client: TestClient, session: Session):
     assert match_obj.result is None
+    competition = match_obj.competition
+    old_updated_at = competition.updated_at
     res = client.patch(f"/matches/{match_obj.id}/", json={"result": "1-0"})
     res.raise_for_status()
     session.refresh(match_obj)
+    session.refresh(competition)
     assert match_obj.result == Result.WHITE_WIN
+    assert competition.updated_at > old_updated_at
 
 
 def test_delete_match(match_obj: Match, client: TestClient, session: Session):
+    competition = match_obj.competition
+    old_updated_at = competition.updated_at
     res = client.delete(f"/matches/{match_obj.id}/")
     res.raise_for_status()
     assert len(session.scalars(select(Match)).all()) == 0
+    session.refresh(competition)
+    assert competition.updated_at > old_updated_at
 
 
 def test_create_match_unique_constraint(

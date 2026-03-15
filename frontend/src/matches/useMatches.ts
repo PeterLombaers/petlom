@@ -15,10 +15,17 @@ export function useMatches(competitionName: string, round: number) {
   });
 
   const queryClient = useQueryClient();
-  const onSuccess = () =>
+  const onSuccess = () => {
     queryClient.invalidateQueries({
       queryKey: ["get", "/competitions/{name}/pairing"],
     });
+    queryClient.invalidateQueries({
+      queryKey: ["get", "/competitions/"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["get", "/competitions/{name}/ranking"],
+    });
+  };
   const onError = (error: HTTPValidationError) => {
     const errorMessage = formatHTTPValidationError(error);
     console.error(errorMessage);
