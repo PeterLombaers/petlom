@@ -10,7 +10,7 @@ from sqlmodel.pool import StaticPool
 from backend.competitions import CompetitionType
 from backend.dependencies import get_session
 from backend.main import app
-from backend.models import Competition, Match, Player, RatingType, Result
+from backend.models import Competition, Match, Player, Result
 
 fake = Faker()
 
@@ -36,29 +36,6 @@ def client(session: Session) -> Generator[TestClient, Any, None]:
     yield client
     app.dependency_overrides.clear()
 
-
-def RatingTypeFactory(session: Session) -> Callable[..., RatingType]:
-    class RatingTypeFactory(factory.alchemy.SQLAlchemyModelFactory):
-        class Meta:
-            model = RatingType
-            sqlalchemy_session = session
-            sqlalchemy_session_persistence = "commit"
-
-        name = "interne"
-
-    return RatingTypeFactory
-
-
-@pytest.fixture
-def rating_type(session: Session) -> Generator[RatingType, Any, None]:
-    yield RatingTypeFactory(session)()
-
-
-@pytest.fixture
-def rating_type_factory(
-    session: Session,
-) -> Generator[Callable[..., RatingType], Any, None]:
-    yield RatingTypeFactory(session=session)
 
 
 def CompetitionFactory(session: Session) -> Callable[..., Competition]:

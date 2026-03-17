@@ -3,7 +3,7 @@ from faker import Faker
 from sqlmodel import Session, create_engine
 
 from backend.competitions import CompetitionType
-from backend.models import Competition, Match, Player, RatingType, Result
+from backend.models import Competition, Match, Player, Result
 
 fake = Faker()
 engine = create_engine(
@@ -12,14 +12,6 @@ engine = create_engine(
 )
 session = Session(engine)
 
-
-class RatingTypeFactory(factory.alchemy.SQLAlchemyModelFactory):
-    class Meta:
-        model = RatingType
-        sqlalchemy_session = session
-        sqlalchemy_session_persistence = "commit"
-
-    name = "interne"
 
 
 class CompetitionFactory(factory.alchemy.SQLAlchemyModelFactory):
