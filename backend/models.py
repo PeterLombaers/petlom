@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import constr
+from sqlalchemy import Column
 from sqlalchemy.orm import RelationshipProperty
+from sqlalchemy.types import JSON
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 from backend.competitions import CompetitionType
@@ -14,44 +17,139 @@ class Result(str, Enum):
     BLACK_WIN = "0-1"
 
 
-class RatingTypeBase(SQLModel):
-    name: str = Field(primary_key=True)
+class RatingAlgorithm(str, Enum):
+    ELO = "elo"
 
 
-class RatingType(RatingTypeBase, table=True):
+# ---------------------------------------------------------------------------
+# External rating type + rating
+# ---------------------------------------------------------------------------
+
+
+class ExternalRatingType(str, Enum):
+    FIDE = "fide"
+    KNSB = "knsb"
+
+
+class ExternalRating(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("player_id", "rating_type", "date"),)
+    id: int | None = Field(default=None, primary_key=True)
+    player_id: int = Field(foreign_key="player.id", ondelete="CASCADE")
+    rating_type: ExternalRatingType
+    rating: float
+    date: date
+    external_player_id: str | None = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    ratings: list["PlayerRating"] = Relationship(
-        back_populates="rating_type", cascade_delete=True
-    )
+
+    player: "Player" = Relationship(back_populates="external_ratings")
 
 
-class RatingTypePublic(RatingTypeBase):
+class ExternalRatingPublic(SQLModel):
+    id: int
+    rating_type: ExternalRatingType
+    rating: float
+    date: date
+    external_player_id: str | None
     created_at: datetime
     updated_at: datetime
 
 
-class RatingTypeUpdate(RatingTypeBase):
-    name: str | None = None
-
-
-class PlayerRatingUpdate(SQLModel):
-    rating_type_name: str
+class ExternalRatingInput(SQLModel):
+    rating_type: ExternalRatingType
     rating: float
+    date: date
+    external_player_id: str | None = None
 
 
-class PlayerRating(SQLModel, table=True):
+# ---------------------------------------------------------------------------
+# Competition rating type + rating
+# ---------------------------------------------------------------------------
+
+
+class CompetitionRatingType(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(unique=True)
+    algorithm: RatingAlgorithm
+    algorithm_config: dict[str, Any] | None = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    competition_name: str = Field(
+        unique=True, foreign_key="competition.name", ondelete="CASCADE"
+    )
+    default_initial_rating: float | None = None
+    source_external_rating_type: ExternalRatingType | None = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    player_id: int = Field(
-        foreign_key="player.id", primary_key=True, ondelete="CASCADE"
+
+    competition: "Competition" = Relationship(back_populates="rating_type")
+    competition_ratings: list["CompetitionRating"] = Relationship(
+        back_populates="rating_type", cascade_delete=True
     )
-    player: "Player" = Relationship(back_populates="ratings")
-    rating_type_name: str = Field(
-        foreign_key="ratingtype.name", primary_key=True, ondelete="CASCADE"
+
+
+class CompetitionRatingTypeCreate(SQLModel):
+    name: str
+    algorithm: RatingAlgorithm
+    algorithm_config: dict[str, Any] | None = None
+    default_initial_rating: float | None = None
+    source_external_rating_type: ExternalRatingType | None = None
+
+
+class CompetitionRatingTypePublic(SQLModel):
+    id: int
+    name: str
+    algorithm: RatingAlgorithm
+    algorithm_config: dict[str, Any] | None
+    competition_name: str
+    default_initial_rating: float | None
+    source_external_rating_type: ExternalRatingType | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class CompetitionRatingTypeUpdate(SQLModel):
+    name: str | None = None
+    algorithm: RatingAlgorithm | None = None
+    algorithm_config: dict[str, Any] | None = None
+    default_initial_rating: float | None = None
+    source_external_rating_type: ExternalRatingType | None = None
+
+
+class CompetitionRating(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("player_id", "rating_type_id"),)
+    id: int | None = Field(default=None, primary_key=True)
+    player_id: int = Field(foreign_key="player.id", ondelete="CASCADE")
+    rating_type_id: int = Field(
+        foreign_key="competitionratingtype.id", ondelete="CASCADE"
     )
-    rating_type: RatingType = Relationship()
-    rating: float
+    initial_rating: float
+    current_rating: float
+    is_manual: bool = False
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    player: "Player" = Relationship(back_populates="competition_ratings")
+    rating_type: CompetitionRatingType = Relationship(
+        back_populates="competition_ratings"
+    )
+
+
+class CompetitionRatingPublic(SQLModel):
+    id: int
+    player_id: int
+    player: "PlayerPublicMinimal"
+    rating_type_id: int
+    initial_rating: float
+    current_rating: float
+    is_manual: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Player models
+# ---------------------------------------------------------------------------
 
 
 class PlayerBase(SQLModel):
@@ -79,7 +177,10 @@ class Player(PlayerBase, table=True):
             foreign_keys="[Match.player_black_id]",
         )
     )
-    ratings: list[PlayerRating] = Relationship(
+    external_ratings: list[ExternalRating] = Relationship(
+        back_populates="player", cascade_delete=True
+    )
+    competition_ratings: list[CompetitionRating] = Relationship(
         back_populates="player", cascade_delete=True
     )
 
@@ -92,14 +193,14 @@ class Player(PlayerBase, table=True):
 
 class PlayerCreate(PlayerBase):
     is_active: bool = True
-    ratings: list[PlayerRatingUpdate] | None = None
+    external_ratings: list[ExternalRatingInput] | None = None
 
 
 class PlayerPublic(PlayerBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    ratings: list[PlayerRating]
+    external_ratings: list[ExternalRatingPublic]
 
 
 class PlayerPublicMinimal(SQLModel):
@@ -111,7 +212,12 @@ class PlayerPublicMinimal(SQLModel):
 class PlayerUpdate(PlayerBase):
     name: constr(strip_whitespace=True, min_length=1) | None = None
     is_active: bool | None = None
-    ratings: list[PlayerRatingUpdate] | None = None
+    external_ratings: list[ExternalRatingInput] | None = None
+
+
+# ---------------------------------------------------------------------------
+# Competition models
+# ---------------------------------------------------------------------------
 
 
 class CompetitionBase(SQLModel):
@@ -124,6 +230,9 @@ class Competition(CompetitionBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.now)
     matches: list["Match"] = Relationship(
         back_populates="competition", cascade_delete=True
+    )
+    rating_type: CompetitionRatingType | None = Relationship(
+        back_populates="competition"
     )
 
 
@@ -144,6 +253,11 @@ class PairingCreate(SQLModel):
 class CompetitionUpdate(CompetitionBase):
     name: str | None = None
     type: CompetitionType | None = None
+
+
+# ---------------------------------------------------------------------------
+# Match models
+# ---------------------------------------------------------------------------
 
 
 class MatchBase(SQLModel):
@@ -201,6 +315,11 @@ class MatchUpdate(MatchBase):
     result: Result | None = None
 
 
+# ---------------------------------------------------------------------------
+# RoundPlayer models
+# ---------------------------------------------------------------------------
+
+
 class RoundPlayer(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("competition_name", "round", "player_id"),)
     id: int | None = Field(default=None, primary_key=True)
@@ -208,6 +327,7 @@ class RoundPlayer(SQLModel, table=True):
     round: int
     player_id: int = Field(foreign_key="player.id")
     is_bye: bool = False
+    initial_rating: float | None = None
     created_at: datetime = Field(default_factory=datetime.now)
     player: Player = Relationship()
 
@@ -216,6 +336,7 @@ class RoundPlayerPublic(SQLModel):
     id: int
     player: PlayerPublicMinimal
     is_bye: bool
+    initial_rating: float | None
 
 
 class RoundPlayerUpdate(SQLModel):
@@ -223,6 +344,12 @@ class RoundPlayerUpdate(SQLModel):
     player_ids_to_remove: list[int] | None = None
     bye_player_id: int | None = None
     clear_bye: bool | None = None
+    initial_ratings: dict[int, float] | None = None
+
+
+# ---------------------------------------------------------------------------
+# SimKro ranking (output-only model)
+# ---------------------------------------------------------------------------
 
 
 class SimkroRank(SQLModel):
