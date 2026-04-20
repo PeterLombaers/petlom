@@ -32,13 +32,25 @@ class ExternalRatingType(str, Enum):
 
 
 class ExternalRating(SQLModel, table=True):
+    """The rating of a player at a specific date for an external rating type.
+
+    Database table for storing the external rating of players at a given point in time.
+    It can be used to query the most recent rating of players, the rating at the start
+    of a competition or similar queries."""
+
     __table_args__ = (UniqueConstraint("player_id", "rating_type", "date"),)
     id: int | None = Field(default=None, primary_key=True)
     player_id: int = Field(foreign_key="player.id", ondelete="CASCADE")
     rating_type: ExternalRatingType
     rating: float
     date: date
-    external_player_id: str | None = None
+    external_player_id: str | None = Field(
+        default=None,
+        description=(
+            "External identifier for the player from the provider of the external"
+            " rating."
+        ),
+    )
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -68,6 +80,8 @@ class ExternalRatingInput(SQLModel):
 
 
 class CompetitionRatingType(SQLModel, table=True):
+    """The configuration of the rating for a competition."""
+
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(unique=True)
     algorithm: RatingAlgorithm
@@ -77,8 +91,20 @@ class CompetitionRatingType(SQLModel, table=True):
     competition_name: str = Field(
         unique=True, foreign_key="competition.name", ondelete="CASCADE"
     )
-    default_initial_rating: float | None = None
-    source_external_rating_type: ExternalRatingType | None = None
+    default_initial_rating: float | None = Field(
+        default=None,
+        description=(
+            "Initial rating that should be used for players for which no manual rating"
+            " is provided and no external rating can be found."
+        ),
+    )
+    source_external_rating_type: ExternalRatingType | None = Field(
+        default=None,
+        description=(
+            "External rating type which should be used to provide an initial rating for"
+            " players if no manual rating is provided."
+        ),
+    )
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -117,15 +143,23 @@ class CompetitionRatingTypeUpdate(SQLModel):
 
 
 class CompetitionRating(SQLModel, table=True):
+    """The competition rating of a player."""
+
     __table_args__ = (UniqueConstraint("player_id", "rating_type_id"),)
     id: int | None = Field(default=None, primary_key=True)
     player_id: int = Field(foreign_key="player.id", ondelete="CASCADE")
     rating_type_id: int = Field(
         foreign_key="competitionratingtype.id", ondelete="CASCADE"
     )
-    initial_rating: float
-    current_rating: float
-    is_manual: bool = False
+    initial_rating: float = Field(
+        description="The initial rating for the player for this competition rating."
+    )
+    current_rating: float = Field(
+        description="The current rating for the player for this competition rating."
+    )
+    is_manual: bool = Field(
+        default=False, description="Has the initial rating been set manually?"
+    )
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -321,6 +355,11 @@ class MatchUpdate(MatchBase):
 
 
 class RoundPlayer(SQLModel, table=True):
+    """The registration of a player for a round of a competition.
+
+    Database table for storing the registration of players for a round of a competition.
+    They can then be retrieved and used to create a pairing."""
+
     __table_args__ = (UniqueConstraint("competition_name", "round", "player_id"),)
     id: int | None = Field(default=None, primary_key=True)
     competition_name: str = Field(foreign_key="competition.name", ondelete="CASCADE")
