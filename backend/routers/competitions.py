@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func
 from sqlmodel import select
 
+from backend.auth import ModeratorDep
 from backend.competitions.simkro import calculate_ranking, create_matchups
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
 from backend.models import (
@@ -47,7 +48,7 @@ def add_n_rounds(competition: Competition, session: SessionDep) -> Competition:
 
 @router.post("/")
 def create_competition(
-    competition: CompetitionBase, session: SessionDep
+    competition: CompetitionBase, session: SessionDep, _: ModeratorDep
 ) -> CompetitionPublic:
     db_competition = Competition.model_validate(competition)
     session.add(db_competition)
@@ -75,7 +76,7 @@ def retrieve_competition(
 
 
 @router.delete("/{name}")
-def delete_competition(name: str, session: SessionDep):
+def delete_competition(name: str, session: SessionDep, _: ModeratorDep):
     competition = find_object(model=Competition, identifier=name, session=session)
     session.delete(competition)
     session.commit()
@@ -84,7 +85,7 @@ def delete_competition(name: str, session: SessionDep):
 
 @router.patch("/{name}")
 def update_competition(
-    name: str, competition: CompetitionUpdate, session: SessionDep
+    name: str, competition: CompetitionUpdate, session: SessionDep, _: ModeratorDep
 ) -> CompetitionPublicWithNRounds:
     db_competition = find_object(model=Competition, identifier=name, session=session)
     db_competition.sqlmodel_update(competition.model_dump(exclude_unset=True))
@@ -111,7 +112,7 @@ def retrieve_pairing(
 
 @router.post("/{name}/pairing")
 def create_pairing(
-    name: str, pairing: PairingCreate, session: SessionDep
+    name: str, pairing: PairingCreate, session: SessionDep, _: ModeratorDep
 ) -> list[MatchPublic]:
     competition = find_object(model=Competition, identifier=name, session=session)
     round_nr = pairing.round_nr
@@ -176,7 +177,7 @@ def create_pairing(
 
 
 @router.delete("/{name}/pairing")
-def delete_pairing(name: str, round_nr: int, session: SessionDep):
+def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDep):
     competition = find_object(model=Competition, identifier=name, session=session)
     round_matches = session.exec(
         select(Match)
@@ -208,7 +209,7 @@ def retrieve_ranking(
 
 @router.post("/{name}/players")
 def create_round_players(
-    name: str, round_nr: int, session: SessionDep
+    name: str, round_nr: int, session: SessionDep, _: ModeratorDep
 ) -> list[RoundPlayerPublic]:
     competition = find_object(model=Competition, identifier=name, session=session)
     # Check that matches don't already exist for this round.
@@ -247,7 +248,11 @@ def retrieve_round_players(
 
 @router.patch("/{name}/players")
 def update_round_players(
-    name: str, round_nr: int, update: RoundPlayerUpdate, session: SessionDep
+    name: str,
+    round_nr: int,
+    update: RoundPlayerUpdate,
+    session: SessionDep,
+    _: ModeratorDep,
 ) -> list[RoundPlayerPublic]:
     competition = find_object(model=Competition, identifier=name, session=session)
 
@@ -294,8 +299,7 @@ def update_round_players(
 
     if update.clear_bye or update.bye_player_id is not None:
         all_rps = session.exec(
-            select(RoundPlayer)
-            .where(
+            select(RoundPlayer).where(
                 RoundPlayer.competition_name == competition.name,
                 RoundPlayer.round == round_nr,
                 RoundPlayer.is_bye,
@@ -331,7 +335,9 @@ def update_round_players(
 
 
 @router.delete("/{name}/players")
-def delete_round_players(name: str, round_nr: int, session: SessionDep):
+def delete_round_players(
+    name: str, round_nr: int, session: SessionDep, _: ModeratorDep
+):
     competition = find_object(model=Competition, identifier=name, session=session)
     round_players = session.exec(
         select(RoundPlayer).where(

@@ -14,9 +14,11 @@ import {
   CompetitionDetailPage,
   PlayerListPage,
   PlayerDetailPage,
+  LoginPage,
   NotFoundPage,
 } from "./pages";
 import Layout from "./Layout";
+import { AuthProvider } from "./auth";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { LinkProps } from "@mui/material/Link";
 
@@ -60,36 +62,39 @@ window.__TANSTACK_QUERY_CLIENT__ = queryClient;
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <QueryClientProvider client={queryClient}>
-        <CssBaseline />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<HomePage />}></Route>
-              <Route
-                path="/competitions"
-                element={<CompetitionListPage />}
-              ></Route>
-              <Route
-                path="/competitions/:name"
-                element={<CompetitionDetailPage />}
-              ></Route>
-              <Route
-                path="/competitions/:name/round/:round"
-                element={<CompetitionDetailPage />}
-              ></Route>
-              <Route path="/players" element={<PlayerListPage />}></Route>
-              <Route
-                path="/players/:playerId"
-                element={<PlayerDetailPage />}
-              ></Route>
-              <Route path="*" element={<NotFoundPage />}></Route>
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <QueryClientProvider client={queryClient}>
+          <CssBaseline />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<Layout />}>
+                <Route index element={<HomePage />}></Route>
+                <Route
+                  path="/competitions"
+                  element={<CompetitionListPage />}
+                ></Route>
+                <Route
+                  path="/competitions/:name"
+                  element={<CompetitionDetailPage />}
+                ></Route>
+                <Route
+                  path="/competitions/:name/round/:round"
+                  element={<CompetitionDetailPage />}
+                ></Route>
+                <Route path="/players" element={<PlayerListPage />}></Route>
+                <Route
+                  path="/players/:playerId"
+                  element={<PlayerDetailPage />}
+                ></Route>
+                <Route path="*" element={<NotFoundPage />}></Route>
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

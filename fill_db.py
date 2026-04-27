@@ -13,7 +13,6 @@ engine = create_engine(
 session = Session(engine)
 
 
-
 class CompetitionFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = Competition

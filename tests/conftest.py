@@ -7,10 +7,11 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+from backend.auth import create_access_token, hash_password
 from backend.competitions import CompetitionType
 from backend.dependencies import get_session
 from backend.main import app
-from backend.models import Competition, Match, Player, Result
+from backend.models import Competition, Match, Moderator, Player, Result
 
 fake = Faker()
 
@@ -36,6 +37,28 @@ def client(session: Session) -> Generator[TestClient, Any, None]:
     yield client
     app.dependency_overrides.clear()
 
+
+@pytest.fixture
+def moderator_password() -> str:
+    return "testpass"
+
+
+@pytest.fixture
+def moderator(session: Session, moderator_password: str) -> Moderator:
+    mod = Moderator(
+        username="testmod", hashed_password=hash_password(moderator_password)
+    )
+    session.add(mod)
+    session.commit()
+    session.refresh(mod)
+    return mod
+
+
+@pytest.fixture
+def auth_client(client: TestClient, moderator: Moderator) -> TestClient:
+    token = create_access_token({"sub": moderator.username})
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client
 
 
 def CompetitionFactory(session: Session) -> Callable[..., Competition]:

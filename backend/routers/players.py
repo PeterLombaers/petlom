@@ -3,9 +3,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
+from backend.auth import ModeratorDep
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
 from backend.models import Player, PlayerCreate, PlayerPublic, PlayerUpdate
 
@@ -13,7 +13,9 @@ router = APIRouter(prefix="/players", tags=["players"])
 
 
 @router.post("/")
-def create_player(player: PlayerCreate, session: SessionDep) -> PlayerPublic:
+def create_player(
+    player: PlayerCreate, session: SessionDep, _: ModeratorDep
+) -> PlayerPublic:
     db_player = Player.model_validate(player)
     session.add(db_player)
     session.commit()
@@ -42,7 +44,7 @@ def retrieve_player(id: int, session: SessionDep) -> PlayerPublic:
 
 
 @router.delete("/{id}/")
-def delete_player(id: int, session: SessionDep):
+def delete_player(id: int, session: SessionDep, _: ModeratorDep):
     player = find_object(model=Player, identifier=id, session=session)
     try:
         session.delete(player)
@@ -56,7 +58,9 @@ def delete_player(id: int, session: SessionDep):
 
 
 @router.patch("/{id}/")
-def update_player(id: int, player: PlayerUpdate, session: SessionDep) -> PlayerPublic:
+def update_player(
+    id: int, player: PlayerUpdate, session: SessionDep, _: ModeratorDep
+) -> PlayerPublic:
     db_player = find_object(model=Player, identifier=id, session=session)
     db_player.sqlmodel_update(player.model_dump(exclude_unset=True))
     db_player.updated_at = datetime.now()

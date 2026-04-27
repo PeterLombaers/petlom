@@ -20,6 +20,7 @@ import csv
 import sys
 from collections.abc import Iterable
 from pathlib import Path
+
 RESULTS_NAME_COLS = ("Witspeler", "Zwartspeler")
 STANDINGS_NAME_COL = "Naam"
 

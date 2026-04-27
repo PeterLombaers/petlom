@@ -401,3 +401,20 @@ class SimkroRank(SQLModel):
     wins: int
     draws: int
     losses: int
+
+
+# ---------------------------------------------------------------------------
+# Moderator (auth)
+# ---------------------------------------------------------------------------
+
+
+class Moderator(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    username: str = Field(unique=True, index=True)
+    hashed_password: str
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+class ModeratorPublic(SQLModel):
+    id: int
+    username: str

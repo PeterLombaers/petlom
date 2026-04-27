@@ -49,12 +49,15 @@ def fetch_soup(url: str) -> BeautifulSoup | None:
 
 def find_round_links(soup: BeautifulSoup) -> list[tuple[str, str]]:
     """Return (text, href) pairs for links whose text contains 'Ronde N'."""
-    all_links = [(a.get_text(strip=True), a["href"]) for a in soup.find_all("a", href=True)]
+    all_links = [
+        (a.get_text(strip=True), a["href"]) for a in soup.find_all("a", href=True)
+    ]
     print(f"    All links on page ({len(all_links)}): {all_links[:20]}")
     links = [
         (text, href)
         for text, href in all_links
-        if re.search(r"uitslag", text, re.IGNORECASE) and re.search(r"ronde\s+\d+", text, re.IGNORECASE)
+        if re.search(r"uitslag", text, re.IGNORECASE)
+        and re.search(r"ronde\s+\d+", text, re.IGNORECASE)
     ]
     return links
 
@@ -106,7 +109,9 @@ def scrape_round(url: str, save_dir: Path) -> bool:
 
     tables = soup.find_all("table")
     if len(tables) < 2:
-        print(f"    WARNING: expected at least 2 tables, found {len(tables)} — skipping")
+        print(
+            f"    WARNING: expected at least 2 tables, found {len(tables)} — skipping"
+        )
         return False
 
     round_dir.mkdir(parents=True)
@@ -142,7 +147,9 @@ def crawl_category(base_url: str, save_dir: Path) -> None:
         if not round_links:
             print(f"[Page {page}] No 'Ronde N' links found.")
         else:
-            print(f"[Page {page}] Found {len(round_links)} round link(s): {[t for t, _ in round_links]}")
+            print(
+                f"[Page {page}] Found {len(round_links)} round link(s): {[t for t, _ in round_links]}"
+            )
 
         for link_text, href in round_links:
             if href in seen_round_urls:

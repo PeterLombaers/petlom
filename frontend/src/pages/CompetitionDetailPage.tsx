@@ -14,6 +14,7 @@ import RankingTable from "@/competitions/RankingTable";
 import RoundPlayerList from "@/competitions/RoundPlayerList";
 import { useRoundPlayers, useCreateRoundPlayers } from "@/competitions/useRoundPlayers";
 import NotFoundPage from "./NotFoundPage";
+import { useAuth } from "@/auth";
 
 export default function CompetitionDetailPage() {
   const { name, round } = useParams();
@@ -34,6 +35,7 @@ function CompetitionDetail({
 }) {
   const { data: competition, isPending, isError } = useCompetition(name);
   const navigate = useNavigate();
+  const { isModerator } = useAuth();
   const createRoundPlayersMutation = useCreateRoundPlayers();
 
   // Always query for next round's draft players.
@@ -71,7 +73,7 @@ function CompetitionDetail({
           <Link href="/competitions">Competitions</Link>
           <Typography>{name}</Typography>
         </Breadcrumbs>
-        {hasDraft ? (
+        {isModerator && hasDraft ? (
           <RoundPlayerList
             competitionName={name}
             roundNr={nextRound}
@@ -80,9 +82,11 @@ function CompetitionDetail({
         ) : (
           <>
             <Typography>No rounds yet.</Typography>
-            <Button variant="contained" onClick={handleCreateDraft}>
-              Create pairing for round 1
-            </Button>
+            {isModerator && (
+              <Button variant="contained" onClick={handleCreateDraft}>
+                Create pairing for round 1
+              </Button>
+            )}
           </>
         )}
       </Stack>
@@ -125,14 +129,14 @@ function CompetitionDetail({
           ))}
         </TextField>
 
-        {isLatestRound && !hasDraft && (
+        {isModerator && isLatestRound && !hasDraft && (
           <Button variant="contained" onClick={handleCreateDraft}>
             Create pairing for round {nextRound}
           </Button>
         )}
       </Stack>
 
-      {isLatestRound && hasDraft && (
+      {isModerator && isLatestRound && hasDraft && (
         <RoundPlayerList
           competitionName={name}
           roundNr={nextRound}

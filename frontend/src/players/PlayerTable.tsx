@@ -19,6 +19,7 @@ import {
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
 import { usePlayers } from "./usePlayers";
+import { useAuth } from "@/auth";
 
 type PlayerPublic = components["schemas"]["PlayerPublic"];
 
@@ -65,6 +66,7 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
 
 export default function PlayerTable() {
   const [editableId, setEditableId] = useState(-1);
+  const { isModerator } = useAuth();
   const {
     players,
     error,
@@ -105,27 +107,27 @@ export default function PlayerTable() {
     a.name.localeCompare(b.name),
   );
 
+  const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
+
   return (
     <TableContainer component={Paper}>
       <Table size="small">
         <TableHead>
-          <TableRow>
-            <TableCell
-              align="right"
-              // Number of columns is number of configured cells plus the actions column.
-              colSpan={Object.keys(tableCells).length + 1}
-            >
-              <CreateButton
-                entityType="player"
-                mutation={createMutation}
-                dialogConfig={createDialogConfig}
-              />
-            </TableCell>
-          </TableRow>
+          {isModerator && (
+            <TableRow>
+              <TableCell align="right" colSpan={nCols}>
+                <CreateButton
+                  entityType="player"
+                  mutation={createMutation}
+                  dialogConfig={createDialogConfig}
+                />
+              </TableCell>
+            </TableRow>
+          )}
           <TableRow>
             <TableCell>ID</TableCell>
             <TableCell>Name</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            {isModerator && <TableCell align="right">Actions</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -139,17 +141,17 @@ export default function PlayerTable() {
               }
               cells={tableCells}
               entityIdField="id"
-              editConfig={{
+              editConfig={isModerator ? {
                 editMutation,
                 validateData,
                 sanitizeData,
                 getRequestBody,
-              }}
-              deleteConfig={{
+              } : undefined}
+              deleteConfig={isModerator ? {
                 deleteMutation,
                 entityType: "player",
                 entityNameField: "name",
-              }}
+              } : undefined}
             />
           ))}
         </TableBody>

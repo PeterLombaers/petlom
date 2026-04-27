@@ -19,6 +19,7 @@ import {
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
 import { useCompetitions } from "./useCompetitions";
+import { useAuth } from "@/auth";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
@@ -70,6 +71,7 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
 
 export default function CompetitionTable() {
   const [editableId, setEditableId] = useState("");
+  const { isModerator } = useAuth();
   const {
     competitions,
     error,
@@ -110,28 +112,28 @@ export default function CompetitionTable() {
     b.updated_at.localeCompare(a.updated_at),
   );
 
+  const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
+
   return (
     <TableContainer component={Paper}>
       <Table size="small">
         <TableHead>
-          <TableRow>
-            <TableCell
-              align="right"
-              // Number of columns is number of configured cells plus the actions column.
-              colSpan={Object.keys(tableCells).length + 1}
-            >
-              <CreateButton
-                entityType="competition"
-                mutation={createMutation}
-                dialogConfig={createDialogConfig}
-              />
-            </TableCell>
-          </TableRow>
+          {isModerator && (
+            <TableRow>
+              <TableCell align="right" colSpan={nCols}>
+                <CreateButton
+                  entityType="competition"
+                  mutation={createMutation}
+                  dialogConfig={createDialogConfig}
+                />
+              </TableCell>
+            </TableRow>
+          )}
           <TableRow>
             <TableCell>Name</TableCell>
             <TableCell>Created Date</TableCell>
             <TableCell>Updated Date</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            {isModerator && <TableCell align="right">Actions</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -145,17 +147,25 @@ export default function CompetitionTable() {
               }
               cells={tableCells}
               entityIdField="name"
-              editConfig={{
-                editMutation,
-                validateData,
-                sanitizeData,
-                getRequestBody,
-              }}
-              deleteConfig={{
-                deleteMutation,
-                entityType: "competition",
-                entityNameField: "name",
-              }}
+              editConfig={
+                isModerator
+                  ? {
+                      editMutation,
+                      validateData,
+                      sanitizeData,
+                      getRequestBody,
+                    }
+                  : undefined
+              }
+              deleteConfig={
+                isModerator
+                  ? {
+                      deleteMutation,
+                      entityType: "competition",
+                      entityNameField: "name",
+                    }
+                  : undefined
+              }
             />
           ))}
         </TableBody>

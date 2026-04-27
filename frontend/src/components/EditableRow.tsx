@@ -34,7 +34,7 @@ interface EditableRowProps<T = any> {
     };
   };
   entityIdField: keyof T;
-  editConfig: EditConfig<T>;
+  editConfig?: EditConfig<T>;
   deleteConfig?: DeleteConfig<T>;
 }
 
@@ -44,7 +44,7 @@ export default function EditableRow<T = any>({
   setIsEditing,
   cells,
   entityIdField,
-  editConfig: { editMutation, validateData, sanitizeData, getRequestBody },
+  editConfig,
   deleteConfig,
 }: EditableRowProps<T>) {
   const [editData, setEditData] = useState<T>({ ...data });
@@ -68,6 +68,8 @@ export default function EditableRow<T = any>({
   const entityId = data[entityIdField] as string | number;
 
   const handleSave = () => {
+    if (!editConfig) return;
+    const { editMutation, validateData, sanitizeData, getRequestBody } = editConfig;
     const sanitizedData = sanitizeData(editData);
     const dataErrors = validateData(sanitizedData);
     if (Object.keys(dataErrors).length > 0) {
@@ -112,26 +114,28 @@ export default function EditableRow<T = any>({
           </TableCell>
         );
       })}
-      <TableCell>
-        <Stack direction="row" justifyContent="flex-end">
-          <EditButton
-            isEditing={isEditing}
-            isPending={editMutation.isPending}
-            onEdit={() => setIsEditing(true)}
-            onSave={handleSave}
-            onCancel={() => setIsEditing(false)}
-          />
-          {deleteConfig && (
-            <DeleteButton
-              entityType={deleteConfig.entityType}
-              entityName={data[deleteConfig.entityNameField] as string}
-              entityId={entityId}
-              mutation={deleteConfig.deleteMutation}
-              requireTypedConfirmation={deleteConfig.requireTypedConfirmation}
+      {editConfig && (
+        <TableCell>
+          <Stack direction="row" justifyContent="flex-end">
+            <EditButton
+              isEditing={isEditing}
+              isPending={editConfig.editMutation.isPending}
+              onEdit={() => setIsEditing(true)}
+              onSave={handleSave}
+              onCancel={() => setIsEditing(false)}
             />
-          )}
-        </Stack>
-      </TableCell>
+            {deleteConfig && (
+              <DeleteButton
+                entityType={deleteConfig.entityType}
+                entityName={data[deleteConfig.entityNameField] as string}
+                entityId={entityId}
+                mutation={deleteConfig.deleteMutation}
+                requireTypedConfirmation={deleteConfig.requireTypedConfirmation}
+              />
+            )}
+          </Stack>
+        </TableCell>
+      )}
     </TableRow>
   );
 }

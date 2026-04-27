@@ -1,6 +1,8 @@
 import {
   AppBar,
   Box,
+  Button,
+  Chip,
   Drawer,
   List,
   ListItem,
@@ -10,10 +12,11 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import PeopleIcon from "@mui/icons-material/People";
 import { useCompetitions } from "@/competitions/useCompetitions";
+import { useAuth } from "@/auth";
 
 const drawerWidth = 240;
 
@@ -41,6 +44,31 @@ function RecentCompetitions() {
   );
 }
 
+function AuthControls() {
+  const { isModerator, username, logout } = useAuth();
+  const navigate = useNavigate();
+
+  if (isModerator) {
+    return (
+      <>
+        <Chip
+          label={username}
+          variant="outlined"
+          sx={{ color: "inherit", borderColor: "rgba(255,255,255,0.5)" }}
+        />
+        <Button color="inherit" onClick={logout}>
+          Logout
+        </Button>
+      </>
+    );
+  }
+  return (
+    <Button color="inherit" onClick={() => navigate("/login")}>
+      Login
+    </Button>
+  );
+}
+
 export default function Layout() {
   return (
     <Box sx={{ display: "flex" }}>
@@ -49,9 +77,10 @@ export default function Layout() {
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
       >
         <Toolbar>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             PetLom
           </Typography>
+          <AuthControls />
         </Toolbar>
       </AppBar>
       <Drawer

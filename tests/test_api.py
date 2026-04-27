@@ -13,9 +13,9 @@ from backend.models import (
 )
 
 
-def test_create_competition(session: Session, client: TestClient):
+def test_create_competition(session: Session, auth_client: TestClient):
     competition_name = "interne"
-    res = client.post(
+    res = auth_client.post(
         "/competitions/", json={"name": competition_name, "type": "simkro"}
     )
     res.raise_for_status()
@@ -61,16 +61,18 @@ def test_list_competition(competition_factory, client):
     assert jsonable_encoder(c1) == competition[1]
 
 
-def test_update_competition(competition, client, session):
+def test_update_competition(competition, auth_client, session):
     new_name = "foo"
-    res = client.patch(f"/competitions/{competition.name}/", json={"name": new_name})
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/", json={"name": new_name}
+    )
     res.raise_for_status()
     session.refresh(competition)
     assert competition.name == new_name
 
 
-def test_delete_competition(competition, client, session):
-    res = client.delete(f"/competitions/{competition.name}/")
+def test_delete_competition(competition, auth_client, session):
+    res = auth_client.delete(f"/competitions/{competition.name}/")
     res.raise_for_status()
     assert len(session.scalars(select(Competition)).all()) == 0
 
@@ -78,19 +80,19 @@ def test_delete_competition(competition, client, session):
 def test_delete_competition_cascade_matches(
     competition: Competition,
     match_factory: Callable[..., Match],
-    client: TestClient,
+    auth_client: TestClient,
     session: Session,
 ):
     match_factory(competition=competition)
-    res = client.delete(f"/competitions/{competition.name}/")
+    res = auth_client.delete(f"/competitions/{competition.name}/")
     res.raise_for_status()
     matches = session.scalars(select(Match)).all()
     assert len(matches) == 0
 
 
-def test_create_player(session: Session, client: TestClient):
+def test_create_player(session: Session, auth_client: TestClient):
     player_name = "Peter"
-    res = client.post("/players/", json={"name": player_name})
+    res = auth_client.post("/players/", json={"name": player_name})
     res.raise_for_status()
     players = session.scalars(select(Player)).all()
     assert len(players) == 1
@@ -100,10 +102,10 @@ def test_create_player(session: Session, client: TestClient):
         assert key in dict(player)
 
 
-def test_create_player_empty_name_fail(client: TestClient):
-    res = client.post("/players/", json={"name": ""})
+def test_create_player_empty_name_fail(auth_client: TestClient):
+    res = auth_client.post("/players/", json={"name": ""})
     assert res.status_code == 422
-    res = client.post("/players/", json={"name": " "})
+    res = auth_client.post("/players/", json={"name": " "})
     assert res.status_code == 422
 
 
@@ -135,34 +137,34 @@ def test_list_player(player_factory: Callable[..., Player], client):
     assert len(res_players) == 2
 
 
-def test_update_player(player, client, session):
+def test_update_player(player, auth_client, session):
     new_name = "foo"
-    res = client.patch(f"/players/{player.id}/", json={"name": new_name})
+    res = auth_client.patch(f"/players/{player.id}/", json={"name": new_name})
     res.raise_for_status()
     session.refresh(player)
     assert player.name == new_name
     assert player.is_active
 
 
-def test_update_player_empty_name_fail(player, client):
-    res = client.patch(f"/players/{player.id}/", json={"name": ""})
+def test_update_player_empty_name_fail(player, auth_client):
+    res = auth_client.patch(f"/players/{player.id}/", json={"name": ""})
     assert res.status_code == 422
-    res = client.patch(f"/players/{player.id}/", json={"name": " \n"})
+    res = auth_client.patch(f"/players/{player.id}/", json={"name": " \n"})
     assert res.status_code == 422
 
 
-def test_delete_player(player: Player, client: TestClient, session: Session):
-    res = client.delete(f"/players/{player.id}/")
+def test_delete_player(player: Player, auth_client: TestClient, session: Session):
+    res = auth_client.delete(f"/players/{player.id}/")
     res.raise_for_status()
     assert len(session.scalars(select(Player)).all()) == 0
 
 
 def test_delete_player_is_active_false(
-    player: Player, client: TestClient, session: Session, match_factory
+    player: Player, auth_client: TestClient, session: Session, match_factory
 ):
     match_factory(player_white=player, player_black=player)
     assert player.is_active
-    res = client.delete(f"/players/{player.id}/")
+    res = auth_client.delete(f"/players/{player.id}/")
     res.raise_for_status()
     session.refresh(player)
     assert not player.is_active
@@ -172,7 +174,7 @@ def test_create_match(
     competition: Competition,
     player_factory: Callable[..., Player],
     session: Session,
-    client: TestClient,
+    auth_client: TestClient,
 ):
     player_white = player_factory()
     player_black = player_factory()
@@ -184,7 +186,7 @@ def test_create_match(
         "round": 1,
         "board": 1,
     }
-    res = client.post("/matches/", json=data)
+    res = auth_client.post("/matches/", json=data)
     res.raise_for_status()
     matches = session.scalars(select(Match)).all()
     assert len(matches) == 1
@@ -209,7 +211,7 @@ def test_create_match(
         "board": 2,
         "result": "1/2-1/2",
     }
-    res = client.post("/matches/", json=data)
+    res = auth_client.post("/matches/", json=data)
     res.raise_for_status()
     matches = session.scalars(select(Match)).all()
     assert len(matches) == 2
@@ -244,11 +246,11 @@ def test_list_matches(
     assert jsonable_encoder(m1) == match_objects[1]
 
 
-def test_update_match(match_obj: Match, client: TestClient, session: Session):
+def test_update_match(match_obj: Match, auth_client: TestClient, session: Session):
     assert match_obj.result is None
     competition = match_obj.competition
     old_updated_at = competition.updated_at
-    res = client.patch(f"/matches/{match_obj.id}/", json={"result": "1-0"})
+    res = auth_client.patch(f"/matches/{match_obj.id}/", json={"result": "1-0"})
     res.raise_for_status()
     session.refresh(match_obj)
     session.refresh(competition)
@@ -256,10 +258,10 @@ def test_update_match(match_obj: Match, client: TestClient, session: Session):
     assert competition.updated_at > old_updated_at
 
 
-def test_delete_match(match_obj: Match, client: TestClient, session: Session):
+def test_delete_match(match_obj: Match, auth_client: TestClient, session: Session):
     competition = match_obj.competition
     old_updated_at = competition.updated_at
-    res = client.delete(f"/matches/{match_obj.id}/")
+    res = auth_client.delete(f"/matches/{match_obj.id}/")
     res.raise_for_status()
     assert len(session.scalars(select(Match)).all()) == 0
     session.refresh(competition)
@@ -267,7 +269,7 @@ def test_delete_match(match_obj: Match, client: TestClient, session: Session):
 
 
 def test_create_match_unique_constraint(
-    match_obj: Match, client: TestClient, session: Session
+    match_obj: Match, auth_client: TestClient, session: Session
 ):
     data = {
         # The following three should be unique together, so we should get an error.
@@ -278,12 +280,12 @@ def test_create_match_unique_constraint(
         "player_white_id": match_obj.player_white_id,
         "player_black_id": match_obj.player_black_id,
     }
-    res = client.post("/matches/", json=data)
+    res = auth_client.post("/matches/", json=data)
     assert res.status_code == 400
 
 
 def test_update_match_unique_constraint(
-    match_factory: Callable[..., Match], client: TestClient, session: Session
+    match_factory: Callable[..., Match], auth_client: TestClient, session: Session
 ):
     match_obj_1 = match_factory()
     match_obj_2 = match_factory(competition=match_obj_1.competition)
@@ -291,7 +293,7 @@ def test_update_match_unique_constraint(
         "round": match_obj_1.round,
         "board": match_obj_1.board,
     }
-    res = client.patch(f"/matches/{match_obj_2.id}/", json=update_data)
+    res = auth_client.patch(f"/matches/{match_obj_2.id}/", json=update_data)
     assert res.status_code == 400
 
 
@@ -335,7 +337,7 @@ def test_create_pairing(
     player_factory: Callable[..., Player],
     competition_factory: Callable[..., Competition],
     match_factory: Callable[..., Match],
-    client: TestClient,
+    auth_client: TestClient,
 ):
     (competition, players, matches) = simkro_setup
     players += [player_factory() for _ in range(20)]
@@ -349,19 +351,19 @@ def test_create_pairing(
     match_factory(competition=other_competition, round=max_round_nr + 2)
     # Check only the next round can be created.
     for round_nr in range(1, max_round_nr + 1):
-        res = client.post(
+        res = auth_client.post(
             f"/competitions/{competition.name}/pairing",
             json={"round_nr": round_nr, "player_ids": player_ids},
         )
         assert res.status_code == 400
-    res = client.post(
+    res = auth_client.post(
         f"/competitions/{competition.name}/pairing",
         json={"round_nr": max_round_nr + 2, "player_ids": player_ids},
     )
     assert res.status_code == 400
 
     correct_round_nr = max_round_nr + 1
-    res = client.post(
+    res = auth_client.post(
         f"/competitions/{competition.name}/pairing",
         json={"round_nr": correct_round_nr, "player_ids": player_ids},
     )
@@ -380,12 +382,12 @@ def test_create_pairing(
 
 def test_delete_pairing(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
-    client: TestClient,
+    auth_client: TestClient,
     session: Session,
 ):
     (competition, _, matches) = simkro_setup
     assert len(list(m for m in matches if m.round == 2)) > 0
-    res = client.delete(
+    res = auth_client.delete(
         f"/competitions/{competition.name}/pairing", params={"round_nr": 2}
     )
     res.raise_for_status()
@@ -418,17 +420,17 @@ def test_competition_ranking(
 
 def test_create_round_players(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
-    client: TestClient,
+    auth_client: TestClient,
 ):
     competition, _, _ = simkro_setup
     # Creating for a round that already has matches should fail.
-    res = client.post(
+    res = auth_client.post(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     )
     assert res.status_code == 400
 
     # Creating for the next round (no matches yet) should succeed.
-    res = client.post(
+    res = auth_client.post(
         f"/competitions/{competition.name}/players", params={"round_nr": 5}
     )
     res.raise_for_status()
@@ -438,17 +440,17 @@ def test_create_round_players(
 def test_round_players_add_remove(
     competition: Competition,
     player_factory: Callable[..., Player],
-    client: TestClient,
+    auth_client: TestClient,
     session: Session,
 ):
     p1, p2, p3 = player_factory(), player_factory(), player_factory()
     # Create the round player list.
-    client.post(
+    auth_client.post(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     ).raise_for_status()
 
     # Add players.
-    res = client.patch(
+    res = auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id, p3.id]},
@@ -457,7 +459,7 @@ def test_round_players_add_remove(
     assert len(res.json()) == 3
 
     # Adding duplicate should not create a second entry.
-    res = client.patch(
+    res = auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id]},
@@ -466,7 +468,7 @@ def test_round_players_add_remove(
     assert len(res.json()) == 3
 
     # Remove a player.
-    res = client.patch(
+    res = auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"player_ids_to_remove": [p2.id]},
@@ -477,7 +479,7 @@ def test_round_players_add_remove(
     assert set(rp["player"]["id"] for rp in players) == {p1.id, p3.id}
 
     # Adding a non-existent player should fail.
-    res = client.patch(
+    res = auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"player_ids_to_add": [9999]},
@@ -488,20 +490,20 @@ def test_round_players_add_remove(
 def test_round_players_bye(
     competition: Competition,
     player_factory: Callable[..., Player],
-    client: TestClient,
+    auth_client: TestClient,
 ):
     p1, p2, p3 = player_factory(), player_factory(), player_factory()
-    client.post(
+    auth_client.post(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     ).raise_for_status()
-    client.patch(
+    auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id, p3.id]},
     ).raise_for_status()
 
     # Set bye player.
-    res = client.patch(
+    res = auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"bye_player_id": p2.id},
@@ -513,7 +515,7 @@ def test_round_players_bye(
     assert bye_players[0]["player"]["id"] == p2.id
 
     # Change bye player.
-    res = client.patch(
+    res = auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"bye_player_id": p3.id},
@@ -525,7 +527,7 @@ def test_round_players_bye(
     assert bye_players[0]["player"]["id"] == p3.id
 
     # Clear bye.
-    res = client.patch(
+    res = auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"clear_bye": True},
@@ -538,20 +540,20 @@ def test_round_players_bye(
 def test_delete_round_players(
     competition: Competition,
     player_factory: Callable[..., Player],
-    client: TestClient,
+    auth_client: TestClient,
     session: Session,
 ):
     p1, p2 = player_factory(), player_factory()
-    client.post(
+    auth_client.post(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     ).raise_for_status()
-    client.patch(
+    auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id]},
     ).raise_for_status()
 
-    res = client.delete(
+    res = auth_client.delete(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     )
     res.raise_for_status()
@@ -561,19 +563,19 @@ def test_delete_round_players(
 def test_retrieve_round_players(
     competition: Competition,
     player_factory: Callable[..., Player],
-    client: TestClient,
+    auth_client: TestClient,
 ):
     p1, p2 = player_factory(), player_factory()
-    client.post(
+    auth_client.post(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     ).raise_for_status()
-    client.patch(
+    auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id]},
     ).raise_for_status()
 
-    res = client.get(
+    res = auth_client.get(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     )
     res.raise_for_status()

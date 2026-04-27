@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 
+from backend.auth import ModeratorDep
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
 from backend.models import Competition, Match, MatchBase, MatchPublic, MatchUpdate
 
@@ -19,7 +20,9 @@ def touch_competition(session: SessionDep, competition_name: str):
 
 
 @router.post("/")
-def create_match(match_obj: MatchBase, session: SessionDep) -> MatchPublic:
+def create_match(
+    match_obj: MatchBase, session: SessionDep, _: ModeratorDep
+) -> MatchPublic:
     db_match = Match.model_validate(match_obj)
     try:
         session.add(db_match)
@@ -49,7 +52,7 @@ def retrieve_match(id: int, session: SessionDep) -> MatchPublic:
 
 
 @router.delete("/{id}")
-def delete_match(id: int, session: SessionDep):
+def delete_match(id: int, session: SessionDep, _: ModeratorDep):
     match_obj = find_object(model=Match, identifier=id, session=session)
     session.delete(match_obj)
     touch_competition(session, match_obj.competition_name)
@@ -58,7 +61,9 @@ def delete_match(id: int, session: SessionDep):
 
 
 @router.patch("/{id}")
-def update_match(id: int, match_obj: MatchUpdate, session: SessionDep) -> MatchPublic:
+def update_match(
+    id: int, match_obj: MatchUpdate, session: SessionDep, _: ModeratorDep
+) -> MatchPublic:
     db_match = find_object(model=Match, identifier=id, session=session)
     db_match.sqlmodel_update(match_obj.model_dump(exclude_unset=True))
     db_match.updated_at = datetime.now()

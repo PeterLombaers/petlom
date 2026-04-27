@@ -5,7 +5,7 @@ import type { paths, components } from "./schema.js";
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 type ValidationError = components["schemas"]["ValidationError"];
 
-const fetchClient = createFetchClient<paths>({
+export const fetchClient = createFetchClient<paths>({
   baseUrl: "http://localhost:8000/",
 });
 

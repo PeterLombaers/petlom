@@ -23,6 +23,7 @@ import {
 import { CreateButton, CreateDialogConfig } from "@components/CreateButton";
 import PlayerSelect from "@components/PlayerSelect";
 import { useMatches } from "./useMatches";
+import { useAuth } from "@/auth";
 
 type MatchPublic = components["schemas"]["MatchPublic"];
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
@@ -49,6 +50,7 @@ const emptyPlayer: PlayerPublicMinimal = { id: 0, name: "", is_active: true };
 
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
   const [editableId, setEditableId] = useState(-1);
+  const { isModerator } = useAuth();
   const {
     matches,
     error,
@@ -162,12 +164,14 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
     ),
   };
 
+  const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
+
   return (
     <TableContainer component={Paper}>
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell colSpan={Object.keys(tableCells).length + 1}>
+            <TableCell colSpan={nCols}>
               <Stack
                 direction="row"
                 justifyContent="space-between"
@@ -176,11 +180,13 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
                 <Typography>
                   {competition_name} — Round {round}
                 </Typography>
-                <CreateButton
-                  entityType="match"
-                  mutation={createMutation}
-                  dialogConfig={createDialogConfig}
-                />
+                {isModerator && (
+                  <CreateButton
+                    entityType="match"
+                    mutation={createMutation}
+                    dialogConfig={createDialogConfig}
+                  />
+                )}
               </Stack>
             </TableCell>
           </TableRow>
@@ -189,7 +195,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
             <TableCell>White</TableCell>
             <TableCell>Black</TableCell>
             <TableCell>Result</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            {isModerator && <TableCell align="right">Actions</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -203,18 +209,18 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
               }
               cells={tableCells}
               entityIdField="id"
-              editConfig={{
+              editConfig={isModerator ? {
                 editMutation,
                 validateData,
                 sanitizeData,
                 getRequestBody,
-              }}
-              deleteConfig={{
+              } : undefined}
+              deleteConfig={isModerator ? {
                 deleteMutation,
                 entityType: "match",
                 entityNameField: "id",
                 requireTypedConfirmation: false,
-              }}
+              } : undefined}
             />
           ))}
         </TableBody>
