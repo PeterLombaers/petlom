@@ -8,6 +8,7 @@ from backend.models import (
     Competition,
     Match,
     Player,
+    PlayerPublic,
     Result,
     RoundPlayer,
 )
@@ -113,7 +114,7 @@ def test_get_player(player: Player, client: TestClient):
     res = client.get(f"/players/{player.id}/")
     res.raise_for_status()
     res_player = res.json()
-    assert res_player == jsonable_encoder(player)
+    assert res_player == jsonable_encoder(PlayerPublic.model_validate(player))
 
 
 def test_list_player(player_factory: Callable[..., Player], client):
@@ -122,8 +123,8 @@ def test_list_player(player_factory: Callable[..., Player], client):
     res.raise_for_status()
     res_players = res.json()
     assert len(res_players) == 2
-    assert jsonable_encoder(p0) == res_players[0]
-    assert jsonable_encoder(p1) == res_players[1]
+    assert jsonable_encoder(PlayerPublic.model_validate(p0)) == res_players[0]
+    assert jsonable_encoder(PlayerPublic.model_validate(p1)) == res_players[1]
 
     player_factory(is_active=False)
     res = client.get("/players/")
