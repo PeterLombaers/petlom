@@ -96,6 +96,16 @@ export function CreateButton<T = any>({
     );
   };
 
+  /**
+   * On `Enter`: save and close. On `Shift+Enter`: save and next.
+   */
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "Enter") return;
+    if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+    e.preventDefault();
+    handleSubmit(e.shiftKey);
+  };
+
   return (
     <>
       <IconButton
