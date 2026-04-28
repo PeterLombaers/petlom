@@ -1,33 +1,8 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render } from "@testing-library/react";
-import type { UseMutationResult } from "@tanstack/react-query";
 import DeleteButton from "@components/DeleteButton";
-
-function makeMockMutation(
-  overrides: Partial<
-    UseMutationResult<unknown, unknown, unknown, unknown>
-  > = {},
-): UseMutationResult<unknown, unknown, unknown, unknown> {
-  return {
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(),
-    isPending: false,
-    isSuccess: false,
-    isError: false,
-    isIdle: true,
-    data: undefined,
-    error: null,
-    reset: vi.fn(),
-    status: "idle",
-    variables: undefined,
-    context: undefined,
-    submittedAt: 0,
-    failureCount: 0,
-    failureReason: null,
-    ...overrides,
-  } as UseMutationResult<unknown, unknown, unknown, unknown>;
-}
+import { makeMockMutation } from "./test-utils";
 
 describe("DeleteButton", () => {
   it("renders the delete icon button", () => {

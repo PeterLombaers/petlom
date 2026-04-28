@@ -1,31 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { UseMutationResult } from "@tanstack/react-query";
 import { TextField } from "@mui/material";
 import { CreateButton, CreateDialogConfig } from "@components/CreateButton";
-
-function makeMockMutation(
-  overrides: Partial<UseMutationResult<unknown, unknown, unknown, unknown>> = {},
-): UseMutationResult<unknown, unknown, unknown, unknown> {
-  return {
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(),
-    isPending: false,
-    isSuccess: false,
-    isError: false,
-    isIdle: true,
-    data: undefined,
-    error: null,
-    reset: vi.fn(),
-    status: "idle",
-    variables: undefined,
-    context: undefined,
-    submittedAt: 0,
-    failureCount: 0,
-    failureReason: null,
-    ...overrides,
-  } as UseMutationResult<unknown, unknown, unknown, unknown>;
-}
+import { makeMockMutation } from "./test-utils";
 
 const dialogConfig: CreateDialogConfig<{ name: string }> = {
   getInitialFormData: () => ({ name: "" }),

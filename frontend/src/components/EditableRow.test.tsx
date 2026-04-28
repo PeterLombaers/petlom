@@ -2,7 +2,7 @@ import { screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UseMutationResult } from "@tanstack/react-query";
 import EditableRow from "@components/EditableRow";
-import { renderInTable } from "./test-utils";
+import { renderInTable, makeMockMutation } from "./test-utils";
 
 type TestEntity = { id: number; name: string };
 
@@ -39,30 +39,6 @@ const testCells = {
   },
 };
 
-function makeMockMutation(
-  overrides: Partial<
-    UseMutationResult<unknown, unknown, unknown, unknown>
-  > = {},
-): UseMutationResult<unknown, unknown, unknown, unknown> {
-  return {
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(),
-    isPending: false,
-    isSuccess: false,
-    isError: false,
-    isIdle: true,
-    data: undefined,
-    error: null,
-    reset: vi.fn(),
-    status: "idle",
-    variables: undefined,
-    context: undefined,
-    submittedAt: 0,
-    failureCount: 0,
-    failureReason: null,
-    ...overrides,
-  } as UseMutationResult<unknown, unknown, unknown, unknown>;
-}
 
 function makeEditConfig(
   editMutation: UseMutationResult<unknown, unknown, unknown, unknown>,
