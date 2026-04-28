@@ -175,7 +175,7 @@ export default function RoundPlayerList({
             ))}
             <TableRow>
               <TableCell colSpan={isOdd ? 3 : 2}>
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                   <PlayerSelect
                     player={newPlayer}
                     setPlayer={setNewPlayer}

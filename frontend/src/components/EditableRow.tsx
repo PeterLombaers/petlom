@@ -116,7 +116,7 @@ export default function EditableRow<T = any>({
       })}
       {editConfig && (
         <TableCell>
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
             <EditButton
               isEditing={isEditing}
               isPending={editConfig.editMutation.isPending}

@@ -24,16 +24,15 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "types": ["@testing-library/jest-dom", "vitest/globals"],
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ],
       "@components/*": [
-        "src/components/*"
+        "./src/components/*"
       ],
       "@client/*": [
-        "src/client/*"
+        "./src/client/*"
       ]
     },
   },

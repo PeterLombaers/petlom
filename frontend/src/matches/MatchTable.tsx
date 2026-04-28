@@ -174,8 +174,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
             <TableCell colSpan={nCols}>
               <Stack
                 direction="row"
-                justifyContent="space-between"
-                alignItems="center"
+                sx={{ justifyContent: "space-between", alignItems: "center" }}
               >
                 <Typography>
                   {competition_name} — Round {round}
