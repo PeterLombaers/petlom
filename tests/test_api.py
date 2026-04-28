@@ -29,6 +29,16 @@ def test_create_competition(session: Session, auth_client: TestClient):
         assert key in dict(competition)
 
 
+def test_create_competition_duplicate_name(auth_client: TestClient):
+    auth_client.post("/competitions/", json={"name": "interne", "type": "simkro"})
+    res = auth_client.post("/competitions/", json={"name": "interne", "type": "simkro"})
+    assert res.status_code == 409
+    detail = res.json()["detail"]
+    assert any(
+        e["loc"] == ["body", "name"] and "already exists" in e["msg"] for e in detail
+    )
+
+
 def test_get_competition(competition: Competition, client: TestClient):
     res = client.get(f"/competitions/{competition.name}/")
     res.raise_for_status()

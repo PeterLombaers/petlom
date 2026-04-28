@@ -9,14 +9,50 @@ const dialogConfig: CreateDialogConfig<{ name: string }> = {
   validateForm: () => ({}),
   sanitizeForm: (data) => data,
   getRequestBody: (data) => data,
-  renderContent: ({ formData, onChange }) => (
+  renderContent: ({ formData, errors, onChange }) => (
     <TextField
       label="Name"
       value={formData.name}
+      error={!!errors.name}
+      helperText={errors.name}
       onChange={(e) => onChange("name", e.target.value)}
     />
   ),
 };
+
+describe("CreateButton server field errors", () => {
+  it("shows a server field error inline on the relevant field", async () => {
+    const user = userEvent.setup();
+    const serverError = {
+      detail: [
+        {
+          loc: ["body", "name"],
+          msg: "A competition with this name already exists.",
+          type: "value_error.duplicate",
+        },
+      ],
+    };
+    const mutation = makeMockMutation({
+      mutate: vi.fn((_, callbacks: any) => callbacks?.onError?.(serverError)),
+    });
+    render(
+      <CreateButton
+        entityType="player"
+        mutation={mutation}
+        dialogConfig={dialogConfig}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add player" }));
+    await user.keyboard("{Enter}");
+
+    expect(mutation.mutate).toHaveBeenCalledOnce();
+    expect(
+      screen.getByText("A competition with this name already exists."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+});
 
 describe("CreateButton keyboard shortcuts", () => {
   it("submits and closes the dialog on Enter", async () => {

@@ -10,7 +10,7 @@ import AddIcon from "@mui/icons-material/Add";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import CheckIcon from "@mui/icons-material/Check";
 import { UseMutationResult } from "@tanstack/react-query";
-import { formatHTTPValidationError } from "@/client/api";
+import { formatHTTPValidationError, parseHTTPValidationErrors } from "@/client/api";
 
 export interface CreateDialogConfig<T = any> {
   getInitialFormData: () => T;
@@ -89,8 +89,12 @@ export function CreateButton<T = any>({
           resetForm(sanitizedFormData);
         },
         onError: (error) => {
-          const errorMessage = formatHTTPValidationError(error);
-          console.error(errorMessage);
+          const fieldErrors = parseHTTPValidationErrors(error);
+          if (Object.keys(fieldErrors).length > 0) {
+            setFormErrors(fieldErrors);
+          } else {
+            console.error(formatHTTPValidationError(error));
+          }
         },
       }
     );
@@ -115,7 +119,7 @@ export function CreateButton<T = any>({
       >
         <AddIcon />
       </IconButton>
-      <Dialog open={dialogOpen} onClose={handleDialogClose}>
+      <Dialog open={dialogOpen} onClose={handleDialogClose} onKeyDown={handleKeyDown}>
         <DialogTitle>Add new {entityType}</DialogTitle>
         <DialogContent dividers>
           {renderContent({

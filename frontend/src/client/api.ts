@@ -24,3 +24,17 @@ export const formatHTTPValidationError = (
   }
   return error.detail.map((error) => formatValidationError(error)).join("; ");
 };
+
+export const parseHTTPValidationErrors = (
+  error: HTTPValidationError | null
+): Record<string, string> => {
+  if (error === null || error.detail === undefined) return {};
+  const result: Record<string, string> = {};
+  for (const err of error.detail) {
+    const field = [...err.loc]
+      .reverse()
+      .find((l): l is string => typeof l === "string" && l !== "body");
+    if (field) result[field] = err.msg;
+  }
+  return result;
+};

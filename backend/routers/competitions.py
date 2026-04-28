@@ -50,6 +50,17 @@ def add_n_rounds(competition: Competition, session: SessionDep) -> Competition:
 def create_competition(
     competition: CompetitionBase, session: SessionDep, _: ModeratorDep
 ) -> CompetitionPublic:
+    if session.get(Competition, competition.name):
+        raise HTTPException(
+            status_code=409,
+            detail=[
+                {
+                    "loc": ["body", "name"],
+                    "msg": "A competition with this name already exists.",
+                    "type": "value_error.duplicate",
+                }
+            ],
+        )
     db_competition = Competition.model_validate(competition)
     session.add(db_competition)
     session.commit()
