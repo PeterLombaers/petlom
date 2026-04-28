@@ -5,7 +5,7 @@ from backend.config import settings
 from backend.db import engine, init_db
 from backend.routers import auth, competitions, matches, players
 
-app = FastAPI()
+app = FastAPI(root_path="/api")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

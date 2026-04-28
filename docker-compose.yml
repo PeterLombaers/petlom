@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - DATABASE_FP=/data/petlom.db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ALLOWED_ORIGINS=[]
+    volumes:
+      - petlom_db:/data
+    restart: unless-stopped
+
+  caddy:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      - CADDY_HOST=${CADDY_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  petlom_db:
+  caddy_data:
+  caddy_config:

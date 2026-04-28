@@ -6,7 +6,7 @@ type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 type ValidationError = components["schemas"]["ValidationError"];
 
 export const fetchClient = createFetchClient<paths>({
-  baseUrl: "http://localhost:8000/",
+  baseUrl: "/api/",
 });
 
 export const $api = createClient(fetchClient);

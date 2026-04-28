@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const login = async (username: string, password: string) => {
-    const res = await fetch("http://localhost:8000/auth/login", {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       // OAuth2PasswordRequestForm requires application/x-www-form-urlencoded, not JSON.
       body: new URLSearchParams({ username, password }),

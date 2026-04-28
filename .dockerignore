@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[oc]
+.venv/
+
+# Frontend build artifacts and dependencies
+frontend/node_modules/
+frontend/dist/
+
+# Database and secrets
+*.db
+.env
+
+# Version control
+.git/
+.gitignore
+
+# Dev/test artifacts
+tests/
+*.log
