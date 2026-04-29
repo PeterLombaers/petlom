@@ -127,11 +127,10 @@ function CompetitionDetail({
           value={String(currentRound)}
           onChange={(val) => val && handleRoundChange(Number(val))}
           data={roundOptions}
-          style={{ width: 140 }}
         />
 
         {isModerator && isLatestRound && !hasDraft && (
-          <Button onClick={handleCreateDraft} style={{ alignSelf: "flex-end" }}>
+          <Button onClick={handleCreateDraft}>
             Create pairing for round {nextRound}
           </Button>
         )}

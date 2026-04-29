@@ -41,7 +41,6 @@ export default function PlayerMultiSelect({
       onChange={handleChange}
       disabled={isError || isPending}
       searchable
-      style={{ minWidth: 200 }}
     />
   );
 }

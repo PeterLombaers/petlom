@@ -67,8 +67,6 @@ export default function DeleteButton({
         onClick={handleDialogOpen}
         disabled={mutation.isPending}
         aria-label="Delete"
-        variant="subtle"
-        color="red"
       >
         <IconTrash size={18} />
       </ActionIcon>
@@ -99,9 +97,8 @@ export default function DeleteButton({
               onChange={(e) => setConfirmDialogInput(e.target.value)}
             />
           )}
-          <Group justify="flex-end">
+          <Group>
             <Button
-              color="red"
               onClick={handleDelete}
               disabled={!isConfirmed || mutation.isPending}
             >

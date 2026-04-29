@@ -21,7 +21,6 @@ function RecentCompetitions() {
           label={c.name}
           component={Link}
           to={`/competitions/${c.name}`}
-          pl="xl"
         />
       ))}
     </>
@@ -35,34 +34,19 @@ function AuthControls() {
   if (isModerator) {
     return (
       <>
-        <Badge variant="outline">{username}</Badge>
-        <Button variant="subtle" color="white" onClick={logout}>
-          Logout
-        </Button>
+        <Badge>{username}</Badge>
+        <Button onClick={logout}>Logout</Button>
       </>
     );
   }
-  return (
-    <Button variant="subtle" color="white" onClick={() => navigate("/login")}>
-      Login
-    </Button>
-  );
+  return <Button onClick={() => navigate("/login")}>Login</Button>;
 }
 
 export default function Layout() {
   return (
     <AppShell header={{ height: 60 }} navbar={{ width: 240, breakpoint: "sm" }}>
-      <AppShell.Header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "0 16px",
-          gap: 8,
-        }}
-      >
-        <Text fw={600} size="lg" style={{ flexGrow: 1 }}>
-          PetLom
-        </Text>
+      <AppShell.Header>
+        <Text>PetLom</Text>
         <AuthControls />
       </AppShell.Header>
       <AppShell.Navbar>

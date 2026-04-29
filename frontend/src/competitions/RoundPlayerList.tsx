@@ -3,7 +3,6 @@ import {
   Alert,
   Button,
   Group,
-  Paper,
   Radio,
   Stack,
   Table,
@@ -121,80 +120,69 @@ export default function RoundPlayerList({
 
   return (
     <Stack>
-      <Title order={5}>
+      <Title>
         Player list for round {roundNr} ({playerCount} players)
       </Title>
 
       {isOdd && !byePlayer && (
-        <Alert color="yellow">
+        <Alert>
           Odd number of players. Select a bye player before generating the
           pairing.
         </Alert>
       )}
 
-      <Paper>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Player</Table.Th>
-              {isOdd && <Table.Th>Bye</Table.Th>}
-              <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {roundPlayers.map((rp: RoundPlayerPublic) => (
-              <Table.Tr key={rp.id}>
-                <Table.Td>{rp.player.name}</Table.Td>
-                {isOdd && (
-                  <Table.Td>
-                    <Radio
-                      checked={rp.is_bye}
-                      onChange={() => {
-                        if (rp.is_bye) {
-                          handleClearBye();
-                        } else {
-                          handleSetBye(rp.player.id);
-                        }
-                      }}
-                    />
-                  </Table.Td>
-                )}
-                <Table.Td style={{ textAlign: "right" }}>
-                  <ActionIcon
-                    variant="subtle"
-                    color="red"
-                    onClick={() => handleRemovePlayer(rp.player.id)}
-                  >
-                    <IconTrash size={18} />
-                  </ActionIcon>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-            <Table.Tr>
-              <Table.Td colSpan={isOdd ? 3 : 2}>
-                <Group>
-                  <PlayerSelect
-                    player={newPlayer}
-                    setPlayer={setNewPlayer}
-                    label="Add player"
-                    filterOptions={(options) =>
-                      options.filter((o) => !enrolledPlayerIds.has(o.id))
-                    }
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Player</Table.Th>
+            {isOdd && <Table.Th>Bye</Table.Th>}
+            <Table.Th>Actions</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {roundPlayers.map((rp: RoundPlayerPublic) => (
+            <Table.Tr key={rp.id}>
+              <Table.Td>{rp.player.name}</Table.Td>
+              {isOdd && (
+                <Table.Td>
+                  <Radio
+                    checked={rp.is_bye}
+                    onChange={() => {
+                      if (rp.is_bye) {
+                        handleClearBye();
+                      } else {
+                        handleSetBye(rp.player.id);
+                      }
+                    }}
                   />
-                  <Button
-                    variant="outline"
-                    onClick={handleAddPlayer}
-                    disabled={!newPlayer.id}
-                    style={{ alignSelf: "flex-end" }}
-                  >
-                    Add
-                  </Button>
-                </Group>
+                </Table.Td>
+              )}
+              <Table.Td>
+                <ActionIcon onClick={() => handleRemovePlayer(rp.player.id)}>
+                  <IconTrash size={18} />
+                </ActionIcon>
               </Table.Td>
             </Table.Tr>
-          </Table.Tbody>
-        </Table>
-      </Paper>
+          ))}
+          <Table.Tr>
+            <Table.Td colSpan={isOdd ? 3 : 2}>
+              <Group>
+                <PlayerSelect
+                  player={newPlayer}
+                  setPlayer={setNewPlayer}
+                  label="Add player"
+                  filterOptions={(options) =>
+                    options.filter((o) => !enrolledPlayerIds.has(o.id))
+                  }
+                />
+                <Button onClick={handleAddPlayer} disabled={!newPlayer.id}>
+                  Add
+                </Button>
+              </Group>
+            </Table.Td>
+          </Table.Tr>
+        </Table.Tbody>
+      </Table>
 
       <Group>
         <Button
@@ -205,9 +193,7 @@ export default function RoundPlayerList({
             ? "Generating..."
             : `Generate pairing for round ${roundNr}`}
         </Button>
-        <Button variant="outline" color="red" onClick={handleCancelDraft}>
-          Cancel
-        </Button>
+        <Button onClick={handleCancelDraft}>Cancel</Button>
       </Group>
     </Stack>
   );

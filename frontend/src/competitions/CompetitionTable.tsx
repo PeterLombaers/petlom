@@ -1,7 +1,7 @@
 import { formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
-import { Paper, Table, TextInput } from "@mantine/core";
+import { Table, TextInput } from "@mantine/core";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
@@ -92,58 +92,54 @@ export default function CompetitionTable() {
   const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
 
   return (
-    <Paper>
-      <Table>
-        <Table.Thead>
-          {isModerator && (
-            <Table.Tr>
-              <Table.Td colSpan={nCols} style={{ textAlign: "right" }}>
-                <CreateButton
-                  entityType="competition"
-                  mutation={createMutation}
-                  dialogConfig={createDialogConfig}
-                />
-              </Table.Td>
-            </Table.Tr>
-          )}
+    <Table>
+      <Table.Thead>
+        {isModerator && (
           <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Created Date</Table.Th>
-            <Table.Th>Updated Date</Table.Th>
-            {isModerator && (
-              <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
-            )}
+            <Table.Td colSpan={nCols}>
+              <CreateButton
+                entityType="competition"
+                mutation={createMutation}
+                dialogConfig={createDialogConfig}
+              />
+            </Table.Td>
           </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {sortedCompetitions.map((competition) => (
-            <EditableRow<CompetitionPublic>
-              key={competition.name}
-              data={competition}
-              isEditing={editableId === competition.name}
-              setIsEditing={(isEditing: boolean) =>
-                setIsEditing(competition.name, isEditing)
-              }
-              cells={tableCells}
-              entityIdField="name"
-              editConfig={
-                isModerator
-                  ? { editMutation, validateData, sanitizeData, getRequestBody }
-                  : undefined
-              }
-              deleteConfig={
-                isModerator
-                  ? {
-                      deleteMutation,
-                      entityType: "competition",
-                      entityNameField: "name",
-                    }
-                  : undefined
-              }
-            />
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Paper>
+        )}
+        <Table.Tr>
+          <Table.Th>Name</Table.Th>
+          <Table.Th>Created Date</Table.Th>
+          <Table.Th>Updated Date</Table.Th>
+          {isModerator && <Table.Th>Actions</Table.Th>}
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {sortedCompetitions.map((competition) => (
+          <EditableRow<CompetitionPublic>
+            key={competition.name}
+            data={competition}
+            isEditing={editableId === competition.name}
+            setIsEditing={(isEditing: boolean) =>
+              setIsEditing(competition.name, isEditing)
+            }
+            cells={tableCells}
+            entityIdField="name"
+            editConfig={
+              isModerator
+                ? { editMutation, validateData, sanitizeData, getRequestBody }
+                : undefined
+            }
+            deleteConfig={
+              isModerator
+                ? {
+                    deleteMutation,
+                    entityType: "competition",
+                    entityNameField: "name",
+                  }
+                : undefined
+            }
+          />
+        ))}
+      </Table.Tbody>
+    </Table>
   );
 }

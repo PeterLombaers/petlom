@@ -1,7 +1,7 @@
 import { formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
-import { Paper, Table, TextInput } from "@mantine/core";
+import { Table, TextInput } from "@mantine/core";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
@@ -87,57 +87,53 @@ export default function PlayerTable() {
   const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
 
   return (
-    <Paper>
-      <Table>
-        <Table.Thead>
-          {isModerator && (
-            <Table.Tr>
-              <Table.Td colSpan={nCols} style={{ textAlign: "right" }}>
-                <CreateButton
-                  entityType="player"
-                  mutation={createMutation}
-                  dialogConfig={createDialogConfig}
-                />
-              </Table.Td>
-            </Table.Tr>
-          )}
+    <Table>
+      <Table.Thead>
+        {isModerator && (
           <Table.Tr>
-            <Table.Th>ID</Table.Th>
-            <Table.Th>Name</Table.Th>
-            {isModerator && (
-              <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
-            )}
+            <Table.Td colSpan={nCols}>
+              <CreateButton
+                entityType="player"
+                mutation={createMutation}
+                dialogConfig={createDialogConfig}
+              />
+            </Table.Td>
           </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {sortedPlayers.map((player) => (
-            <EditableRow<PlayerPublic>
-              key={player.id}
-              data={player}
-              isEditing={editableId === player.id}
-              setIsEditing={(isEditing: boolean) =>
-                setIsEditing(player.id, isEditing)
-              }
-              cells={tableCells}
-              entityIdField="id"
-              editConfig={
-                isModerator
-                  ? { editMutation, validateData, sanitizeData, getRequestBody }
-                  : undefined
-              }
-              deleteConfig={
-                isModerator
-                  ? {
-                      deleteMutation,
-                      entityType: "player",
-                      entityNameField: "name",
-                    }
-                  : undefined
-              }
-            />
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Paper>
+        )}
+        <Table.Tr>
+          <Table.Th>ID</Table.Th>
+          <Table.Th>Name</Table.Th>
+          {isModerator && <Table.Th>Actions</Table.Th>}
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {sortedPlayers.map((player) => (
+          <EditableRow<PlayerPublic>
+            key={player.id}
+            data={player}
+            isEditing={editableId === player.id}
+            setIsEditing={(isEditing: boolean) =>
+              setIsEditing(player.id, isEditing)
+            }
+            cells={tableCells}
+            entityIdField="id"
+            editConfig={
+              isModerator
+                ? { editMutation, validateData, sanitizeData, getRequestBody }
+                : undefined
+            }
+            deleteConfig={
+              isModerator
+                ? {
+                    deleteMutation,
+                    entityType: "player",
+                    entityNameField: "name",
+                  }
+                : undefined
+            }
+          />
+        ))}
+      </Table.Tbody>
+    </Table>
   );
 }

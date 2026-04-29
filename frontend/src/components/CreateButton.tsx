@@ -109,7 +109,6 @@ export function CreateButton<T = unknown>({
         onClick={handleDialogOpen}
         disabled={mutation.isPending}
         aria-label={`Add ${entityType}`}
-        variant="subtle"
       >
         <IconPlus size={18} />
       </ActionIcon>
@@ -132,7 +131,6 @@ export function CreateButton<T = unknown>({
               disabled={mutation.isPending}
               aria-label="Save and close"
               title="Save and close"
-              variant="subtle"
             >
               <IconCheck size={18} />
             </ActionIcon>
@@ -141,7 +139,6 @@ export function CreateButton<T = unknown>({
               disabled={mutation.isPending}
               aria-label="Save and add another"
               title="Save and add another"
-              variant="subtle"
             >
               <IconCirclePlus size={18} />
             </ActionIcon>

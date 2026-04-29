@@ -18,33 +18,18 @@ export function EditButton({
 }: EditButtonProps) {
   if (!isEditing) {
     return (
-      <ActionIcon
-        onClick={onEdit}
-        disabled={isPending}
-        aria-label="Edit"
-        variant="subtle"
-      >
+      <ActionIcon onClick={onEdit} disabled={isPending} aria-label="Edit">
         <IconPencil size={18} />
       </ActionIcon>
     );
   }
 
   return (
-    <Group gap={4}>
-      <ActionIcon
-        onClick={onSave}
-        disabled={isPending}
-        aria-label="Save"
-        variant="subtle"
-      >
+    <Group>
+      <ActionIcon onClick={onSave} disabled={isPending} aria-label="Save">
         <IconCheck size={18} />
       </ActionIcon>
-      <ActionIcon
-        onClick={onCancel}
-        disabled={isPending}
-        aria-label="Cancel"
-        variant="subtle"
-      >
+      <ActionIcon onClick={onCancel} disabled={isPending} aria-label="Cancel">
         <IconX size={18} />
       </ActionIcon>
     </Group>

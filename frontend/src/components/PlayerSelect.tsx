@@ -55,7 +55,6 @@ export default function PlayerSelect({
       disabled={isError || isPending}
       error={error ? helperText || true : undefined}
       searchable
-      style={{ minWidth: 200 }}
     />
   );
 }

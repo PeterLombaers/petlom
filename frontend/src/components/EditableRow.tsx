@@ -116,7 +116,7 @@ export default function EditableRow<T = unknown>({
       })}
       {editConfig && (
         <Table.Td>
-          <Group justify="flex-end" gap={4}>
+          <Group>
             <EditButton
               isEditing={isEditing}
               isPending={editConfig.editMutation.isPending}

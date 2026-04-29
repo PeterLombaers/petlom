@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Group, NumberInput, Paper, Stack, Table, Text } from "@mantine/core";
+import { Group, NumberInput, Stack, Table, Text } from "@mantine/core";
 
 import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
@@ -153,65 +153,61 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
 
   return (
-    <Paper>
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Td colSpan={nCols}>
-              <Group justify="space-between">
-                <Text>
-                  {competition_name} — Round {round}
-                </Text>
-                {isModerator && (
-                  <CreateButton
-                    entityType="match"
-                    mutation={createMutation}
-                    dialogConfig={createDialogConfig}
-                  />
-                )}
-              </Group>
-            </Table.Td>
-          </Table.Tr>
-          <Table.Tr>
-            <Table.Th>Board</Table.Th>
-            <Table.Th>White</Table.Th>
-            <Table.Th>Black</Table.Th>
-            <Table.Th>Result</Table.Th>
-            {isModerator && (
-              <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
-            )}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {matches.map((match) => (
-            <EditableRow<MatchPublic>
-              key={match.id}
-              data={match}
-              isEditing={editableId === match.id}
-              setIsEditing={(isEditing: boolean) =>
-                setIsEditing(match.id, isEditing)
-              }
-              cells={tableCells}
-              entityIdField="id"
-              editConfig={
-                isModerator
-                  ? { editMutation, validateData, sanitizeData, getRequestBody }
-                  : undefined
-              }
-              deleteConfig={
-                isModerator
-                  ? {
-                      deleteMutation,
-                      entityType: "match",
-                      entityNameField: "id",
-                      requireTypedConfirmation: false,
-                    }
-                  : undefined
-              }
-            />
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Paper>
+    <Table>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Td colSpan={nCols}>
+            <Group justify="space-between">
+              <Text>
+                {competition_name} — Round {round}
+              </Text>
+              {isModerator && (
+                <CreateButton
+                  entityType="match"
+                  mutation={createMutation}
+                  dialogConfig={createDialogConfig}
+                />
+              )}
+            </Group>
+          </Table.Td>
+        </Table.Tr>
+        <Table.Tr>
+          <Table.Th>Board</Table.Th>
+          <Table.Th>White</Table.Th>
+          <Table.Th>Black</Table.Th>
+          <Table.Th>Result</Table.Th>
+          {isModerator && <Table.Th>Actions</Table.Th>}
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {matches.map((match) => (
+          <EditableRow<MatchPublic>
+            key={match.id}
+            data={match}
+            isEditing={editableId === match.id}
+            setIsEditing={(isEditing: boolean) =>
+              setIsEditing(match.id, isEditing)
+            }
+            cells={tableCells}
+            entityIdField="id"
+            editConfig={
+              isModerator
+                ? { editMutation, validateData, sanitizeData, getRequestBody }
+                : undefined
+            }
+            deleteConfig={
+              isModerator
+                ? {
+                    deleteMutation,
+                    entityType: "match",
+                    entityNameField: "id",
+                    requireTypedConfirmation: false,
+                  }
+                : undefined
+            }
+          />
+        ))}
+      </Table.Tbody>
+    </Table>
   );
 };
