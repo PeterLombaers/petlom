@@ -17,7 +17,7 @@ export const formatValidationError = (error: ValidationError) => {
 };
 
 export const formatHTTPValidationError = (
-  error: HTTPValidationError | null
+  error: HTTPValidationError | null,
 ) => {
   if (error === null || error.detail === undefined) {
     return "";
@@ -26,7 +26,7 @@ export const formatHTTPValidationError = (
 };
 
 export const parseHTTPValidationErrors = (
-  error: HTTPValidationError | null
+  error: HTTPValidationError | null,
 ): Record<string, string> => {
   if (error === null || error.detail === undefined) return {};
   const result: Record<string, string> = {};

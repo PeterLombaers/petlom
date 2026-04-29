@@ -1,19 +1,16 @@
 import {
+  ActionIcon,
   Alert,
   Button,
-  IconButton,
+  Group,
   Paper,
   Radio,
   Stack,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+  Text,
+  Title,
+} from "@mantine/core";
+import { IconTrash } from "@tabler/icons-react";
 import PlayerSelect from "@/components/PlayerSelect";
 import { components } from "@/client/schema";
 import { useRoundPlayers } from "./useRoundPlayers";
@@ -44,8 +41,8 @@ export default function RoundPlayerList({
 
   const [newPlayer, setNewPlayer] = useState<PlayerPublicMinimal>(emptyPlayer);
 
-  if (isPending) return <Typography>Loading player list...</Typography>;
-  if (isError || !roundPlayers) return <Typography>Error loading player list.</Typography>;
+  if (isPending) return <Text>Loading player list...</Text>;
+  if (isError || !roundPlayers) return <Text>Error loading player list.</Text>;
 
   const playerCount = roundPlayers.length;
   const isOdd = playerCount % 2 !== 0;
@@ -123,33 +120,33 @@ export default function RoundPlayerList({
   };
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h6">
+    <Stack>
+      <Title order={5}>
         Player list for round {roundNr} ({playerCount} players)
-      </Typography>
+      </Title>
 
       {isOdd && !byePlayer && (
-        <Alert severity="warning">
+        <Alert color="yellow">
           Odd number of players. Select a bye player before generating the
           pairing.
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Player</TableCell>
-              {isOdd && <TableCell>Bye</TableCell>}
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <Paper>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Player</Table.Th>
+              {isOdd && <Table.Th>Bye</Table.Th>}
+              <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
             {roundPlayers.map((rp: RoundPlayerPublic) => (
-              <TableRow key={rp.id}>
-                <TableCell>{rp.player.name}</TableCell>
+              <Table.Tr key={rp.id}>
+                <Table.Td>{rp.player.name}</Table.Td>
                 {isOdd && (
-                  <TableCell>
+                  <Table.Td>
                     <Radio
                       checked={rp.is_bye}
                       onChange={() => {
@@ -159,23 +156,23 @@ export default function RoundPlayerList({
                           handleSetBye(rp.player.id);
                         }
                       }}
-                      size="small"
                     />
-                  </TableCell>
+                  </Table.Td>
                 )}
-                <TableCell align="right">
-                  <IconButton
-                    size="small"
+                <Table.Td style={{ textAlign: "right" }}>
+                  <ActionIcon
+                    variant="subtle"
+                    color="red"
                     onClick={() => handleRemovePlayer(rp.player.id)}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
+                    <IconTrash size={18} />
+                  </ActionIcon>
+                </Table.Td>
+              </Table.Tr>
             ))}
-            <TableRow>
-              <TableCell colSpan={isOdd ? 3 : 2}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Table.Tr>
+              <Table.Td colSpan={isOdd ? 3 : 2}>
+                <Group>
                   <PlayerSelect
                     player={newPlayer}
                     setPlayer={setNewPlayer}
@@ -185,23 +182,22 @@ export default function RoundPlayerList({
                     }
                   />
                   <Button
-                    variant="outlined"
-                    size="small"
+                    variant="outline"
                     onClick={handleAddPlayer}
                     disabled={!newPlayer.id}
+                    style={{ alignSelf: "flex-end" }}
                   >
                     Add
                   </Button>
-                </Stack>
-              </TableCell>
-            </TableRow>
-          </TableBody>
+                </Group>
+              </Table.Td>
+            </Table.Tr>
+          </Table.Tbody>
         </Table>
-      </TableContainer>
+      </Paper>
 
-      <Stack direction="row" spacing={1}>
+      <Group>
         <Button
-          variant="contained"
           onClick={handleGeneratePairing}
           disabled={!canGenerate || createPairingMutation.isPending}
         >
@@ -209,10 +205,10 @@ export default function RoundPlayerList({
             ? "Generating..."
             : `Generate pairing for round ${roundNr}`}
         </Button>
-        <Button variant="outlined" color="error" onClick={handleCancelDraft}>
+        <Button variant="outline" color="red" onClick={handleCancelDraft}>
           Cancel
         </Button>
-      </Stack>
+      </Group>
     </Stack>
   );
 }

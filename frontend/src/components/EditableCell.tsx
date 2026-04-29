@@ -1,4 +1,4 @@
-import { TableCell } from "@mui/material";
+import { Table } from "@mantine/core";
 import React from "react";
 
 interface EditableCellProps<T = unknown> {
@@ -25,7 +25,7 @@ export default function EditableCell<T = unknown>({
   error,
 }: EditableCellProps<T>) {
   return (
-    <TableCell>
+    <Table.Td>
       {isEditing
         ? renderEdit({
             editValue,
@@ -33,6 +33,6 @@ export default function EditableCell<T = unknown>({
             onChange: setEditValue,
           })
         : renderValue({ value })}
-    </TableCell>
+    </Table.Td>
   );
 }

@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { TextField } from "@mui/material";
+import { TextInput } from "@mantine/core";
 import { CreateButton, CreateDialogConfig } from "@components/CreateButton";
-import { makeMockMutation } from "./test-utils";
+import { makeMockMutation, render } from "./test-utils";
 
 const dialogConfig: CreateDialogConfig<{ name: string }> = {
   getInitialFormData: () => ({ name: "" }),
@@ -10,11 +10,10 @@ const dialogConfig: CreateDialogConfig<{ name: string }> = {
   sanitizeForm: (data) => data,
   getRequestBody: (data) => data,
   renderContent: ({ formData, errors, onChange }) => (
-    <TextField
+    <TextInput
       label="Name"
       value={formData.name}
-      error={!!errors.name}
-      helperText={errors.name}
+      error={errors.name || undefined}
       onChange={(e) => onChange("name", e.target.value)}
     />
   ),
@@ -33,9 +32,12 @@ describe("CreateButton server field errors", () => {
       ],
     };
     const mutation = makeMockMutation({
-      // MutateOptions types onSuccess/onError with args we don't need in mocks
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mutate: vi.fn((_, callbacks: any) => callbacks?.onError?.(serverError)),
+      mutate: vi
+        .fn()
+        .mockImplementation(
+          (_: unknown, cbs: { onError?: (e: unknown) => void }) =>
+            cbs?.onError?.(serverError),
+        ),
     });
     render(
       <CreateButton
@@ -60,9 +62,11 @@ describe("CreateButton keyboard shortcuts", () => {
   it("submits and closes the dialog on Enter", async () => {
     const user = userEvent.setup();
     const mutation = makeMockMutation({
-      // MutateOptions types onSuccess/onError with args we don't need in mocks
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mutate: vi.fn((_, callbacks: any) => callbacks?.onSuccess?.()),
+      mutate: vi
+        .fn()
+        .mockImplementation((_: unknown, cbs: { onSuccess?: () => void }) =>
+          cbs?.onSuccess?.(),
+        ),
     });
     render(
       <CreateButton
@@ -86,9 +90,11 @@ describe("CreateButton keyboard shortcuts", () => {
   it("submits and keeps the dialog open on Shift+Enter", async () => {
     const user = userEvent.setup();
     const mutation = makeMockMutation({
-      // MutateOptions types onSuccess/onError with args we don't need in mocks
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mutate: vi.fn((_, callbacks: any) => callbacks?.onSuccess?.()),
+      mutate: vi
+        .fn()
+        .mockImplementation((_: unknown, cbs: { onSuccess?: () => void }) =>
+          cbs?.onSuccess?.(),
+        ),
     });
     render(
       <CreateButton

@@ -1,9 +1,26 @@
-import { render, RenderOptions } from "@testing-library/react";
+import {
+  render as testingLibraryRender,
+  RenderOptions,
+} from "@testing-library/react";
+import { MantineProvider, Table } from "@mantine/core";
 import { ReactElement } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 
+/**
+ * Creates a fully-typed mock for a React Query mutation.
+ *
+ * React Query's `useMutation` returns a fairly large object with many fields. In tests,
+ * we usually only care about a few of them (e.g. isPending, mutate). This helper gives
+ * us a complete default object so TypeScript is satisfied, while still allowing tests
+ * to override only the fields they care about.
+ *
+ * Example:
+ *   const mutation = makeMockMutation({ isPending: true });
+ */
 export function makeMockMutation(
-  overrides: Partial<UseMutationResult<unknown, unknown, unknown, unknown>> = {},
+  overrides: Partial<
+    UseMutationResult<unknown, unknown, unknown, unknown>
+  > = {},
 ): UseMutationResult<unknown, unknown, unknown, unknown> {
   return {
     mutate: vi.fn(),
@@ -25,27 +42,61 @@ export function makeMockMutation(
   } as UseMutationResult<unknown, unknown, unknown, unknown>;
 }
 
-// For components that render <tr> themselves (e.g. EditableRow)
+/**
+ * Extends `RenderOptions` to allow passing a custom wrapper. See `renderInTable` for
+ * example usage.
+ */
+type CustomRenderOptions = RenderOptions & {
+  wrapper?: React.ComponentType<{ children: React.ReactNode }>;
+};
+
+/**
+ * Custom render function used across the test suite.
+ *
+ * Always wraps the UI in MantineProvider (env="test" disables animations).
+ * See https://mantine.dev/guides/vitest/
+ *
+ * Optionally wraps the UI in an additional custom wrapper (e.g. a table
+ * scaffold for components that render <tr> or <td> elements).
+ */
+export function render(ui: ReactElement, options?: CustomRenderOptions) {
+  const { wrapper: CustomWrapper, ...rest } = options || {};
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => (
+      <MantineProvider env="test">
+        {CustomWrapper ? <CustomWrapper>{children}</CustomWrapper> : children}
+      </MantineProvider>
+    ),
+    ...rest,
+  });
+}
+
+/**
+ * Renders a component inside a Mantine table.
+ */
+
 export function renderInTable(ui: ReactElement, options?: RenderOptions) {
   return render(ui, {
     wrapper: ({ children }) => (
-      <table>
-        <tbody>{children}</tbody>
-      </table>
+      <Table>
+        <Table.Tbody>{children}</Table.Tbody>
+      </Table>
     ),
     ...options,
   });
 }
 
-// For components that render <td> themselves (e.g. EditableCell)
+/**
+ * Renders a component inside a Mantine table row.
+ */
 export function renderInTableRow(ui: ReactElement, options?: RenderOptions) {
   return render(ui, {
     wrapper: ({ children }) => (
-      <table>
-        <tbody>
-          <tr>{children}</tr>
-        </tbody>
-      </table>
+      <Table>
+        <Table.Tbody>
+          <Table.Tr>{children}</Table.Tr>
+        </Table.Tbody>
+      </Table>
     ),
     ...options,
   });

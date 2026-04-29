@@ -1,4 +1,5 @@
-import { screen, fireEvent } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import EditableCell from "@components/EditableCell";
 import { renderInTableRow } from "./test-utils";
 
@@ -77,20 +78,21 @@ describe("EditableCell", () => {
     );
   });
 
-  it("calls setEditValue with new value when onChange fires", () => {
+  it("calls setEditValue with new value when onChange fires", async () => {
+    const user = userEvent.setup();
     const setEditValue = vi.fn();
     renderInTableRow(
       <EditableCell
         isEditing={true}
-        value="Alice"
-        editValue="Alice"
+        value=""
+        editValue=""
         setEditValue={setEditValue}
         renderValue={renderValue}
         renderEdit={renderEdit}
         error=""
       />,
     );
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Bob" } });
-    expect(setEditValue).toHaveBeenCalledWith("Bob");
+    await user.type(screen.getByRole("textbox"), "B");
+    expect(setEditValue).toHaveBeenCalledWith("B");
   });
 });

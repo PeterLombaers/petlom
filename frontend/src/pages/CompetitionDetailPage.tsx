@@ -1,18 +1,22 @@
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  Anchor,
   Breadcrumbs,
   Button,
-  Link,
-  MenuItem,
+  Group,
+  Select,
   Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+  Text,
+  Title,
+} from "@mantine/core";
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchList } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
 import RoundPlayerList from "@/competitions/RoundPlayerList";
-import { useRoundPlayers, useCreateRoundPlayers } from "@/competitions/useRoundPlayers";
+import {
+  useRoundPlayers,
+  useCreateRoundPlayers,
+} from "@/competitions/useRoundPlayers";
 import NotFoundPage from "./NotFoundPage";
 import { useAuth } from "@/auth";
 
@@ -38,19 +42,18 @@ function CompetitionDetail({
   const { isModerator } = useAuth();
   const createRoundPlayersMutation = useCreateRoundPlayers();
 
-  // Always query for next round's draft players.
-  // nRounds isn't available until competition loads, so we use 0 as fallback
-  // and the query will just return empty.
   const nRounds = competition?.n_rounds ?? 0;
   const nextRound = nRounds + 1;
   const { roundPlayers: draftPlayers } = useRoundPlayers(name, nextRound);
 
-  if (isPending) return <Typography>Loading...</Typography>;
+  if (isPending) return <Text>Loading...</Text>;
   if (isError || !competition) return <NotFoundPage />;
 
   const currentRound = roundNr ?? nRounds;
   const isLatestRound = currentRound === nRounds;
-  const hasDraft = (draftPlayers && draftPlayers.length > 0) || createRoundPlayersMutation.isSuccess;
+  const hasDraft =
+    (draftPlayers && draftPlayers.length > 0) ||
+    createRoundPlayersMutation.isSuccess;
 
   const handleCreateDraft = () => {
     createRoundPlayersMutation.mutate({
@@ -68,10 +71,10 @@ function CompetitionDetail({
 
   if (currentRound === 0) {
     return (
-      <Stack spacing={2}>
+      <Stack>
         <Breadcrumbs>
-          <Link href="/competitions">Competitions</Link>
-          <Typography>{name}</Typography>
+          <Anchor href="/competitions">Competitions</Anchor>
+          <Text>{name}</Text>
         </Breadcrumbs>
         {isModerator && hasDraft ? (
           <RoundPlayerList
@@ -81,9 +84,9 @@ function CompetitionDetail({
           />
         ) : (
           <>
-            <Typography>No rounds yet.</Typography>
+            <Text>No rounds yet.</Text>
             {isModerator && (
-              <Button variant="contained" onClick={handleCreateDraft}>
+              <Button onClick={handleCreateDraft}>
                 Create pairing for round 1
               </Button>
             )}
@@ -101,40 +104,38 @@ function CompetitionDetail({
     }
   };
 
+  const roundOptions = Array.from({ length: nRounds }, (_, i) => ({
+    value: String(i + 1),
+    label: `Round ${i + 1}`,
+  }));
+
   return (
-    <Stack spacing={2}>
+    <Stack>
       <Breadcrumbs>
-        <Link href="/competitions">Competitions</Link>
+        <Anchor href="/competitions">Competitions</Anchor>
         {isLatestRound ? (
-          <Typography>{name}</Typography>
+          <Text>{name}</Text>
         ) : (
-          <Link href={`/competitions/${name}`}>{name}</Link>
+          <Anchor href={`/competitions/${name}`}>{name}</Anchor>
         )}
-        {!isLatestRound && <Typography>Round {currentRound}</Typography>}
+        {!isLatestRound && <Text>Round {currentRound}</Text>}
       </Breadcrumbs>
 
-      <Stack direction="row" spacing={1}>
-        <TextField
-          select
+      <Group>
+        <Select
           label="Round"
-          value={currentRound}
-          onChange={(e) => handleRoundChange(Number(e.target.value))}
-          size="small"
-          sx={{ width: 120 }}
-        >
-          {Array.from({ length: nRounds }, (_, i) => i + 1).map((r) => (
-            <MenuItem key={r} value={r}>
-              Round {r}
-            </MenuItem>
-          ))}
-        </TextField>
+          value={String(currentRound)}
+          onChange={(val) => val && handleRoundChange(Number(val))}
+          data={roundOptions}
+          style={{ width: 140 }}
+        />
 
         {isModerator && isLatestRound && !hasDraft && (
-          <Button variant="contained" onClick={handleCreateDraft}>
+          <Button onClick={handleCreateDraft} style={{ alignSelf: "flex-end" }}>
             Create pairing for round {nextRound}
           </Button>
         )}
-      </Stack>
+      </Group>
 
       {isModerator && isLatestRound && hasDraft && (
         <RoundPlayerList
@@ -146,7 +147,7 @@ function CompetitionDetail({
 
       <MatchList competition_name={name} round={currentRound} />
 
-      <Typography variant="h6">Rankings after round {currentRound}</Typography>
+      <Title order={5}>Rankings after round {currentRound}</Title>
       <RankingTable competitionName={name} roundNr={currentRound} />
     </Stack>
   );

@@ -1,16 +1,7 @@
 import { formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
-import {
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-} from "@mui/material";
+import { Paper, Table, TextInput } from "@mantine/core";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
@@ -31,37 +22,26 @@ const tableCells = {
 const validatePlayerName = createNonEmptyStringValidator("name");
 
 const createDialogConfig: CreateDialogConfig<{ name: string }> = {
-  getInitialFormData: () => {
-    return {
-      name: "",
-    };
-  },
+  getInitialFormData: () => ({ name: "" }),
   validateForm: (formData) => {
     const errors: Record<string, string> = {};
     validatePlayerName(formData.name, errors);
     return errors;
   },
-  sanitizeForm: (formData) => ({
-    ...formData,
-    name: formData.name.trim(),
-  }),
+  sanitizeForm: (formData) => ({ ...formData, name: formData.name.trim() }),
   getRequestBody: (formData) => ({ ...formData }),
-  renderContent: ({ formData, errors, onChange }) => {
-    return (
-      <TextField
-        autoFocus
-        fullWidth
-        required
-        name="player-name"
-        id="player-name"
-        label="Name"
-        value={formData.name}
-        error={!!errors.name}
-        helperText={errors.name}
-        onChange={(e) => onChange("name", e.target.value)}
-      />
-    );
-  },
+  renderContent: ({ formData, errors, onChange }) => (
+    <TextInput
+      autoFocus
+      required
+      name="player-name"
+      id="player-name"
+      label="Name"
+      value={formData.name}
+      error={errors.name || undefined}
+      onChange={(e) => onChange("name", e.target.value)}
+    />
+  ),
 };
 
 export default function PlayerTable() {
@@ -81,21 +61,18 @@ export default function PlayerTable() {
     setEditableId(isEditing ? playerId : -1);
   };
 
-  const sanitizeData = (player: PlayerPublic) => {
-    return { ...player, name: player.name.trim() };
-  };
+  const sanitizeData = (player: PlayerPublic) => ({
+    ...player,
+    name: player.name.trim(),
+  });
   const validateData = (player: PlayerPublic) => {
     const errors: Record<string, string> = {};
     validatePlayerName(player.name, errors);
     return errors;
   };
-  const getRequestBody = (player: PlayerPublic) => {
-    return player;
-  };
+  const getRequestBody = (player: PlayerPublic) => player;
 
-  if (isPending) {
-    return "Loading...";
-  }
+  if (isPending) return "Loading...";
 
   if (isError) {
     const errorMessage = formatHTTPValidationError(error);
@@ -110,27 +87,29 @@ export default function PlayerTable() {
   const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
 
   return (
-    <TableContainer component={Paper}>
-      <Table size="small">
-        <TableHead>
+    <Paper>
+      <Table>
+        <Table.Thead>
           {isModerator && (
-            <TableRow>
-              <TableCell align="right" colSpan={nCols}>
+            <Table.Tr>
+              <Table.Td colSpan={nCols} style={{ textAlign: "right" }}>
                 <CreateButton
                   entityType="player"
                   mutation={createMutation}
                   dialogConfig={createDialogConfig}
                 />
-              </TableCell>
-            </TableRow>
+              </Table.Td>
+            </Table.Tr>
           )}
-          <TableRow>
-            <TableCell>ID</TableCell>
-            <TableCell>Name</TableCell>
-            {isModerator && <TableCell align="right">Actions</TableCell>}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          <Table.Tr>
+            <Table.Th>ID</Table.Th>
+            <Table.Th>Name</Table.Th>
+            {isModerator && (
+              <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
+            )}
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
           {sortedPlayers.map((player) => (
             <EditableRow<PlayerPublic>
               key={player.id}
@@ -141,21 +120,24 @@ export default function PlayerTable() {
               }
               cells={tableCells}
               entityIdField="id"
-              editConfig={isModerator ? {
-                editMutation,
-                validateData,
-                sanitizeData,
-                getRequestBody,
-              } : undefined}
-              deleteConfig={isModerator ? {
-                deleteMutation,
-                entityType: "player",
-                entityNameField: "name",
-              } : undefined}
+              editConfig={
+                isModerator
+                  ? { editMutation, validateData, sanitizeData, getRequestBody }
+                  : undefined
+              }
+              deleteConfig={
+                isModerator
+                  ? {
+                      deleteMutation,
+                      entityType: "player",
+                      entityNameField: "name",
+                    }
+                  : undefined
+              }
             />
           ))}
-        </TableBody>
+        </Table.Tbody>
       </Table>
-    </TableContainer>
+    </Paper>
   );
 }

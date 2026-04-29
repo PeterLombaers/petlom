@@ -1,7 +1,5 @@
-import { IconButton, Stack } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
+import { ActionIcon, Group } from "@mantine/core";
+import { IconPencil, IconCheck, IconX } from "@tabler/icons-react";
 
 interface EditButtonProps {
   isEditing: boolean;
@@ -20,20 +18,35 @@ export function EditButton({
 }: EditButtonProps) {
   if (!isEditing) {
     return (
-      <IconButton onClick={onEdit} disabled={isPending} aria-label="Edit">
-        <EditIcon />
-      </IconButton>
+      <ActionIcon
+        onClick={onEdit}
+        disabled={isPending}
+        aria-label="Edit"
+        variant="subtle"
+      >
+        <IconPencil size={18} />
+      </ActionIcon>
     );
   }
 
   return (
-    <Stack direction="row">
-      <IconButton onClick={onSave} disabled={isPending} aria-label="Save">
-        <CheckIcon />
-      </IconButton>
-      <IconButton onClick={onCancel} disabled={isPending} aria-label="Cancel">
-        <CloseIcon />
-      </IconButton>
-    </Stack>
+    <Group gap={4}>
+      <ActionIcon
+        onClick={onSave}
+        disabled={isPending}
+        aria-label="Save"
+        variant="subtle"
+      >
+        <IconCheck size={18} />
+      </ActionIcon>
+      <ActionIcon
+        onClick={onCancel}
+        disabled={isPending}
+        aria-label="Cancel"
+        variant="subtle"
+      >
+        <IconX size={18} />
+      </ActionIcon>
+    </Group>
   );
 }

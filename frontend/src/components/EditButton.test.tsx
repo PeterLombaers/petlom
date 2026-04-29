@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { render } from "@testing-library/react";
 import { EditButton } from "@components/EditButton";
+import { render } from "./test-utils";
 
 describe("EditButton", () => {
   describe("view mode (isEditing=false)", () => {

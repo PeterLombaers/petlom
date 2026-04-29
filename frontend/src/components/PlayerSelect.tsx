@@ -1,4 +1,4 @@
-import { Autocomplete, TextField } from "@mui/material";
+import { Select } from "@mantine/core";
 import { $api } from "@client/api";
 import { components } from "@client/schema";
 
@@ -31,31 +31,31 @@ export default function PlayerSelect({
     console.log(mutateError.detail);
   }
 
+  const allPlayers = dbPlayers || [];
+  const filteredPlayers = filterOptions
+    ? filterOptions(allPlayers)
+    : allPlayers;
+  const data = filteredPlayers.map((p) => ({
+    value: String(p.id),
+    label: p.name,
+  }));
+
+  const handleChange = (value: string | null) => {
+    if (!value) return;
+    const found = allPlayers.find((p) => String(p.id) === value);
+    if (found) setPlayer(found);
+  };
+
   return (
-    <Autocomplete
-      autoComplete
-      loading={isPending}
-      disabled={isError}
-      isOptionEqualToValue={(option, value) => option.id === value.id}
-      options={filterOptions ? filterOptions(dbPlayers || []) : dbPlayers || []}
-      value={isError ? { id: 0, name: "Error", is_active: true } : player}
-      onChange={(_, newValue) => {
-        if (newValue) {
-          setPlayer(newValue);
-        }
-      }}
-      getOptionLabel={(player: PlayerMinimal) => {
-        return player.name;
-      }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={label}
-          error={error}
-          helperText={helperText}
-        />
-      )}
-      sx={{ minWidth: 200 }}
+    <Select
+      label={label}
+      data={data}
+      value={isError ? null : String(player.id)}
+      onChange={handleChange}
+      disabled={isError || isPending}
+      error={error ? helperText || true : undefined}
+      searchable
+      style={{ minWidth: 200 }}
     />
   );
 }

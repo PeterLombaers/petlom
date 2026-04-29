@@ -1,14 +1,6 @@
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-} from "@mui/material";
+import { ActionIcon, Divider, Group, Modal, Stack } from "@mantine/core";
 import { useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import CheckIcon from "@mui/icons-material/Check";
+import { IconPlus, IconCheck, IconCirclePlus } from "@tabler/icons-react";
 import {
   formatHTTPValidationError,
   parseHTTPValidationErrors,
@@ -104,9 +96,6 @@ export function CreateButton<T = unknown>({
     );
   };
 
-  /**
-   * On `Enter`: save and close. On `Shift+Enter`: save and next.
-   */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== "Enter") return;
     if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
@@ -116,45 +105,49 @@ export function CreateButton<T = unknown>({
 
   return (
     <>
-      <IconButton
+      <ActionIcon
         onClick={handleDialogOpen}
         disabled={mutation.isPending}
         aria-label={`Add ${entityType}`}
+        variant="subtle"
       >
-        <AddIcon />
-      </IconButton>
-      <Dialog
-        open={dialogOpen}
+        <IconPlus size={18} />
+      </ActionIcon>
+      <Modal
+        opened={dialogOpen}
         onClose={handleDialogClose}
+        title={`Add new ${entityType}`}
         onKeyDown={handleKeyDown}
       >
-        <DialogTitle>Add new {entityType}</DialogTitle>
-        <DialogContent dividers>
+        <Stack>
           {renderContent({
             formData,
             errors: formErrors,
             onChange: onFormDataChange,
           })}
-        </DialogContent>
-        <DialogActions>
-          <IconButton
-            onClick={() => handleSubmit(false)}
-            disabled={mutation.isPending}
-            aria-label="Save and close"
-            title="Save and close"
-          >
-            <CheckIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleSubmit(true)}
-            disabled={mutation.isPending}
-            aria-label="Save and add another"
-            title="Save and add another"
-          >
-            <AddCircleIcon />
-          </IconButton>
-        </DialogActions>
-      </Dialog>
+          <Divider />
+          <Group justify="flex-end">
+            <ActionIcon
+              onClick={() => handleSubmit(false)}
+              disabled={mutation.isPending}
+              aria-label="Save and close"
+              title="Save and close"
+              variant="subtle"
+            >
+              <IconCheck size={18} />
+            </ActionIcon>
+            <ActionIcon
+              onClick={() => handleSubmit(true)}
+              disabled={mutation.isPending}
+              aria-label="Save and add another"
+              title="Save and add another"
+              variant="subtle"
+            >
+              <IconCirclePlus size={18} />
+            </ActionIcon>
+          </Group>
+        </Stack>
+      </Modal>
     </>
   );
 }

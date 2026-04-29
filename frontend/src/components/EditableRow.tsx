@@ -1,4 +1,4 @@
-import { Stack, TableCell, TableRow } from "@mui/material";
+import { Group, Table } from "@mantine/core";
 import React, { useState } from "react";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
@@ -91,7 +91,7 @@ export default function EditableRow<T = unknown>({
   };
 
   return (
-    <TableRow>
+    <Table.Tr>
       {(Object.keys(cells) as Array<keyof T>).map((key) => {
         const cell = cells[key]!;
         if (cell.renderEdit) {
@@ -109,14 +109,14 @@ export default function EditableRow<T = unknown>({
           );
         }
         return (
-          <TableCell key={String(key)}>
+          <Table.Td key={String(key)}>
             {cell.renderValue({ value: data[key] })}
-          </TableCell>
+          </Table.Td>
         );
       })}
       {editConfig && (
-        <TableCell>
-          <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
+        <Table.Td>
+          <Group justify="flex-end" gap={4}>
             <EditButton
               isEditing={isEditing}
               isPending={editConfig.editMutation.isPending}
@@ -133,9 +133,9 @@ export default function EditableRow<T = unknown>({
                 requireTypedConfirmation={deleteConfig.requireTypedConfirmation}
               />
             )}
-          </Stack>
-        </TableCell>
+          </Group>
+        </Table.Td>
       )}
-    </TableRow>
+    </Table.Tr>
   );
 }

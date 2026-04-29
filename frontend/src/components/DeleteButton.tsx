@@ -1,17 +1,14 @@
 import {
+  ActionIcon,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  IconButton,
+  Group,
+  Modal,
   Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+  Text,
+  TextInput,
+} from "@mantine/core";
 import { useState } from "react";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { IconTrash } from "@tabler/icons-react";
 import { formatHTTPValidationError } from "@/client/api";
 import { AnyMutation } from "./types";
 
@@ -32,12 +29,6 @@ export default function DeleteButton({
 }: DeleteButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmDialogInput, setConfirmDialogInput] = useState("");
-
-  const handleConfirmDialogInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    setConfirmDialogInput(e.target.value);
-  };
 
   const handleDialogClose = () => {
     setDialogOpen(false);
@@ -72,48 +63,53 @@ export default function DeleteButton({
 
   return (
     <>
-      <IconButton
+      <ActionIcon
         onClick={handleDialogOpen}
         disabled={mutation.isPending}
         aria-label="Delete"
+        variant="subtle"
+        color="red"
       >
-        <DeleteIcon />
-      </IconButton>
-      <Dialog open={dialogOpen} onClose={handleDialogClose}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent dividers>
-          <Stack>
-            <DialogContentText>
-              Do you want to delete the {entityType} {entityName}?
-              {requireTypedConfirmation && (
-                <>
-                  {" "}
-                  This action is irreversible. Type <b>{entityName}</b> to
-                  confirm.
-                </>
-              )}
-            </DialogContentText>
+        <IconTrash size={18} />
+      </ActionIcon>
+      <Modal
+        opened={dialogOpen}
+        onClose={handleDialogClose}
+        title="Confirm Delete"
+      >
+        <Stack>
+          <Text>
+            Do you want to delete the {entityType} {entityName}?
             {requireTypedConfirmation && (
-              <TextField
-                autoComplete="off"
-                required
-                name={`${entityType}-name`}
-                id={`${entityType}-name`}
-                label="Name"
-                onChange={handleConfirmDialogInputChange}
-              />
+              <>
+                {" "}
+                This action is irreversible. Type <b>{entityName}</b> to
+                confirm.
+              </>
             )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleDelete}
-            disabled={!isConfirmed || mutation.isPending}
-          >
-            <Typography>Delete {entityName}</Typography>
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </Text>
+          {requireTypedConfirmation && (
+            <TextInput
+              autoComplete="off"
+              required
+              name={`${entityType}-name`}
+              id={`${entityType}-name`}
+              label="Name"
+              value={confirmDialogInput}
+              onChange={(e) => setConfirmDialogInput(e.target.value)}
+            />
+          )}
+          <Group justify="flex-end">
+            <Button
+              color="red"
+              onClick={handleDelete}
+              disabled={!isConfirmed || mutation.isPending}
+            >
+              Delete {entityName}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </>
   );
 }

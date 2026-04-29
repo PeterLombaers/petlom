@@ -2,14 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
-  Box,
   Button,
   Card,
-  CardContent,
+  PasswordInput,
   Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { useAuth } from "@/auth";
 
 export default function LoginPage() {
@@ -35,39 +34,36 @@ export default function LoginPage() {
   };
 
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Card sx={{ width: 360 }}>
-        <CardContent>
-          <Stack spacing={2} component="form" onSubmit={handleSubmit}>
-            <Typography variant="h5">Moderator login</Typography>
-            {error && <Alert severity="error">{error}</Alert>}
-            <TextField
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoFocus
-              required
-            />
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? "Logging in…" : "Login"}
-            </Button>
-          </Stack>
-        </CardContent>
+      <Card w={360} withBorder>
+        <Stack component="form" onSubmit={handleSubmit}>
+          <Title order={4}>Moderator login</Title>
+          {error && <Alert color="red">{error}</Alert>}
+          <TextInput
+            label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoFocus
+            required
+          />
+          <PasswordInput
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <Button type="submit" disabled={loading}>
+            {loading ? "Logging in…" : "Login"}
+          </Button>
+        </Stack>
       </Card>
-    </Box>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Link, TextField } from "@mui/material";
+import { Anchor, NumberInput, TextInput } from "@mantine/core";
 import { components } from "@client/schema";
 import PlayerSelect from "@components/PlayerSelect";
 import ResultToggle from "@components/ResultToggle";
@@ -17,14 +17,12 @@ export const createTextCell = (fieldName: string, label: string) => ({
     error: string;
     onChange: (newValue: string) => void;
   }) => (
-    <TextField
+    <TextInput
       name={fieldName}
       label={label}
       value={props.editValue}
-      error={!!props.error}
-      helperText={props.error}
+      error={props.error || undefined}
       onChange={(e) => props.onChange(e.target.value)}
-      fullWidth
     />
   ),
 });
@@ -44,15 +42,12 @@ export const createNumberCell = (fieldName: string, label: string) => ({
     error: string;
     onChange: (newValue: number) => void;
   }) => (
-    <TextField
+    <NumberInput
       name={fieldName}
       label={label}
-      type="number"
       value={props.editValue}
-      error={!!props.error}
-      helperText={props.error}
-      onChange={(e) => props.onChange(Number(e.target.value))}
-      fullWidth
+      error={props.error || undefined}
+      onChange={(val) => props.onChange(Number(val))}
     />
   ),
 });
@@ -93,21 +88,19 @@ export const createLinkTextCell = (
   getHref: (value: string) => string,
 ) => ({
   renderValue: (props: { value: string }) => (
-    <Link href={getHref(props.value)}>{props.value}</Link>
+    <Anchor href={getHref(props.value)}>{props.value}</Anchor>
   ),
   renderEdit: (props: {
     editValue: string;
     error: string;
     onChange: (newValue: string) => void;
   }) => (
-    <TextField
+    <TextInput
       name={fieldName}
       label={label}
       value={props.editValue}
-      error={!!props.error}
-      helperText={props.error}
+      error={props.error || undefined}
       onChange={(e) => props.onChange(e.target.value)}
-      fullWidth
     />
   ),
 });

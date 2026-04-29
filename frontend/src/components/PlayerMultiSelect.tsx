@@ -1,4 +1,4 @@
-import { Autocomplete, TextField } from "@mui/material";
+import { MultiSelect } from "@mantine/core";
 import { $api } from "@client/api";
 import { components } from "@client/schema";
 
@@ -23,23 +23,25 @@ export default function PlayerMultiSelect({
     console.log(error.detail);
   }
 
+  const allPlayers = dbPlayers || [];
+  const data = allPlayers.map((p) => ({ value: String(p.id), label: p.name }));
+
+  const handleChange = (values: string[]) => {
+    const selected = values
+      .map((v) => allPlayers.find((p) => String(p.id) === v))
+      .filter(Boolean) as PlayerMinimal[];
+    setPlayers(selected);
+  };
+
   return (
-    <Autocomplete
-      autoComplete
-      multiple
-      loading={isPending}
-      disabled={isError}
-      isOptionEqualToValue={(option, value) => option.id === value.id}
-      options={dbPlayers || []}
-      value={isError ? [{ id: 0, name: "Error", is_active: true }] : players}
-      onChange={(_, newValue) => {
-        setPlayers(newValue);
-      }}
-      getOptionLabel={(player: PlayerMinimal) => {
-        return player.name;
-      }}
-      renderInput={(params) => <TextField {...params} label="Player" />}
-      sx={{ minWidth: 200 }}
+    <MultiSelect
+      label="Players"
+      data={data}
+      value={isError ? [] : players.map((p) => String(p.id))}
+      onChange={handleChange}
+      disabled={isError || isPending}
+      searchable
+      style={{ minWidth: 200 }}
     />
   );
 }

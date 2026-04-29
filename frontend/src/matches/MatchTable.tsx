@@ -1,16 +1,5 @@
 import { useState } from "react";
-import {
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Group, NumberInput, Paper, Stack, Table, Text } from "@mantine/core";
 
 import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
@@ -134,17 +123,14 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       board: formData.board!,
     }),
     renderContent: ({ formData, errors, onChange }) => (
-      <>
-        <TextField
+      <Stack>
+        <NumberInput
           label="Board Number"
-          type="number"
           value={formData.board ?? ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            onChange("board", value === "" ? null : Number(value));
+          onChange={(val) => {
+            onChange("board", val === "" ? null : Number(val));
           }}
-          error={!!errors.board}
-          helperText={errors.board}
+          error={errors.board || undefined}
         />
         <PlayerSelect
           player={formData.player_white ?? emptyPlayer}
@@ -160,25 +146,22 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
           error={!!errors.player_black}
           helperText={errors.player_black}
         />
-      </>
+      </Stack>
     ),
   };
 
   const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
 
   return (
-    <TableContainer component={Paper}>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell colSpan={nCols}>
-              <Stack
-                direction="row"
-                sx={{ justifyContent: "space-between", alignItems: "center" }}
-              >
-                <Typography>
+    <Paper>
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Td colSpan={nCols}>
+              <Group justify="space-between">
+                <Text>
                   {competition_name} — Round {round}
-                </Typography>
+                </Text>
                 {isModerator && (
                   <CreateButton
                     entityType="match"
@@ -186,18 +169,20 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
                     dialogConfig={createDialogConfig}
                   />
                 )}
-              </Stack>
-            </TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>Board</TableCell>
-            <TableCell>White</TableCell>
-            <TableCell>Black</TableCell>
-            <TableCell>Result</TableCell>
-            {isModerator && <TableCell align="right">Actions</TableCell>}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+              </Group>
+            </Table.Td>
+          </Table.Tr>
+          <Table.Tr>
+            <Table.Th>Board</Table.Th>
+            <Table.Th>White</Table.Th>
+            <Table.Th>Black</Table.Th>
+            <Table.Th>Result</Table.Th>
+            {isModerator && (
+              <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
+            )}
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
           {matches.map((match) => (
             <EditableRow<MatchPublic>
               key={match.id}
@@ -208,22 +193,25 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
               }
               cells={tableCells}
               entityIdField="id"
-              editConfig={isModerator ? {
-                editMutation,
-                validateData,
-                sanitizeData,
-                getRequestBody,
-              } : undefined}
-              deleteConfig={isModerator ? {
-                deleteMutation,
-                entityType: "match",
-                entityNameField: "id",
-                requireTypedConfirmation: false,
-              } : undefined}
+              editConfig={
+                isModerator
+                  ? { editMutation, validateData, sanitizeData, getRequestBody }
+                  : undefined
+              }
+              deleteConfig={
+                isModerator
+                  ? {
+                      deleteMutation,
+                      entityType: "match",
+                      entityNameField: "id",
+                      requireTypedConfirmation: false,
+                    }
+                  : undefined
+              }
             />
           ))}
-        </TableBody>
+        </Table.Tbody>
       </Table>
-    </TableContainer>
+    </Paper>
   );
 };

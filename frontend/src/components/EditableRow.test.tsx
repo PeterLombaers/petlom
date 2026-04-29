@@ -1,5 +1,6 @@
-import { screen, fireEvent } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import EditableRow from "@components/EditableRow";
 import { renderInTable, makeMockMutation } from "./test-utils";
@@ -39,7 +40,6 @@ const testCells = {
   },
 };
 
-
 function makeEditConfig(
   editMutation: UseMutationResult<unknown, unknown, unknown, unknown>,
   options: {
@@ -54,6 +54,28 @@ function makeEditConfig(
       ((d: TestEntity) => (d.name === "" ? { name: "Name is required" } : {})),
     getRequestBody: (d: TestEntity) => ({ name: d.name }),
   };
+}
+
+// Stateful wrapper that manages isEditing the same way a real parent would.
+// Use this for tests that exercise the full open → interact → close → reopen flow.
+function StatefulEditableRow({
+  data = testData,
+  editConfig,
+}: {
+  data?: TestEntity;
+  editConfig?: ReturnType<typeof makeEditConfig>;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  return (
+    <EditableRow<TestEntity>
+      data={data}
+      isEditing={isEditing}
+      setIsEditing={setIsEditing}
+      cells={testCells}
+      entityIdField="id"
+      editConfig={editConfig}
+    />
+  );
 }
 
 describe("EditableRow", () => {
@@ -158,56 +180,20 @@ describe("EditableRow", () => {
 
     it("resets the edit input to original value on next open after cancel", async () => {
       const user = userEvent.setup();
-      const setIsEditing = vi.fn();
-      const editConfig = makeEditConfig(makeMockMutation());
-
-      const { rerender } = renderInTable(
-        <EditableRow
-          data={testData}
-          isEditing={true}
-          setIsEditing={setIsEditing}
-          cells={testCells}
-          entityIdField="id"
-          editConfig={editConfig}
-        />,
+      renderInTable(
+        <StatefulEditableRow editConfig={makeEditConfig(makeMockMutation())} />,
       );
 
-      // Change the name in the edit input
-      fireEvent.change(screen.getByRole("textbox", { name: "name-edit" }), {
-        target: { value: "Bob" },
-      });
-      expect(screen.getByRole("textbox", { name: "name-edit" })).toHaveValue(
-        "Bob",
-      );
+      await user.click(screen.getByRole("button", { name: "Edit" }));
 
-      // Cancel — calls setIsEditing(false) but we control isEditing via rerender
+      const input = screen.getByRole("textbox", { name: "name-edit" });
+      await user.clear(input);
+      await user.type(input, "Bob");
+      expect(input).toHaveValue("Bob");
+
       await user.click(screen.getByRole("button", { name: "Cancel" }));
+      await user.click(screen.getByRole("button", { name: "Edit" }));
 
-      // Simulate parent acting on cancel: set isEditing=false (triggers useEffect reset)
-      rerender(
-        <EditableRow
-          data={testData}
-          isEditing={false}
-          setIsEditing={setIsEditing}
-          cells={testCells}
-          entityIdField="id"
-          editConfig={editConfig}
-        />,
-      );
-
-      // Re-open edit mode
-      rerender(
-        <EditableRow
-          data={testData}
-          isEditing={true}
-          setIsEditing={setIsEditing}
-          cells={testCells}
-          entityIdField="id"
-          editConfig={editConfig}
-        />,
-      );
-
-      // Edit input should be back to the original value
       expect(screen.getByRole("textbox", { name: "name-edit" })).toHaveValue(
         "Alice",
       );
@@ -262,11 +248,9 @@ describe("EditableRow", () => {
           editConfig={makeEditConfig(makeMockMutation())}
         />,
       );
-      // Trigger the validation error
       await user.click(screen.getByRole("button", { name: "Save" }));
       expect(screen.getByTestId("name-error")).toBeInTheDocument();
 
-      // Typing in the field clears its error
       await user.type(screen.getByRole("textbox", { name: "name-edit" }), "B");
       expect(screen.queryByTestId("name-error")).not.toBeInTheDocument();
     });
@@ -287,10 +271,9 @@ describe("EditableRow", () => {
         />,
       );
 
-      // Change the name (trimming is done by sanitizeData)
-      fireEvent.change(screen.getByRole("textbox", { name: "name-edit" }), {
-        target: { value: "  Bob  " },
-      });
+      const input = screen.getByRole("textbox", { name: "name-edit" });
+      await user.clear(input);
+      await user.type(input, "  Bob  ");
       await user.click(screen.getByRole("button", { name: "Save" }));
 
       expect(editMutation.mutate).toHaveBeenCalledWith(
