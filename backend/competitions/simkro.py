@@ -403,6 +403,32 @@ def calculate_base_penalty_score(
 def calculate_penalty_score(
     matches: list[Match], players: list[Player]
 ) -> dict[Player, dict[Player, float]]:
+    """Calculate the full penalty score for all pairs from a list of players.
+
+    The penalty score for a directed pair (player1 → player2) is:
+    ```
+    penalty_score = (
+        base_penalty_score
+        + TURNUS_PENALTY * already_played_in_turnus
+        + GAMES_BETWEEN_PENALTY * max(0, N_GAMES_BETWEEN - games_since_last_played)
+        + RANDOM_PENALTY_WEIGHT * random()
+    )
+    ```
+    If no previous matches exist, only the random component is returned.
+
+    Parameters
+    ----------
+    matches : list[Match]
+        Matches played before the round being paired.
+    players : list[Player]
+        Players participating in the round to be paired.
+
+    Returns
+    -------
+    dict[Player, dict[Player, float]]
+        Nested dict `{player: {opponent: penalty}}` for every ordered pair of
+        players.
+    """
     penalty_score = {}
     if not matches:
         for player1, player2 in itertools.combinations(players, 2):
@@ -419,18 +445,24 @@ def calculate_penalty_score(
     n_games_between = calculate_games_since_last_played(matches)
     for player1, player2 in itertools.combinations(players, 2):
         pair = frozenset((player1, player2))
+        # The number of games between is not symmetric: one player can have played a
+        # different number of games than the other since the last time they met. So we
+        # pick the minimum of the two values.
+        games_between = min(
+            n_games_between[player1][player2], n_games_between[player2][player1]
+        )
         penalty_score.setdefault(player1, {})[player2] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY
-            * max(0, N_GAMES_BETWEEN - n_games_between[player1][player2])
+            * max(0, N_GAMES_BETWEEN - games_between)
             + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
         penalty_score.setdefault(player2, {})[player1] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY
-            * max(0, N_GAMES_BETWEEN - n_games_between[player2][player1])
+            * max(0, N_GAMES_BETWEEN - games_between)
             + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
     return penalty_score
