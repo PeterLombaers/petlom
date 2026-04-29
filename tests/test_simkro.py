@@ -1,4 +1,5 @@
 import csv
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,7 @@ from backend.competitions.simkro import (
     calculate_color_saldo,
     calculate_games_since_last_played,
     calculate_opponent_saldo,
+    calculate_penalty_score,
     calculate_point_total,
     calculate_ranking,
     calculate_result_score,
@@ -25,11 +27,7 @@ from backend.models import Competition, CompetitionType, Match, Player, Result
 # Non-determinism is highest in early rounds; rises as match history accumulates.
 # PAIRING_MATCH_THRESHOLDS = [0.0, 0.0, 0.1, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4, 0.5]
 PAIRING_MATCH_THRESHOLDS = [0.0 for _ in range(10)]
-_RESULT_MAP = {
-    "1 - 0": Result.WHITE_WIN,
-    "0 - 1": Result.BLACK_WIN,
-    "½ - ½": Result.DRAW,
-}
+_RESULT_MAP = {"1-0": Result.WHITE_WIN, "0-1": Result.BLACK_WIN, "½-½": Result.DRAW}
 
 
 @dataclass
@@ -57,12 +55,13 @@ def _parse_results(path: Path) -> list[_ResultRow]:
     rows = []
     with open(path, encoding="utf-8") as f:
         for row in csv.DictReader(f):
+            result_string = re.sub(r"\s", "", row["Uitslag"])
             rows.append(
                 _ResultRow(
                     board=int(row["Nr"]),
                     white=row["Witspeler"].strip(),
                     black=row["Zwartspeler"].strip(),
-                    result=_RESULT_MAP[row["Uitslag"].strip()],
+                    result=_RESULT_MAP[result_string],
                 )
             )
     return rows
@@ -199,19 +198,28 @@ def test_point_total(
     assert calculated_point_totals[other_player] == 500
 
 
-def test_played_in_turnus_pairs(match_obj: Match):
-    player_pair = frozenset((match_obj.player_white, match_obj.player_black))
-    match_obj.round = 1
-    assert player_pair in played_in_turnus_pairs([match_obj], 2)
-    assert player_pair not in played_in_turnus_pairs([match_obj], 11)
-    match_obj.round = 11
-    assert player_pair not in played_in_turnus_pairs([match_obj], 10)
-    assert player_pair in played_in_turnus_pairs([match_obj], 20)
-    assert player_pair not in played_in_turnus_pairs([match_obj], 21)
-    match_obj.round = 25
-    assert player_pair not in played_in_turnus_pairs([match_obj], 20)
-    assert player_pair in played_in_turnus_pairs([match_obj], 21)
-    assert player_pair in played_in_turnus_pairs([match_obj], 30)
+def test_played_in_turnus_pairs(match_factory: Callable[..., Match]):
+    m1 = match_factory(round=1)
+    m11 = match_factory(
+        round=11,
+        player_white=m1.player_black,
+        player_black=m1.player_white,
+        competition=m1.competition,
+    )
+    m20 = match_factory(
+        round=20,
+        player_white=m1.player_white,
+        player_black=m1.player_black,
+        competition=m1.competition,
+    )
+    player_pair = frozenset((m1.player_white, m1.player_black))
+    assert player_pair in played_in_turnus_pairs([m1], 2)
+    assert player_pair in played_in_turnus_pairs([m1], 10)
+    assert player_pair not in played_in_turnus_pairs([m1], 11)
+    assert player_pair in played_in_turnus_pairs([m1, m11], 12)
+    assert player_pair not in played_in_turnus_pairs([m11], 12)
+    assert player_pair not in played_in_turnus_pairs([m11, m20], 21)
+    assert player_pair in played_in_turnus_pairs([m1, m11, m20], 21)
 
 
 def test_games_since_last_played(
@@ -385,6 +393,81 @@ def test_calculate_ranking(simkro_setup: tuple[Competition, list[Player], list[M
     for i in range(5):
         assert r1_ranking[i].points >= r1_ranking[i + 1].points
     assert [rank.player.id for rank in r1_ranking] == [1, 6, 3, 4, 2, 5]
+
+
+def _total_penalty(
+    matches: list[Match], penalty_score: dict[Player, dict[Player, float]]
+) -> float:
+    return sum(
+        penalty_score[m.player_white][m.player_black]
+        + penalty_score[m.player_black][m.player_white]
+        for m in matches
+    )
+
+
+def test_real_competition_pairing_quality(monkeypatch):
+    """Predicted pairings should have a total penalty score close to the actual pairings.
+
+    For each round the test:
+    1. Computes penalty scores from previous matches.
+    2. Measures the total penalty of the actual pairings with those scores.
+    3. Generates predicted pairings via create_matchups.
+    4. Measures the total penalty of the predicted pairings with the same scores.
+    5. Asserts the predicted penalty is at most 10% higher than the actual penalty.
+    """
+    for season in ["2425", "2526"]:
+        competition = Competition(name=f"test_{season}", type=CompetitionType.SIMKRO)
+        players: dict[str, Player] = {}
+        next_player_id = 1
+        all_matches: list[Match] = []
+        data_dir = Path(__file__).parent / "data" / "simkro" / season
+        n_rounds = len(list(data_dir.glob("round_*")))
+
+        for round_nr in range(1, n_rounds + 1):
+            round_dir = data_dir / f"round_{round_nr}"
+            results = _parse_results(round_dir / "results.csv")
+
+            round_player_names = {name for r in results for name in (r.white, r.black)}
+            for name in round_player_names:
+                if name not in players:
+                    players[name] = Player(id=next_player_id, name=name)
+                    next_player_id += 1
+
+            round_players = [players[name] for name in round_player_names]
+
+            # Compute a shared penalty matrix so actual and predicted are evaluated
+            # on equal footing (avoids RNG state differences).
+            penalty_score = calculate_penalty_score(all_matches, round_players)
+
+            actual_round_matches = [
+                Match(
+                    player_white=players[r.white],
+                    player_black=players[r.black],
+                    competition_name=competition.name,
+                    round=round_nr,
+                    board=r.board,
+                    result=r.result,
+                )
+                for r in results
+            ]
+            actual_penalty = _total_penalty(actual_round_matches, penalty_score)
+
+            predicted_matches = create_matchups(
+                matches=all_matches,
+                players=round_players,
+                round_nr=round_nr,
+                competition=competition,
+            )
+            predicted_penalty = _total_penalty(predicted_matches, penalty_score)
+
+            max_increased_penalty = 10
+            assert predicted_penalty <= actual_penalty + max_increased_penalty, (
+                f"Season {season} round {round_nr}: predicted penalty {predicted_penalty:.2f} "
+                f"exceeds actual penalty {actual_penalty:.2f} by more than "
+                f"{max_increased_penalty:.0%}"
+            )
+
+            all_matches.extend(actual_round_matches)
 
 
 def test_real_competition_data_ranking(monkeypatch):

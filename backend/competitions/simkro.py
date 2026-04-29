@@ -14,10 +14,11 @@ Definitions
 draws have no effect on the saldo, and the saldo can be both a negative or a postive
 number.
 - color saldo: The number of white games minus the number of black games.
-- turnus: A set of rounds in which two opponents can only be paired once. The
+- turnus: A set of rounds in which two opponents can only be paired limited times. The
 competition lasts 30 rounds and rounds 1-10, 11-20 and 21-30 form a turnus. So two
 players can be paired a maximum of three times against each other, once in rounds 1-10,
-once in rounds 11-20, once in rounds 21-30.
+once in rounds 11-20, once in rounds 21-30. If they did not get paired in rounds 1-10 it
+is possible they get paired twice in round 11-20.
 - point total: The final ranking is made using the point total. It is calculated using
 the following formula:
 ```
@@ -41,8 +42,8 @@ penalty_score = (
     100 * ( number of games less than 4 since last time opponent were paired )
 )
 ```
-If the two opponents already played against each other in the same turnus, they can not
-be paired again.
+If the two opponents already played against each other the same number of times as the
+number of turnus, then they can't be paired again.
 
 Pairing
 -------
@@ -289,7 +290,10 @@ def calculate_point_total(matches: list[Match]) -> defaultdict[Player, int]:
 def played_in_turnus_pairs(
     matches: list[Match], round_nr: int
 ) -> set[frozenset[Player]]:
-    """Get the pairs of players that played already in the turnus of the given round.
+    """Get the pairs of players that already played once for each turnus.
+
+    Note that multiple matches between two players can happen in the same turnus if they
+    did not play against each other in the previous turnus.
 
     Parameters
     ----------
@@ -301,18 +305,17 @@ def played_in_turnus_pairs(
     Returns
     -------
     set[frozenset[Player]]
-        Set of pairs {player1, player2} of players that played a match in the turnus to
-        which the input round belongs.
+        Set of symmetric pairs {player1, player2} of players that have played a match
+        for each turnus.
     """
     # Round nr starts counting from 1, not 0.
-    turnus_start = N_ROUNDS_TURNUS * ((round_nr - 1) // N_ROUNDS_TURNUS) + 1
-    turnus_matches = [
-        m
-        for m in matches
-        if m.round in range(turnus_start, turnus_start + N_ROUNDS_TURNUS)
-    ]
-    # We use frozenset to represent a symmetric pair.
-    return {frozenset((m.player_white, m.player_black)) for m in turnus_matches}
+    turnus_nr = ((round_nr - 1) // N_ROUNDS_TURNUS) + 1
+
+    n_games_played = defaultdict(int)
+    for m in matches:
+        n_games_played[frozenset((m.player_white, m.player_black))] += 1
+
+    return {pair for pair, n_games in n_games_played.items() if n_games >= turnus_nr}
 
 
 def calculate_games_since_last_played(
@@ -454,15 +457,13 @@ def calculate_penalty_score(
         penalty_score.setdefault(player1, {})[player2] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
-            + GAMES_BETWEEN_PENALTY
-            * max(0, N_GAMES_BETWEEN - games_between)
+            + GAMES_BETWEEN_PENALTY * max(0, N_GAMES_BETWEEN - games_between)
             + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
         penalty_score.setdefault(player2, {})[player1] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
-            + GAMES_BETWEEN_PENALTY
-            * max(0, N_GAMES_BETWEEN - games_between)
+            + GAMES_BETWEEN_PENALTY * max(0, N_GAMES_BETWEEN - games_between)
             + RANDOM_PENALTY_WEIGHT * RNG.random()
         )
     return penalty_score
