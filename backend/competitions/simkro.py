@@ -337,7 +337,7 @@ def calculate_games_since_last_played(
     n_games_between = defaultdict(int)
     for m in sorted(matches, key=lambda match_obj: match_obj.round, reverse=True):
         # If an opponent occurs multiple times, we take the last round.
-        # We don't need to look further than `N_GAMES_BETWEE` games in the past.
+        # We don't need to look further than `N_GAMES_BETWEEN` games in the past.
         if (
             n_games_between[m.player_white] < N_GAMES_BETWEEN
             and m.player_black not in games_since_last_played[m.player_white]
@@ -350,7 +350,7 @@ def calculate_games_since_last_played(
             and m.player_white not in games_since_last_played[m.player_black]
         ):
             games_since_last_played[m.player_black][m.player_white] = n_games_between[
-                m.player_white
+                m.player_black
             ]
         n_games_between[m.player_white] += 1
         n_games_between[m.player_black] += 1
