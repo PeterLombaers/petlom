@@ -12,14 +12,14 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { UseMutationResult } from "@tanstack/react-query";
 import { formatHTTPValidationError } from "@/client/api";
+import { AnyMutation } from "./types";
 
 interface DeleteButtonProps {
   entityType: string;
   entityId: number | string;
   entityName: string;
-  mutation: UseMutationResult<any, any, any, any>;
+  mutation: AnyMutation;
   requireTypedConfirmation?: boolean;
 }
 
@@ -34,7 +34,7 @@ export default function DeleteButton({
   const [confirmDialogInput, setConfirmDialogInput] = useState("");
 
   const handleConfirmDialogInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setConfirmDialogInput(e.target.value);
   };
@@ -63,7 +63,7 @@ export default function DeleteButton({
           const errorMessage = formatHTTPValidationError(error);
           console.error(errorMessage);
         },
-      }
+      },
     );
   };
 

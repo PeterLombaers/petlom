@@ -9,29 +9,32 @@ import { useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import CheckIcon from "@mui/icons-material/Check";
-import { UseMutationResult } from "@tanstack/react-query";
-import { formatHTTPValidationError, parseHTTPValidationErrors } from "@/client/api";
+import {
+  formatHTTPValidationError,
+  parseHTTPValidationErrors,
+} from "@/client/api";
+import { AnyMutation } from "./types";
 
-export interface CreateDialogConfig<T = any> {
+export interface CreateDialogConfig<T = unknown> {
   getInitialFormData: () => T;
   getNextFormData?: (submitted: T) => T;
   validateForm: (formData: T) => Record<string, string>;
   sanitizeForm: (formData: T) => T;
-  getRequestBody: (formData: T) => any;
+  getRequestBody: (formData: T) => unknown;
   renderContent: (props: {
     formData: T;
     errors: Record<string, string>;
-    onChange: (field: string, value: any) => void;
+    onChange: (field: string, value: unknown) => void;
   }) => React.ReactNode;
 }
 
-interface CreateButtonProps<T = any> {
+interface CreateButtonProps<T = unknown> {
   entityType: string;
-  mutation: UseMutationResult<any, any, any, any>;
+  mutation: AnyMutation;
   dialogConfig: CreateDialogConfig<T>;
 }
 
-export function CreateButton<T = any>({
+export function CreateButton<T = unknown>({
   entityType,
   mutation,
   dialogConfig: {
@@ -55,11 +58,12 @@ export function CreateButton<T = any>({
     setDialogOpen(true);
   };
 
-  const onFormDataChange = (field: string, value: any) => {
+  const onFormDataChange = (field: string, value: unknown) => {
     setFormData({ ...formData, [field]: value });
     if (formErrors[field]) {
-      const { [field]: _, ...rest } = formErrors;
-      setFormErrors(rest);
+      const newErrors = { ...formErrors };
+      delete newErrors[field];
+      setFormErrors(newErrors);
     }
   };
 
@@ -68,7 +72,7 @@ export function CreateButton<T = any>({
     setFormData(
       submitted && getNextFormData
         ? getNextFormData(submitted)
-        : getInitialFormData()
+        : getInitialFormData(),
     );
   };
 
@@ -96,7 +100,7 @@ export function CreateButton<T = any>({
             console.error(formatHTTPValidationError(error));
           }
         },
-      }
+      },
     );
   };
 
@@ -119,7 +123,11 @@ export function CreateButton<T = any>({
       >
         <AddIcon />
       </IconButton>
-      <Dialog open={dialogOpen} onClose={handleDialogClose} onKeyDown={handleKeyDown}>
+      <Dialog
+        open={dialogOpen}
+        onClose={handleDialogClose}
+        onKeyDown={handleKeyDown}
+      >
         <DialogTitle>Add new {entityType}</DialogTitle>
         <DialogContent dividers>
           {renderContent({

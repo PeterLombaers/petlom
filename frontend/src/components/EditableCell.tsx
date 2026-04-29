@@ -1,7 +1,7 @@
 import { TableCell } from "@mui/material";
 import React from "react";
 
-interface EditableCellProps<T = any> {
+interface EditableCellProps<T = unknown> {
   isEditing: boolean;
   value: T;
   editValue: T;
@@ -15,7 +15,7 @@ interface EditableCellProps<T = any> {
   error: string;
 }
 
-export default function EditableCell<T = any>({
+export default function EditableCell<T = unknown>({
   isEditing,
   value,
   editValue,

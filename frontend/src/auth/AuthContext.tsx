@@ -21,11 +21,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>(null!);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem(TOKEN_KEY)
+  const [token, setToken] = useState<string | null>(() =>
+    localStorage.getItem(TOKEN_KEY),
   );
-  const [username, setUsername] = useState<string | null>(
-    () => localStorage.getItem(USERNAME_KEY)
+  const [username, setUsername] = useState<string | null>(() =>
+    localStorage.getItem(USERNAME_KEY),
   );
 
   const login = async (username: string, password: string) => {
@@ -89,4 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// standard pattern: hook and provider live together
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

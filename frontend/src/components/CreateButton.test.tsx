@@ -33,6 +33,8 @@ describe("CreateButton server field errors", () => {
       ],
     };
     const mutation = makeMockMutation({
+      // MutateOptions types onSuccess/onError with args we don't need in mocks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mutate: vi.fn((_, callbacks: any) => callbacks?.onError?.(serverError)),
     });
     render(
@@ -58,6 +60,8 @@ describe("CreateButton keyboard shortcuts", () => {
   it("submits and closes the dialog on Enter", async () => {
     const user = userEvent.setup();
     const mutation = makeMockMutation({
+      // MutateOptions types onSuccess/onError with args we don't need in mocks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mutate: vi.fn((_, callbacks: any) => callbacks?.onSuccess?.()),
     });
     render(
@@ -82,6 +86,8 @@ describe("CreateButton keyboard shortcuts", () => {
   it("submits and keeps the dialog open on Shift+Enter", async () => {
     const user = userEvent.setup();
     const mutation = makeMockMutation({
+      // MutateOptions types onSuccess/onError with args we don't need in mocks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mutate: vi.fn((_, callbacks: any) => callbacks?.onSuccess?.()),
     });
     render(

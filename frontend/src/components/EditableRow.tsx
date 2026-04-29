@@ -1,25 +1,25 @@
 import { Stack, TableCell, TableRow } from "@mui/material";
-import { UseMutationResult } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
 import DeleteButton from "./DeleteButton";
+import { AnyMutation } from "./types";
 
-interface DeleteConfig<T = any> {
-  deleteMutation: UseMutationResult<any, any, any, any>;
+interface DeleteConfig<T = unknown> {
+  deleteMutation: AnyMutation;
   entityType: string;
   entityNameField: keyof T;
   requireTypedConfirmation?: boolean;
 }
 
-interface EditConfig<T = any> {
-  editMutation: UseMutationResult<any, any, any, any>;
+interface EditConfig<T = unknown> {
+  editMutation: AnyMutation;
   validateData: (editData: T) => Partial<Record<keyof T, string>>;
   sanitizeData: (editData: T) => T;
-  getRequestBody: (editData: T) => any;
+  getRequestBody: (editData: T) => unknown;
 }
 
-interface EditableRowProps<T = any> {
+interface EditableRowProps<T = unknown> {
   data: T;
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
@@ -38,7 +38,7 @@ interface EditableRowProps<T = any> {
   deleteConfig?: DeleteConfig<T>;
 }
 
-export default function EditableRow<T = any>({
+export default function EditableRow<T = unknown>({
   data,
   isEditing,
   setIsEditing,
@@ -58,18 +58,18 @@ export default function EditableRow<T = any>({
     }
   };
 
-  useEffect(() => {
-    if (!isEditing) {
-      setEditData({ ...data });
-      setErrors({});
-    }
-  }, [data, isEditing]);
+  const handleStartEdit = () => {
+    setEditData({ ...data });
+    setErrors({});
+    setIsEditing(true);
+  };
 
   const entityId = data[entityIdField] as string | number;
 
   const handleSave = () => {
     if (!editConfig) return;
-    const { editMutation, validateData, sanitizeData, getRequestBody } = editConfig;
+    const { editMutation, validateData, sanitizeData, getRequestBody } =
+      editConfig;
     const sanitizedData = sanitizeData(editData);
     const dataErrors = validateData(sanitizedData);
     if (Object.keys(dataErrors).length > 0) {
@@ -86,7 +86,7 @@ export default function EditableRow<T = any>({
         onSuccess: () => {
           setIsEditing(false);
         },
-      }
+      },
     );
   };
 
@@ -120,7 +120,7 @@ export default function EditableRow<T = any>({
             <EditButton
               isEditing={isEditing}
               isPending={editConfig.editMutation.isPending}
-              onEdit={() => setIsEditing(true)}
+              onEdit={handleStartEdit}
               onSave={handleSave}
               onCancel={() => setIsEditing(false)}
             />
