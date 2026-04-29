@@ -7,7 +7,13 @@ from sqlmodel import select
 
 from backend.auth import ModeratorDep
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
-from backend.models import ExternalRating, Player, PlayerCreate, PlayerPublic, PlayerUpdate
+from backend.models import (
+    ExternalRating,
+    Player,
+    PlayerCreate,
+    PlayerPublic,
+    PlayerUpdate,
+)
 
 router = APIRouter(prefix="/players", tags=["players"])
 
