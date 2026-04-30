@@ -1,5 +1,6 @@
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { MantineProvider } from "@mantine/core";
+import { theme } from "./theme";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import {
   HomePage,
@@ -25,7 +26,7 @@ window.__TANSTACK_QUERY_CLIENT__ = queryClient;
 
 function App() {
   return (
-    <MantineProvider>
+    <MantineProvider theme={theme} defaultColorScheme="dark">
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>

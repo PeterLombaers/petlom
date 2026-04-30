@@ -1,0 +1,18 @@
+import { createTheme } from "@mantine/core";
+
+export const theme = createTheme({
+  primaryColor: "red",
+  defaultRadius: "sm",
+  components: {
+    Button: { defaultProps: { size: "sm" } },
+    TextInput: { defaultProps: { size: "sm" } },
+    NumberInput: { defaultProps: { size: "sm" } },
+    Select: { defaultProps: { size: "sm" } },
+    Table: {
+      defaultProps: {
+        highlightOnHover: true,
+        withTableBorder: true,
+      },
+    },
+  },
+});
