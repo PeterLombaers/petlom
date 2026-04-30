@@ -1,7 +1,9 @@
 import { formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
-import { Table, TextInput } from "@mantine/core";
+import { ErrorState } from "@/components/ErrorState";
+import { LoadingState } from "@/components/LoadingState";
+import { Paper, Table, TextInput } from "@mantine/core";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
@@ -72,13 +74,8 @@ export default function PlayerTable() {
   };
   const getRequestBody = (player: PlayerPublic) => player;
 
-  if (isPending) return "Loading...";
-
-  if (isError) {
-    const errorMessage = formatHTTPValidationError(error);
-    console.log(errorMessage);
-    return `An error occured: ${errorMessage}`;
-  }
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
 
   const sortedPlayers = [...(players ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
@@ -87,53 +84,61 @@ export default function PlayerTable() {
   const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
 
   return (
-    <Table>
-      <Table.Thead>
-        {isModerator && (
+    <Paper withBorder>
+      <Table>
+        <Table.Thead>
+          {isModerator && (
+            <Table.Tr>
+              <Table.Td colSpan={nCols}>
+                <CreateButton
+                  entityType="player"
+                  mutation={createMutation}
+                  dialogConfig={createDialogConfig}
+                />
+              </Table.Td>
+            </Table.Tr>
+          )}
           <Table.Tr>
-            <Table.Td colSpan={nCols}>
-              <CreateButton
-                entityType="player"
-                mutation={createMutation}
-                dialogConfig={createDialogConfig}
-              />
-            </Table.Td>
+            <Table.Th>ID</Table.Th>
+            <Table.Th>Name</Table.Th>
+            {isModerator && <Table.Th>Actions</Table.Th>}
           </Table.Tr>
-        )}
-        <Table.Tr>
-          <Table.Th>ID</Table.Th>
-          <Table.Th>Name</Table.Th>
-          {isModerator && <Table.Th>Actions</Table.Th>}
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {sortedPlayers.map((player) => (
-          <EditableRow<PlayerPublic>
-            key={player.id}
-            data={player}
-            isEditing={editableId === player.id}
-            setIsEditing={(isEditing: boolean) =>
-              setIsEditing(player.id, isEditing)
-            }
-            cells={tableCells}
-            entityIdField="id"
-            editConfig={
-              isModerator
-                ? { editMutation, validateData, sanitizeData, getRequestBody }
-                : undefined
-            }
-            deleteConfig={
-              isModerator
-                ? {
-                    deleteMutation,
-                    entityType: "player",
-                    entityNameField: "name",
-                  }
-                : undefined
-            }
-          />
-        ))}
-      </Table.Tbody>
-    </Table>
+        </Table.Thead>
+        <Table.Tbody>
+          {sortedPlayers.length > 0 ? (
+            sortedPlayers.map((player) => (
+              <EditableRow<PlayerPublic>
+                key={player.id}
+                data={player}
+                isEditing={editableId === player.id}
+                setIsEditing={(isEditing: boolean) =>
+                  setIsEditing(player.id, isEditing)
+                }
+                cells={tableCells}
+                entityIdField="id"
+                editConfig={
+                  isModerator
+                    ? { editMutation, validateData, sanitizeData, getRequestBody }
+                    : undefined
+                }
+                deleteConfig={
+                  isModerator
+                    ? {
+                        deleteMutation,
+                        entityType: "player",
+                        entityNameField: "name",
+                      }
+                    : undefined
+                }
+              />
+            ))
+          ) : (
+            <Table.Tr>
+              <Table.Td colSpan={nCols} c="dimmed" ta="center">No players yet.</Table.Td>
+            </Table.Tr>
+          )}
+        </Table.Tbody>
+      </Table>
+    </Paper>
   );
 }

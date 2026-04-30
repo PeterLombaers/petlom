@@ -13,6 +13,12 @@ export const theme = createTheme({
         highlightOnHover: true,
         withTableBorder: true,
       },
+      styles: {
+        th: {
+          color: "var(--mantine-color-dimmed)",
+          fontWeight: "600",
+        },
+      },
     },
   },
 });
