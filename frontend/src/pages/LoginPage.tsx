@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
   Button,
@@ -16,6 +16,8 @@ import { useAuth } from "@/auth";
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string })?.from ?? "/competitions";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(username, password);
-      navigate("/");
+      navigate(from, { replace: true });
     } catch {
       setError("Invalid username or password.");
     } finally {

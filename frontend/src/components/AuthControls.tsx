@@ -1,11 +1,12 @@
 import { ActionIcon, Button, Menu } from "@mantine/core";
 import { IconLogout } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth";
 
 export function AuthControls() {
   const { isModerator, username, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   if (isModerator) {
     return (
       <Menu shadow="md" width={150}>
@@ -27,7 +28,10 @@ export function AuthControls() {
     );
   }
   return (
-    <Button variant="filled" onClick={() => navigate("/login")}>
+    <Button
+      variant="filled"
+      onClick={() => navigate("/login", { state: { from: location.pathname } })}
+    >
       Login
     </Button>
   );
