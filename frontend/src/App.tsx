@@ -1,5 +1,5 @@
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import { MantineProvider } from "@mantine/core";
+import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { theme } from "./theme";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import {
@@ -26,38 +26,41 @@ window.__TANSTACK_QUERY_CLIENT__ = queryClient;
 
 function App() {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<Layout />}>
-                <Route index element={<HomePage />}></Route>
-                <Route
-                  path="/competitions"
-                  element={<CompetitionListPage />}
-                ></Route>
-                <Route
-                  path="/competitions/:name"
-                  element={<CompetitionDetailPage />}
-                ></Route>
-                <Route
-                  path="/competitions/:name/round/:round"
-                  element={<CompetitionDetailPage />}
-                ></Route>
-                <Route path="/players" element={<PlayerListPage />}></Route>
-                <Route
-                  path="/players/:playerId"
-                  element={<PlayerDetailPage />}
-                ></Route>
-                <Route path="*" element={<NotFoundPage />}></Route>
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </AuthProvider>
-    </MantineProvider>
+    <>
+      <ColorSchemeScript defaultColorScheme="auto" />
+      <MantineProvider theme={theme} defaultColorScheme="dark">
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<HomePage />}></Route>
+                  <Route
+                    path="/competitions"
+                    element={<CompetitionListPage />}
+                  ></Route>
+                  <Route
+                    path="/competitions/:name"
+                    element={<CompetitionDetailPage />}
+                  ></Route>
+                  <Route
+                    path="/competitions/:name/round/:round"
+                    element={<CompetitionDetailPage />}
+                  ></Route>
+                  <Route path="/players" element={<PlayerListPage />}></Route>
+                  <Route
+                    path="/players/:playerId"
+                    element={<PlayerDetailPage />}
+                  ></Route>
+                  <Route path="*" element={<NotFoundPage />}></Route>
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </AuthProvider>
+      </MantineProvider>
+    </>
   );
 }
 

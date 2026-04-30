@@ -1,67 +1,124 @@
-import { AppShell, Badge, Button, NavLink, Text } from "@mantine/core";
-import { Outlet, useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
-import { IconTrophy, IconUsers } from "@tabler/icons-react";
+import {
+  ActionIcon,
+  AppShell,
+  Box,
+  Burger,
+  Group,
+  NavLink,
+  useMantineColorScheme,
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { Link, Outlet, useLocation } from "react-router-dom";
+import {
+  IconChess,
+  IconMoon,
+  IconSun,
+  IconTrophy,
+  IconUsers,
+} from "@tabler/icons-react";
 import { useCompetitions } from "@/competitions/useCompetitions";
-import { useAuth } from "@/auth";
+import { AuthControls } from "@/components/AuthControls";
 
-function RecentCompetitions() {
+function ThemeToggle() {
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  return (
+    <ActionIcon
+      onClick={toggleColorScheme}
+      variant="subtle"
+      size="lg"
+      aria-label="Toggle color scheme"
+    >
+      {colorScheme === "dark" ? <IconSun size={18} /> : <IconMoon size={18} />}
+    </ActionIcon>
+  );
+}
+
+function CompetitionNavLinks() {
   const { competitions } = useCompetitions();
-  if (!competitions || competitions.length === 0) return null;
+  const { pathname } = useLocation();
+  const { colorScheme } = useMantineColorScheme();
+  const borderColor =
+    colorScheme === "dark"
+      ? "var(--mantine-color-red-9)"
+      : "var(--mantine-color-red-2)";
 
-  const recent = [...competitions]
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-    .slice(0, 3);
+  const recent = competitions
+    ? [...competitions]
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+        .slice(0, 3)
+    : [];
 
   return (
     <>
-      {recent.map((c) => (
-        <NavLink
-          key={c.name}
-          label={c.name}
-          component={Link}
-          to={`/competitions/${c.name}`}
-        />
-      ))}
+      <NavLink
+        label="Competitions"
+        leftSection={<IconTrophy size={16} />}
+        component={Link}
+        to="/competitions"
+        active={pathname === "/competitions"}
+      />
+      {recent.length > 0 && (
+        <Box
+          ml="sm"
+          style={{
+            borderLeft:
+              pathname === "/competitions"
+                ? `2px solid var(--mantine-color-red-${borderColor})`
+                : undefined,
+          }}
+        >
+          {recent.map((c) => (
+            <NavLink
+              key={c.name}
+              label={c.name}
+              fz="sm"
+              component={Link}
+              to={`/competitions/${c.name}`}
+              pl="md"
+              active={pathname.startsWith(`/competitions/${c.name}`)}
+            />
+          ))}
+        </Box>
+      )}
     </>
   );
 }
 
-function AuthControls() {
-  const { isModerator, username, logout } = useAuth();
-  const navigate = useNavigate();
-
-  if (isModerator) {
-    return (
-      <>
-        <Badge>{username}</Badge>
-        <Button onClick={logout}>Logout</Button>
-      </>
-    );
-  }
-  return <Button onClick={() => navigate("/login")}>Login</Button>;
-}
-
 export default function Layout() {
+  const [navOpen, { toggle: toggleNavOpen }] = useDisclosure();
+  const { pathname } = useLocation();
+
   return (
-    <AppShell header={{ height: 60 }} navbar={{ width: 240, breakpoint: "sm" }}>
+    <AppShell
+      header={{ height: 60 }}
+      navbar={{ width: 240, breakpoint: "sm", collapsed: { mobile: !navOpen } }}
+      padding="md"
+    >
       <AppShell.Header>
-        <Text>PetLom</Text>
-        <AuthControls />
+        <Group h="100%" px="md" justify="space-between">
+          <Group>
+            <Burger
+              opened={navOpen}
+              onClick={toggleNavOpen}
+              hiddenFrom="sm"
+              size="sm"
+            />
+            <IconChess size={24} />
+          </Group>
+          <Group>
+            <ThemeToggle />
+            <AuthControls />
+          </Group>
+        </Group>
       </AppShell.Header>
-      <AppShell.Navbar>
-        <NavLink
-          label="Competitions"
-          leftSection={<IconTrophy size={16} />}
-          component={Link}
-          to="/competitions"
-        />
-        <RecentCompetitions />
+      <AppShell.Navbar p="xs">
+        <CompetitionNavLinks />
         <NavLink
           label="Players"
           leftSection={<IconUsers size={16} />}
           component={Link}
           to="/players"
+          active={pathname === "/players"}
         />
       </AppShell.Navbar>
       <AppShell.Main>

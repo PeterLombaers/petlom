@@ -10,13 +10,13 @@ import { fetchClient } from "@/client/api";
 const TOKEN_KEY = "petlom_auth_token";
 const USERNAME_KEY = "petlom_username";
 
-interface AuthContextValue {
-  token: string | null;
-  username: string | null;
-  isModerator: boolean;
+type AuthContextValue = {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
-}
+} & (
+  | { isModerator: true; token: string; username: string }
+  | { isModerator: false; token: null; username: null }
+);
 
 const AuthContext = createContext<AuthContextValue>(null!);
 
@@ -82,7 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, username, isModerator: token !== null, login, logout }}
+      value={
+        token !== null && username !== null
+          ? { isModerator: true, token, username, login, logout }
+          : { isModerator: false, token: null, username: null, login, logout }
+      }
     >
       {children}
     </AuthContext.Provider>
