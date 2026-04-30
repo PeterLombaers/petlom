@@ -4,11 +4,13 @@ import {
   Alert,
   Button,
   Card,
+  Center,
   PasswordInput,
   Stack,
+  Text,
   TextInput,
-  Title,
 } from "@mantine/core";
+import { IconAlertCircle, IconChess } from "@tabler/icons-react";
 import { useAuth } from "@/auth";
 
 export default function LoginPage() {
@@ -19,7 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -34,27 +36,40 @@ export default function LoginPage() {
   };
 
   return (
-    <Card>
-      <Stack component="form" onSubmit={handleSubmit}>
-        <Title>Moderator login</Title>
-        {error && <Alert>{error}</Alert>}
-        <TextInput
-          label="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoFocus
-          required
-        />
-        <PasswordInput
-          label="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <Button type="submit" disabled={loading}>
-          {loading ? "Logging in…" : "Login"}
-        </Button>
+    <Center h="100vh">
+      <Stack w={360} gap="sm">
+        <Stack align="center" gap={4}>
+          <IconChess size={40} />
+          <Text c="dimmed" size="sm">
+            Moderator login
+          </Text>
+        </Stack>
+        <Card withBorder shadow="sm">
+          <Stack component="form" onSubmit={handleSubmit} gap="sm">
+            {error && (
+              <Alert color="red" icon={<IconAlertCircle size={16} />}>
+                {error}
+              </Alert>
+            )}
+            <TextInput
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoFocus
+              required
+            />
+            <PasswordInput
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <Button type="submit" loading={loading} fullWidth mt="xs">
+              Login
+            </Button>
+          </Stack>
+        </Card>
       </Stack>
-    </Card>
+    </Center>
   );
 }
