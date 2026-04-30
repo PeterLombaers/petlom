@@ -1,9 +1,8 @@
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { theme } from "./theme";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import {
-  HomePage,
   CompetitionListPage,
   CompetitionDetailPage,
   PlayerListPage,
@@ -35,7 +34,7 @@ function App() {
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<Layout />}>
-                  <Route index element={<HomePage />}></Route>
+                  <Route index element={<Navigate to="/competitions" replace />} />
                   <Route
                     path="/competitions"
                     element={<CompetitionListPage />}
