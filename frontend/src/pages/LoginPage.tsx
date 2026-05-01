@@ -66,7 +66,13 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <Button type="submit" variant="filled" loading={loading} fullWidth mt="xs">
+            <Button
+              type="submit"
+              variant="filled"
+              loading={loading}
+              fullWidth
+              mt="xs"
+            >
               Login
             </Button>
           </Stack>
