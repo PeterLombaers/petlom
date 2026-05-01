@@ -6,7 +6,6 @@ type PlayerMinimal = components["schemas"]["PlayerPublicMinimal"];
 type PlayerSelectProps = {
   player: PlayerMinimal;
   setPlayer: (player: PlayerMinimal) => void;
-  label?: string;
   error?: boolean;
   helperText?: string;
   filterOptions?: (options: PlayerMinimal[]) => PlayerMinimal[];
@@ -15,7 +14,6 @@ type PlayerSelectProps = {
 export default function PlayerSelect({
   player,
   setPlayer,
-  label = "Player",
   error = false,
   helperText = "",
   filterOptions,
@@ -48,7 +46,6 @@ export default function PlayerSelect({
 
   return (
     <Select
-      label={label}
       data={data}
       value={isError ? null : String(player.id)}
       onChange={handleChange}

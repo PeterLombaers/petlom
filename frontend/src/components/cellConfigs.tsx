@@ -35,7 +35,7 @@ export const createReadOnlyDateCell = () => ({
   renderValue: (props: { value: string }) => formatDate(props.value),
 });
 
-export const createNumberCell = (fieldName: string, label: string) => ({
+export const createNumberCell = (fieldName: string) => ({
   renderValue: (props: { value: number }) => props.value.toString(),
   renderEdit: (props: {
     editValue: number;
@@ -44,7 +44,6 @@ export const createNumberCell = (fieldName: string, label: string) => ({
   }) => (
     <NumberInput
       name={fieldName}
-      label={label}
       value={props.editValue}
       error={props.error || undefined}
       onChange={(val) => props.onChange(Number(val))}
@@ -56,7 +55,7 @@ export const createReadOnlyNumberCell = () => ({
   renderValue: (props: { value: number }) => props.value.toString(),
 });
 
-export const createPlayerSelectCell = (label: string) => ({
+export const createPlayerSelectCell = () => ({
   renderValue: (props: { value: PlayerPublicMinimal }) => props.value.name,
   renderEdit: (props: {
     editValue: PlayerPublicMinimal;
@@ -66,7 +65,6 @@ export const createPlayerSelectCell = (label: string) => ({
     <PlayerSelect
       player={props.editValue}
       setPlayer={props.onChange}
-      label={label}
       error={!!props.error}
       helperText={props.error}
     />

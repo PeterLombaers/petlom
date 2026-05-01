@@ -24,6 +24,7 @@ export default function ResultToggle({ result, setResult }: ResultToggleProps) {
       value={result === null ? "null" : result}
       onChange={handleChange}
       data={RESULT_OPTIONS}
+      w="100%"
     />
   );
 }

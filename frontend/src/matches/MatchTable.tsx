@@ -20,9 +20,9 @@ type MatchPublic = components["schemas"]["MatchPublic"];
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 
 const tableCells = {
-  board: createNumberCell("board", "Board"),
-  player_white: createPlayerSelectCell("White"),
-  player_black: createPlayerSelectCell("Black"),
+  board: createNumberCell("board"),
+  player_white: createPlayerSelectCell(),
+  player_black: createPlayerSelectCell(),
   result: createResultToggleCell(),
 };
 
@@ -151,7 +151,14 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
 
   return (
     <Paper withBorder>
-      <Table>
+      <Table style={{ tableLayout: "fixed", width: "100%" }}>
+        <colgroup>
+          <col style={{ width: 80 }} />
+          <col />
+          <col />
+          <col style={{ width: 200 }} />
+          {isModerator && <col style={{ width: 100 }} />}
+        </colgroup>
         <Table.Thead>
           <Table.Tr>
             <Table.Td colSpan={nCols}>

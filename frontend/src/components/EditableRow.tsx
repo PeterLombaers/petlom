@@ -124,7 +124,7 @@ export default function EditableRow<T = unknown>({
               onSave={handleSave}
               onCancel={() => setIsEditing(false)}
             />
-            {deleteConfig && (
+            {deleteConfig && !isEditing && (
               <DeleteButton
                 entityType={deleteConfig.entityType}
                 entityName={deleteConfig.getEntityName(data)}
