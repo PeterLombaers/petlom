@@ -122,7 +122,6 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
     renderContent: ({ formData, errors, onChange }) => (
       <Stack>
         <NumberInput
-          label="Board Number"
           value={formData.board ?? ""}
           onChange={(val) => {
             onChange("board", val === "" ? null : Number(val));
@@ -132,14 +131,12 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         <PlayerSelect
           player={formData.player_white ?? emptyPlayer}
           setPlayer={(player) => onChange("player_white", player)}
-          label="White Player"
           error={!!errors.player_white}
           helperText={errors.player_white}
         />
         <PlayerSelect
           player={formData.player_black ?? emptyPlayer}
           setPlayer={(player) => onChange("player_black", player)}
-          label="Black Player"
           error={!!errors.player_black}
           helperText={errors.player_black}
         />

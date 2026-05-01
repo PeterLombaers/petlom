@@ -170,7 +170,6 @@ export default function RoundPlayerList({
                 <PlayerSelect
                   player={newPlayer}
                   setPlayer={setNewPlayer}
-                  label="Add player"
                   filterOptions={(options) =>
                     options.filter((o) => !enrolledPlayerIds.has(o.id))
                   }
