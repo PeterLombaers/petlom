@@ -52,6 +52,7 @@ export default function PlayerSelect({
       disabled={isError || isPending}
       error={error ? helperText || true : undefined}
       searchable
+      comboboxProps={{ width: "max-content" }}
     />
   );
 }
