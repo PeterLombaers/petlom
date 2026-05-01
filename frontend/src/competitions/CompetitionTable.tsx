@@ -1,7 +1,7 @@
 import { formatHTTPValidationError } from "@/client/api";
 import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
-import { Paper, Table, TextInput } from "@mantine/core";
+import { Group, Paper, Table, TextInput, Text } from "@mantine/core";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { useState } from "react";
@@ -95,11 +95,14 @@ export default function CompetitionTable() {
           {isModerator && (
             <Table.Tr>
               <Table.Td colSpan={nCols}>
-                <CreateButton
-                  entityType="competition"
-                  mutation={createMutation}
-                  dialogConfig={createDialogConfig}
-                />
+                <Group justify="space-between">
+                  <Text>Competitions</Text>
+                  <CreateButton
+                    entityType="competition"
+                    mutation={createMutation}
+                    dialogConfig={createDialogConfig}
+                  />
+                </Group>
               </Table.Td>
             </Table.Tr>
           )}
@@ -124,7 +127,12 @@ export default function CompetitionTable() {
                 entityIdField="name"
                 editConfig={
                   isModerator
-                    ? { editMutation, validateData, sanitizeData, getRequestBody }
+                    ? {
+                        editMutation,
+                        validateData,
+                        sanitizeData,
+                        getRequestBody,
+                      }
                     : undefined
                 }
                 deleteConfig={
@@ -132,7 +140,7 @@ export default function CompetitionTable() {
                     ? {
                         deleteMutation,
                         entityType: "competition",
-                        entityNameField: "name",
+                        getEntityName: (c) => c.name,
                       }
                     : undefined
                 }
@@ -140,7 +148,9 @@ export default function CompetitionTable() {
             ))
           ) : (
             <Table.Tr>
-              <Table.Td colSpan={nCols} c="dimmed" ta="center">No competitions yet.</Table.Td>
+              <Table.Td colSpan={nCols} c="dimmed" ta="center">
+                No competitions yet.
+              </Table.Td>
             </Table.Tr>
           )}
         </Table.Tbody>

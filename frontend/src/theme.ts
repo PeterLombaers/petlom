@@ -5,6 +5,7 @@ export const theme = createTheme({
   defaultRadius: "sm",
   components: {
     Button: { defaultProps: { size: "sm" } },
+    ActionIcon: { defaultProps: { variant: "subtle" } },
     TextInput: { defaultProps: { size: "sm" } },
     NumberInput: { defaultProps: { size: "sm" } },
     Select: { defaultProps: { size: "sm" } },

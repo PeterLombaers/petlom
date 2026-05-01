@@ -123,14 +123,13 @@ function CompetitionDetail({
 
       <Group>
         <Select
-          label="Round"
           value={String(currentRound)}
           onChange={(val) => val && handleRoundChange(Number(val))}
           data={roundOptions}
         />
 
         {isModerator && isLatestRound && !hasDraft && (
-          <Button onClick={handleCreateDraft}>
+          <Button onClick={handleCreateDraft} variant="outline">
             Create pairing for round {nextRound}
           </Button>
         )}
@@ -145,8 +144,6 @@ function CompetitionDetail({
       )}
 
       <MatchList competition_name={name} round={currentRound} />
-
-      <Title order={5}>Rankings after round {currentRound}</Title>
       <RankingTable competitionName={name} roundNr={currentRound} />
     </Stack>
   );

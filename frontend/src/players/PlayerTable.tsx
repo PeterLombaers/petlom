@@ -3,7 +3,7 @@ import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
 import EditableRow from "@/components/EditableRow";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
-import { Paper, Table, TextInput } from "@mantine/core";
+import { Group, Paper, Table, TextInput, Text } from "@mantine/core";
 import { useState } from "react";
 import { components } from "@/client/schema";
 import {
@@ -90,11 +90,14 @@ export default function PlayerTable() {
           {isModerator && (
             <Table.Tr>
               <Table.Td colSpan={nCols}>
-                <CreateButton
-                  entityType="player"
-                  mutation={createMutation}
-                  dialogConfig={createDialogConfig}
-                />
+                <Group justify="space-between">
+                  <Text>Players</Text>
+                  <CreateButton
+                    entityType="player"
+                    mutation={createMutation}
+                    dialogConfig={createDialogConfig}
+                  />
+                </Group>
               </Table.Td>
             </Table.Tr>
           )}
@@ -118,7 +121,12 @@ export default function PlayerTable() {
                 entityIdField="id"
                 editConfig={
                   isModerator
-                    ? { editMutation, validateData, sanitizeData, getRequestBody }
+                    ? {
+                        editMutation,
+                        validateData,
+                        sanitizeData,
+                        getRequestBody,
+                      }
                     : undefined
                 }
                 deleteConfig={
@@ -126,7 +134,7 @@ export default function PlayerTable() {
                     ? {
                         deleteMutation,
                         entityType: "player",
-                        entityNameField: "name",
+                        getEntityName: (p) => p.name,
                       }
                     : undefined
                 }
@@ -134,7 +142,9 @@ export default function PlayerTable() {
             ))
           ) : (
             <Table.Tr>
-              <Table.Td colSpan={nCols} c="dimmed" ta="center">No players yet.</Table.Td>
+              <Table.Td colSpan={nCols} c="dimmed" ta="center">
+                No players yet.
+              </Table.Td>
             </Table.Tr>
           )}
         </Table.Tbody>

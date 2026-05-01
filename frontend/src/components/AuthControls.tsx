@@ -11,7 +11,12 @@ export function AuthControls() {
     return (
       <Menu shadow="md" width={150}>
         <Menu.Target>
-          <ActionIcon radius="xl" size="lg" aria-label={username}>
+          <ActionIcon
+            radius="xl"
+            size="lg"
+            variant="filled"
+            aria-label={username}
+          >
             {username[0].toUpperCase()}
           </ActionIcon>
         </Menu.Target>

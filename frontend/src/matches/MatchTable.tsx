@@ -191,7 +191,12 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
                 entityIdField="id"
                 editConfig={
                   isModerator
-                    ? { editMutation, validateData, sanitizeData, getRequestBody }
+                    ? {
+                        editMutation,
+                        validateData,
+                        sanitizeData,
+                        getRequestBody,
+                      }
                     : undefined
                 }
                 deleteConfig={
@@ -199,7 +204,10 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
                     ? {
                         deleteMutation,
                         entityType: "match",
-                        entityNameField: "id",
+                        getEntityName: (m) => {
+                          const result = m.result ? ` (${m.result})` : "";
+                          return `${m.player_white.name} - ${m.player_black.name}${result}`;
+                        },
                         requireTypedConfirmation: false,
                       }
                     : undefined
@@ -208,7 +216,9 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
             ))
           ) : (
             <Table.Tr>
-              <Table.Td colSpan={nCols} c="dimmed" ta="center">No matches yet.</Table.Td>
+              <Table.Td colSpan={nCols} c="dimmed" ta="center">
+                No matches yet.
+              </Table.Td>
             </Table.Tr>
           )}
         </Table.Tbody>

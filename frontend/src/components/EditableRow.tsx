@@ -8,7 +8,7 @@ import { AnyMutation } from "./types";
 interface DeleteConfig<T = unknown> {
   deleteMutation: AnyMutation;
   entityType: string;
-  entityNameField: keyof T;
+  getEntityName: (data: T) => string;
   requireTypedConfirmation?: boolean;
 }
 
@@ -127,7 +127,7 @@ export default function EditableRow<T = unknown>({
             {deleteConfig && (
               <DeleteButton
                 entityType={deleteConfig.entityType}
-                entityName={data[deleteConfig.entityNameField] as string}
+                entityName={deleteConfig.getEntityName(data)}
                 entityId={entityId}
                 mutation={deleteConfig.deleteMutation}
                 requireTypedConfirmation={deleteConfig.requireTypedConfirmation}

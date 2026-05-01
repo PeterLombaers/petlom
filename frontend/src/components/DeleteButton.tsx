@@ -66,6 +66,7 @@ export default function DeleteButton({
       <ActionIcon
         onClick={handleDialogOpen}
         disabled={mutation.isPending}
+        color="red"
         aria-label="Delete"
       >
         <IconTrash size={18} />

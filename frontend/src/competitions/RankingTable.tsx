@@ -1,4 +1,4 @@
-import { Paper, Table } from "@mantine/core";
+import { Paper, Table, Text } from "@mantine/core";
 import { formatHTTPValidationError } from "@/client/api";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -11,7 +11,12 @@ export default function RankingTable({
   competitionName: string;
   roundNr?: number;
 }) {
-  const { data: ranking, isPending, isError, error } = useRanking(competitionName, roundNr);
+  const {
+    data: ranking,
+    isPending,
+    isError,
+    error,
+  } = useRanking(competitionName, roundNr);
 
   if (isPending) return <LoadingState />;
   if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
@@ -20,6 +25,15 @@ export default function RankingTable({
     <Paper withBorder>
       <Table>
         <Table.Thead>
+          <Table.Tr>
+            <Table.Td colSpan={9}>
+              <Text>
+                {roundNr !== undefined
+                  ? `Ranking after round ${roundNr}`
+                  : "Ranking"}
+              </Text>
+            </Table.Td>
+          </Table.Tr>
           <Table.Tr>
             <Table.Th>#</Table.Th>
             <Table.Th>Player</Table.Th>
@@ -49,7 +63,9 @@ export default function RankingTable({
             ))
           ) : (
             <Table.Tr>
-              <Table.Td colSpan={9} c="dimmed" ta="center">No ranking data yet.</Table.Td>
+              <Table.Td colSpan={9} c="dimmed" ta="center">
+                No ranking data yet.
+              </Table.Td>
             </Table.Tr>
           )}
         </Table.Tbody>

@@ -34,7 +34,10 @@ function App() {
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<Layout />}>
-                  <Route index element={<Navigate to="/competitions" replace />} />
+                  <Route
+                    index
+                    element={<Navigate to="/competitions" replace />}
+                  />
                   <Route
                     path="/competitions"
                     element={<CompetitionListPage />}
