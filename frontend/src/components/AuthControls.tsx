@@ -34,7 +34,6 @@ export function AuthControls() {
   }
   return (
     <Button
-      variant="filled"
       onClick={() => navigate("/login", { state: { from: location.pathname } })}
     >
       Login

@@ -7,7 +7,6 @@ import {
   Select,
   Stack,
   Text,
-  Title,
 } from "@mantine/core";
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchList } from "@/matches/MatchTable";
@@ -129,7 +128,7 @@ function CompetitionDetail({
         />
 
         {isModerator && isLatestRound && !hasDraft && (
-          <Button onClick={handleCreateDraft} variant="outline">
+          <Button onClick={handleCreateDraft}>
             Create pairing for round {nextRound}
           </Button>
         )}

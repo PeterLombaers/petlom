@@ -4,7 +4,7 @@ export const theme = createTheme({
   primaryColor: "red",
   defaultRadius: "sm",
   components: {
-    Button: { defaultProps: { size: "sm" } },
+    Button: { defaultProps: { size: "sm", variant: "outline" } },
     ActionIcon: { defaultProps: { variant: "subtle" } },
     TextInput: { defaultProps: { size: "sm" } },
     NumberInput: { defaultProps: { size: "sm" } },
