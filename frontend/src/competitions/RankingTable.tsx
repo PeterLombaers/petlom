@@ -39,11 +39,11 @@ export default function RankingTable({
             <Table.Th>Player</Table.Th>
             <Table.Th>Points</Table.Th>
             <Table.Th>Games</Table.Th>
+            <Table.Th>Saldo</Table.Th>
+            <Table.Th>Color saldo</Table.Th>
             <Table.Th>W</Table.Th>
             <Table.Th>D</Table.Th>
             <Table.Th>L</Table.Th>
-            <Table.Th>Saldo</Table.Th>
-            <Table.Th>Color saldo</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -54,11 +54,11 @@ export default function RankingTable({
                 <Table.Td>{rank.player.name}</Table.Td>
                 <Table.Td>{rank.points}</Table.Td>
                 <Table.Td>{rank.games_played}</Table.Td>
+                <Table.Td>{rank.saldo}</Table.Td>
+                <Table.Td>{rank.color_saldo}</Table.Td>
                 <Table.Td>{rank.wins}</Table.Td>
                 <Table.Td>{rank.draws}</Table.Td>
                 <Table.Td>{rank.losses}</Table.Td>
-                <Table.Td>{rank.saldo}</Table.Td>
-                <Table.Td>{rank.color_saldo}</Table.Td>
               </Table.Tr>
             ))
           ) : (
