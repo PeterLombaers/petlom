@@ -113,7 +113,7 @@ export default function EditableTable<T extends object>({
           <Table.Tr>
             <Table.Td colSpan={nCols}>
               <Group justify="space-between">
-                <Text>{tableTitle}</Text>
+                <Text style={{ textTransform: 'capitalize' }}>{tableTitle}</Text>
                 {showCreate && (
                   <CreateButton
                     entityType={entityType}
