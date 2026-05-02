@@ -2,8 +2,6 @@ import { formatHTTPValidationError } from "@/client/api";
 import { CreateDialogConfig } from "@/components/CreateButton";
 import EditableTable from "@/components/EditableTable";
 import { TextInput } from "@mantine/core";
-import { ErrorState } from "@/components/ErrorState";
-import { LoadingState } from "@/components/LoadingState";
 import { components } from "@/client/schema";
 import {
   createLinkTextCell,
@@ -73,15 +71,15 @@ export default function CompetitionTable() {
     deleteMutation,
   } = useCompetitions();
 
-  if (isPending) return <LoadingState />;
-  if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
-
   const sortedCompetitions = [...(competitions ?? [])].sort((a, b) =>
     b.updated_at.localeCompare(a.updated_at),
   );
 
   return (
     <EditableTable<CompetitionPublic>
+      isPending={isPending}
+      isError={isError}
+      errorMessage={formatHTTPValidationError(error)}
       rows={sortedCompetitions}
       getRowKey={(c) => c.name}
       entityIdField="name"

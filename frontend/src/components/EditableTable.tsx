@@ -3,6 +3,8 @@ import { Group, Paper, Table, Text } from "@mantine/core";
 import EditableRow from "./EditableRow";
 import { CreateButton, CreateDialogConfig } from "./CreateButton";
 import { AnyMutation, CellConfigs, DeleteConfig, EditConfig } from "./types";
+import { LoadingState } from "./LoadingState";
+import { ErrorState } from "./ErrorState";
 
 type ColumnDef = {
   header: string;
@@ -28,6 +30,9 @@ type EditableTableProps<T extends object> = {
   createConfig?: CreateConfig;
   emptyMessage: string;
   actionsWidth?: number;
+  isPending?: boolean;
+  isError?: boolean;
+  errorMessage?: string;
 };
 
 export default function EditableTable<T extends object>({
@@ -42,8 +47,14 @@ export default function EditableTable<T extends object>({
   createConfig,
   emptyMessage,
   actionsWidth,
+  isPending,
+  isError,
+  errorMessage,
 }: EditableTableProps<T>) {
   const [editableId, setEditableId] = useState<string | number | null>(null);
+
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState message={errorMessage ?? ""} />;
 
   const hasColgroup =
     columns.some((c) => c.width !== undefined) || actionsWidth !== undefined;

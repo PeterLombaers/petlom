@@ -1,8 +1,6 @@
 import { formatHTTPValidationError } from "@/client/api";
 import { CreateDialogConfig } from "@/components/CreateButton";
 import EditableTable from "@/components/EditableTable";
-import { ErrorState } from "@/components/ErrorState";
-import { LoadingState } from "@/components/LoadingState";
 import { TextInput } from "@mantine/core";
 import { components } from "@/client/schema";
 import {
@@ -68,15 +66,15 @@ export default function PlayerTable() {
     deleteMutation,
   } = usePlayers();
 
-  if (isPending) return <LoadingState />;
-  if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
-
   const sortedPlayers = [...(players ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
 
   return (
     <EditableTable<PlayerPublic>
+      isPending={isPending}
+      isError={isError}
+      errorMessage={formatHTTPValidationError(error)}
       rows={sortedPlayers}
       getRowKey={(p) => p.id}
       entityIdField="id"

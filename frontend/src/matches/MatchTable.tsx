@@ -1,7 +1,4 @@
 import { NumberInput, Stack } from "@mantine/core";
-import { ErrorState } from "@/components/ErrorState";
-import { LoadingState } from "@/components/LoadingState";
-
 import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
 import EditableTable from "@components/EditableTable";
@@ -73,11 +70,9 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
     deleteMutation,
   } = useMatches(competition_name, round);
 
-  if (isPending || !matches) return <LoadingState />;
-  if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
-
+  const matchList = matches ?? [];
   const maxBoard =
-    matches.length > 0 ? Math.max(...matches.map((match) => match.board)) : 0;
+    matchList.length > 0 ? Math.max(...matchList.map((m) => m.board)) : 0;
 
   const createDialogConfig: CreateDialogConfig<MatchFormData> = {
     getInitialFormData: () => ({
@@ -94,7 +89,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       const errors: Record<string, string> = {};
       if (formData.board === null || formData.board < 1) {
         errors.board = "Board must be at least 1";
-      } else if (matches.some((m) => m.board === formData.board)) {
+      } else if (matchList.some((m) => m.board === formData.board)) {
         errors.board = `Board ${formData.board} already exists in this round`;
       }
       if (!formData.player_white || !formData.player_white.id) {
@@ -140,7 +135,10 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
 
   return (
     <EditableTable<MatchPublic>
-      rows={matches}
+      isPending={isPending}
+      isError={isError}
+      errorMessage={formatHTTPValidationError(error)}
+      rows={matchList}
       getRowKey={(m) => m.id}
       entityIdField="id"
       cells={tableCells}
