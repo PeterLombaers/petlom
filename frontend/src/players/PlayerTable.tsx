@@ -1,10 +1,9 @@
 import { formatHTTPValidationError } from "@/client/api";
-import { CreateButton, CreateDialogConfig } from "@/components/CreateButton";
-import EditableRow from "@/components/EditableRow";
+import { CreateDialogConfig } from "@/components/CreateButton";
+import EditableTable from "@/components/EditableTable";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
-import { Group, Paper, Table, TextInput, Text } from "@mantine/core";
-import { useState } from "react";
+import { TextInput } from "@mantine/core";
 import { components } from "@/client/schema";
 import {
   createReadOnlyNumberCell,
@@ -46,8 +45,18 @@ const createDialogConfig: CreateDialogConfig<{ name: string }> = {
   ),
 };
 
+const sanitizeData = (player: PlayerPublic) => ({
+  ...player,
+  name: player.name.trim(),
+});
+const validateData = (player: PlayerPublic) => {
+  const errors: Record<string, string> = {};
+  validatePlayerName(player.name, errors);
+  return errors;
+};
+const getRequestBody = (player: PlayerPublic) => player;
+
 export default function PlayerTable() {
-  const [editableId, setEditableId] = useState(-1);
   const { isModerator } = useAuth();
   const {
     players,
@@ -59,21 +68,6 @@ export default function PlayerTable() {
     deleteMutation,
   } = usePlayers();
 
-  const setIsEditing = (playerId: number, isEditing: boolean) => {
-    setEditableId(isEditing ? playerId : -1);
-  };
-
-  const sanitizeData = (player: PlayerPublic) => ({
-    ...player,
-    name: player.name.trim(),
-  });
-  const validateData = (player: PlayerPublic) => {
-    const errors: Record<string, string> = {};
-    validatePlayerName(player.name, errors);
-    return errors;
-  };
-  const getRequestBody = (player: PlayerPublic) => player;
-
   if (isPending) return <LoadingState />;
   if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
 
@@ -81,74 +75,38 @@ export default function PlayerTable() {
     a.name.localeCompare(b.name),
   );
 
-  const nCols = Object.keys(tableCells).length + (isModerator ? 1 : 0);
-
   return (
-    <Paper withBorder>
-      <Table>
-        <Table.Thead>
-          {isModerator && (
-            <Table.Tr>
-              <Table.Td colSpan={nCols}>
-                <Group justify="space-between">
-                  <Text>Players</Text>
-                  <CreateButton
-                    entityType="player"
-                    mutation={createMutation}
-                    dialogConfig={createDialogConfig}
-                  />
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          )}
-          <Table.Tr>
-            <Table.Th>ID</Table.Th>
-            <Table.Th>Name</Table.Th>
-            {isModerator && <Table.Th>Actions</Table.Th>}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {sortedPlayers.length > 0 ? (
-            sortedPlayers.map((player) => (
-              <EditableRow<PlayerPublic>
-                key={player.id}
-                data={player}
-                isEditing={editableId === player.id}
-                setIsEditing={(isEditing: boolean) =>
-                  setIsEditing(player.id, isEditing)
-                }
-                cells={tableCells}
-                entityIdField="id"
-                editConfig={
-                  isModerator
-                    ? {
-                        editMutation,
-                        validateData,
-                        sanitizeData,
-                        getRequestBody,
-                      }
-                    : undefined
-                }
-                deleteConfig={
-                  isModerator
-                    ? {
-                        deleteMutation,
-                        entityType: "player",
-                        getEntityName: (p) => p.name,
-                      }
-                    : undefined
-                }
-              />
-            ))
-          ) : (
-            <Table.Tr>
-              <Table.Td colSpan={nCols} c="dimmed" ta="center">
-                No players yet.
-              </Table.Td>
-            </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
-    </Paper>
+    <EditableTable<PlayerPublic>
+      rows={sortedPlayers}
+      getRowKey={(p) => p.id}
+      entityIdField="id"
+      cells={tableCells}
+      columns={[{ header: "ID" }, { header: "Name" }]}
+      editConfig={
+        isModerator
+          ? { editMutation, validateData, sanitizeData, getRequestBody }
+          : undefined
+      }
+      deleteConfig={
+        isModerator
+          ? {
+              deleteMutation,
+              entityType: "player",
+              getEntityName: (p) => p.name,
+            }
+          : undefined
+      }
+      title={isModerator ? "Players" : undefined}
+      createConfig={
+        isModerator
+          ? {
+              entityType: "player",
+              mutation: createMutation,
+              dialogConfig: createDialogConfig,
+            }
+          : undefined
+      }
+      emptyMessage="No players yet."
+    />
   );
 }

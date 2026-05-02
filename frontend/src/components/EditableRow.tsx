@@ -1,38 +1,15 @@
 import { Group, Table } from "@mantine/core";
-import React, { useState } from "react";
+import { useState } from "react";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
 import DeleteButton from "./DeleteButton";
-import { AnyMutation } from "./types";
-
-interface DeleteConfig<T = unknown> {
-  deleteMutation: AnyMutation;
-  entityType: string;
-  getEntityName: (data: T) => string;
-  requireTypedConfirmation?: boolean;
-}
-
-interface EditConfig<T = unknown> {
-  editMutation: AnyMutation;
-  validateData: (editData: T) => Partial<Record<keyof T, string>>;
-  sanitizeData: (editData: T) => T;
-  getRequestBody: (editData: T) => unknown;
-}
+import { CellConfigs, DeleteConfig, EditConfig } from "./types";
 
 interface EditableRowProps<T = unknown> {
   data: T;
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
-  cells: {
-    [K in keyof T]?: {
-      renderValue: (props: { value: T[K] }) => React.ReactNode;
-      renderEdit?: (props: {
-        editValue: T[K];
-        error: string;
-        onChange: (newValue: T[K]) => void;
-      }) => React.ReactNode;
-    };
-  };
+  cells: CellConfigs<T>;
   entityIdField: keyof T;
   editConfig?: EditConfig<T>;
   deleteConfig?: DeleteConfig<T>;
