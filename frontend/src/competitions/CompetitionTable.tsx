@@ -1,4 +1,3 @@
-import { formatHTTPValidationError } from "@/client/api";
 import { CreateDialogConfig } from "@/components/CreateButton";
 import EditableTable from "@/components/EditableTable";
 import { TextInput } from "@mantine/core";
@@ -59,15 +58,7 @@ const validateData = (competition: CompetitionPublic) => {
 const getRequestBody = (competition: CompetitionPublic) => competition;
 
 export default function CompetitionTable() {
-  const {
-    competitions,
-    error,
-    isPending,
-    isError,
-    createMutation,
-    editMutation,
-    deleteMutation,
-  } = useCompetitions();
+  const { competitions, ...queryResult } = useCompetitions();
 
   const sortedCompetitions = [...(competitions ?? [])].sort((a, b) =>
     b.updated_at.localeCompare(a.updated_at),
@@ -75,9 +66,7 @@ export default function CompetitionTable() {
 
   return (
     <EditableTable<CompetitionPublic>
-      isPending={isPending}
-      isError={isError}
-      errorMessage={formatHTTPValidationError(error)}
+      queryResult={queryResult}
       rows={sortedCompetitions}
       getRowKey={(c) => c.name}
       entityIdField="name"
@@ -87,16 +76,11 @@ export default function CompetitionTable() {
         { header: "Created Date" },
         { header: "Updated Date" },
       ]}
-      editConfig={{ editMutation, validateData, sanitizeData, getRequestBody }}
-      deleteConfig={{
-        deleteMutation,
-        entityType: "competition",
-        getEntityName: (c) => c.name,
-      }}
+      editConfig={{ validateData, sanitizeData, getRequestBody }}
+      deleteConfig={{ entityType: "competition", getEntityName: (c) => c.name }}
       title="Competitions"
       createConfig={{
         entityType: "competition",
-        mutation: createMutation,
         dialogConfig: createDialogConfig,
       }}
       emptyMessage="No competitions yet."

@@ -41,6 +41,15 @@ const testCells = {
 
 const testColumns = [{ header: "ID" }, { header: "Name" }];
 
+const baseQueryResult = {
+  isPending: false,
+  isError: false,
+  error: null,
+  createMutation: makeMockMutation(),
+  editMutation: makeMockMutation(),
+  deleteMutation: makeMockMutation(),
+};
+
 function renderTable(
   overrides: Partial<
     React.ComponentProps<typeof EditableTable<TestEntity>>
@@ -48,6 +57,7 @@ function renderTable(
 ) {
   return render(
     <EditableTable<TestEntity>
+      queryResult={baseQueryResult}
       rows={testRows}
       getRowKey={(r) => r.id}
       entityIdField="id"
@@ -94,7 +104,6 @@ describe("EditableTable", () => {
     it("renders Actions header when editConfig is provided", () => {
       renderTable({
         editConfig: {
-          editMutation: makeMockMutation(),
           validateData: () => ({}),
           sanitizeData: (d) => d,
           getRequestBody: (d) => d,
@@ -128,7 +137,6 @@ describe("EditableTable", () => {
       renderTable({
         createConfig: {
           entityType: "item",
-          mutation: makeMockMutation(),
           dialogConfig: {
             getInitialFormData: () => ({}),
             validateForm: () => ({}),
@@ -146,7 +154,6 @@ describe("EditableTable", () => {
     it("editing row A then clicking Edit on row B exits row A", async () => {
       const user = userEvent.setup();
       const editConfig = {
-        editMutation: makeMockMutation(),
         validateData: () => ({}),
         sanitizeData: (d: TestEntity) => d,
         getRequestBody: (d: TestEntity) => d,

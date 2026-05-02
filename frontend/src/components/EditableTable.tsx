@@ -2,41 +2,48 @@ import { useState } from "react";
 import { Group, Paper, Table, Text } from "@mantine/core";
 import EditableRow from "./EditableRow";
 import { CreateButton, CreateDialogConfig } from "./CreateButton";
-import { AnyMutation, CellConfigs, DeleteConfig, EditConfig } from "./types";
+import {
+  CellConfigs,
+  DeleteConfig,
+  EditConfig,
+  TableQueryResult,
+} from "./types";
 import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
 import { useAuth } from "@/auth";
+import { formatHTTPValidationError } from "@/client/api";
 
 type ColumnDef = {
   header: string;
   width?: string | number;
 };
 
-type CreateConfig = {
+// EditableTable-specific configs: mutations come from queryResult, not here.
+type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
+type TableDeleteConfig<T> = Omit<DeleteConfig<T>, "deleteMutation">;
+type TableCreateConfig = {
   entityType: string;
-  mutation: AnyMutation;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dialogConfig: CreateDialogConfig<any>;
 };
 
 type EditableTableProps<T extends object> = {
+  queryResult: TableQueryResult;
   rows: T[];
   getRowKey: (row: T) => string | number;
   entityIdField: keyof T;
   cells: CellConfigs<T>;
   columns: ColumnDef[];
-  editConfig?: EditConfig<T>;
-  deleteConfig?: DeleteConfig<T>;
+  editConfig?: TableEditConfig<T>;
+  deleteConfig?: TableDeleteConfig<T>;
   title?: React.ReactNode;
-  createConfig?: CreateConfig;
+  createConfig?: TableCreateConfig;
   emptyMessage: string;
   actionsWidth?: number;
-  isPending?: boolean;
-  isError?: boolean;
-  errorMessage?: string;
 };
 
 export default function EditableTable<T extends object>({
+  queryResult,
   rows,
   getRowKey,
   entityIdField,
@@ -48,19 +55,32 @@ export default function EditableTable<T extends object>({
   createConfig,
   emptyMessage,
   actionsWidth,
-  isPending,
-  isError,
-  errorMessage,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
   const [editableId, setEditableId] = useState<string | number | null>(null);
 
-  if (isPending) return <LoadingState />;
-  if (isError) return <ErrorState message={errorMessage ?? ""} />;
+  const {
+    isPending,
+    isError,
+    error,
+    editMutation,
+    deleteMutation,
+    createMutation,
+  } = queryResult;
 
-  const activeEditConfig = isModerator ? editConfig : undefined;
-  const activeDeleteConfig = isModerator ? deleteConfig : undefined;
-  const activeCreateConfig = isModerator ? createConfig : undefined;
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
+
+  const activeEditConfig: EditConfig<T> | undefined =
+    isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
+  const activeDeleteConfig: DeleteConfig<T> | undefined =
+    isModerator && deleteConfig
+      ? { ...deleteConfig, deleteMutation }
+      : undefined;
+  const activeCreateConfig =
+    isModerator && createConfig
+      ? { ...createConfig, mutation: createMutation }
+      : undefined;
 
   const hasColgroup =
     columns.some((c) => c.width !== undefined) || actionsWidth !== undefined;

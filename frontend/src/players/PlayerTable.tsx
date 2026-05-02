@@ -1,4 +1,3 @@
-import { formatHTTPValidationError } from "@/client/api";
 import { CreateDialogConfig } from "@/components/CreateButton";
 import EditableTable from "@/components/EditableTable";
 import { TextInput } from "@mantine/core";
@@ -54,15 +53,7 @@ const validateData = (player: PlayerPublic) => {
 const getRequestBody = (player: PlayerPublic) => player;
 
 export default function PlayerTable() {
-  const {
-    players,
-    error,
-    isPending,
-    isError,
-    createMutation,
-    editMutation,
-    deleteMutation,
-  } = usePlayers();
+  const { players, ...queryResult } = usePlayers();
 
   const sortedPlayers = [...(players ?? [])].sort((a, b) =>
     a.name.localeCompare(b.name),
@@ -70,26 +61,16 @@ export default function PlayerTable() {
 
   return (
     <EditableTable<PlayerPublic>
-      isPending={isPending}
-      isError={isError}
-      errorMessage={formatHTTPValidationError(error)}
+      queryResult={queryResult}
       rows={sortedPlayers}
       getRowKey={(p) => p.id}
       entityIdField="id"
       cells={tableCells}
       columns={[{ header: "ID" }, { header: "Name" }]}
-      editConfig={{ editMutation, validateData, sanitizeData, getRequestBody }}
-      deleteConfig={{
-        deleteMutation,
-        entityType: "player",
-        getEntityName: (p) => p.name,
-      }}
+      editConfig={{ validateData, sanitizeData, getRequestBody }}
+      deleteConfig={{ entityType: "player", getEntityName: (p) => p.name }}
       title="Players"
-      createConfig={{
-        entityType: "player",
-        mutation: createMutation,
-        dialogConfig: createDialogConfig,
-      }}
+      createConfig={{ entityType: "player", dialogConfig: createDialogConfig }}
       emptyMessage="No players yet."
     />
   );

@@ -1,5 +1,4 @@
 import { NumberInput, Stack } from "@mantine/core";
-import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
 import EditableTable from "@components/EditableTable";
 import {
@@ -58,15 +57,7 @@ const getRequestBody = (match: MatchPublic) => ({
 });
 
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
-  const {
-    matches,
-    error,
-    isPending,
-    isError,
-    createMutation,
-    editMutation,
-    deleteMutation,
-  } = useMatches(competition_name, round);
+  const { matches, ...queryResult } = useMatches(competition_name, round);
 
   const matchList = matches ?? [];
   const maxBoard =
@@ -133,9 +124,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
 
   return (
     <EditableTable<MatchPublic>
-      isPending={isPending}
-      isError={isError}
-      errorMessage={formatHTTPValidationError(error)}
+      queryResult={queryResult}
       rows={matchList}
       getRowKey={(m) => m.id}
       entityIdField="id"
@@ -147,9 +136,8 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         { header: "Result", width: 200 },
       ]}
       actionsWidth={100}
-      editConfig={{ editMutation, validateData, sanitizeData, getRequestBody }}
+      editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{
-        deleteMutation,
         entityType: "match",
         getEntityName: (m) => {
           const result = m.result ? ` (${m.result})` : "";
@@ -158,11 +146,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         requireTypedConfirmation: false,
       }}
       title={`${competition_name} — Round ${round}`}
-      createConfig={{
-        entityType: "match",
-        mutation: createMutation,
-        dialogConfig: createDialogConfig,
-      }}
+      createConfig={{ entityType: "match", dialogConfig: createDialogConfig }}
       emptyMessage="No matches yet."
     />
   );

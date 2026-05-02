@@ -1,5 +1,6 @@
 import React from "react";
 import { UseMutationResult } from "@tanstack/react-query";
+import type { components } from "@client/schema";
 
 // Wildcard mutation type for components that only use .isPending and .mutate().
 // `any` on the type params is intentional: it lets callers pass any concretely-typed
@@ -31,3 +32,12 @@ export type CellConfig<T, K extends keyof T> = {
 };
 
 export type CellConfigs<T> = { [K in keyof T]?: CellConfig<T, K> };
+
+export type TableQueryResult = {
+  isPending: boolean;
+  isError: boolean;
+  error: components["schemas"]["HTTPValidationError"] | null;
+  createMutation: AnyMutation;
+  editMutation: AnyMutation;
+  deleteMutation: AnyMutation;
+};
