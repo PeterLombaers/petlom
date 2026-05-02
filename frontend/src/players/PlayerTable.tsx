@@ -9,7 +9,6 @@ import {
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
 import { usePlayers } from "./usePlayers";
-import { useAuth } from "@/auth";
 
 type PlayerPublic = components["schemas"]["PlayerPublic"];
 
@@ -55,7 +54,6 @@ const validateData = (player: PlayerPublic) => {
 const getRequestBody = (player: PlayerPublic) => player;
 
 export default function PlayerTable() {
-  const { isModerator } = useAuth();
   const {
     players,
     error,
@@ -80,30 +78,18 @@ export default function PlayerTable() {
       entityIdField="id"
       cells={tableCells}
       columns={[{ header: "ID" }, { header: "Name" }]}
-      editConfig={
-        isModerator
-          ? { editMutation, validateData, sanitizeData, getRequestBody }
-          : undefined
-      }
-      deleteConfig={
-        isModerator
-          ? {
-              deleteMutation,
-              entityType: "player",
-              getEntityName: (p) => p.name,
-            }
-          : undefined
-      }
-      title={isModerator ? "Players" : undefined}
-      createConfig={
-        isModerator
-          ? {
-              entityType: "player",
-              mutation: createMutation,
-              dialogConfig: createDialogConfig,
-            }
-          : undefined
-      }
+      editConfig={{ editMutation, validateData, sanitizeData, getRequestBody }}
+      deleteConfig={{
+        deleteMutation,
+        entityType: "player",
+        getEntityName: (p) => p.name,
+      }}
+      title="Players"
+      createConfig={{
+        entityType: "player",
+        mutation: createMutation,
+        dialogConfig: createDialogConfig,
+      }}
       emptyMessage="No players yet."
     />
   );

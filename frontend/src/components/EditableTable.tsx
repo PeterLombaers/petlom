@@ -5,6 +5,7 @@ import { CreateButton, CreateDialogConfig } from "./CreateButton";
 import { AnyMutation, CellConfigs, DeleteConfig, EditConfig } from "./types";
 import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
+import { useAuth } from "@/auth";
 
 type ColumnDef = {
   header: string;
@@ -51,15 +52,20 @@ export default function EditableTable<T extends object>({
   isError,
   errorMessage,
 }: EditableTableProps<T>) {
+  const { isModerator } = useAuth();
   const [editableId, setEditableId] = useState<string | number | null>(null);
 
   if (isPending) return <LoadingState />;
   if (isError) return <ErrorState message={errorMessage ?? ""} />;
 
+  const activeEditConfig = isModerator ? editConfig : undefined;
+  const activeDeleteConfig = isModerator ? deleteConfig : undefined;
+  const activeCreateConfig = isModerator ? createConfig : undefined;
+
   const hasColgroup =
     columns.some((c) => c.width !== undefined) || actionsWidth !== undefined;
-  const nCols = columns.length + (editConfig ? 1 : 0);
-  const showTitleBar = title !== undefined || createConfig !== undefined;
+  const nCols = columns.length + (activeEditConfig ? 1 : 0);
+  const showTitleBar = title !== undefined || activeCreateConfig !== undefined;
 
   return (
     <Paper withBorder>
@@ -78,7 +84,7 @@ export default function EditableTable<T extends object>({
                 }
               />
             ))}
-            {editConfig && (
+            {activeEditConfig && (
               <col
                 style={
                   actionsWidth !== undefined
@@ -95,11 +101,11 @@ export default function EditableTable<T extends object>({
               <Table.Td colSpan={nCols}>
                 <Group justify="space-between">
                   <Text>{title}</Text>
-                  {createConfig && (
+                  {activeCreateConfig && (
                     <CreateButton
-                      entityType={createConfig.entityType}
-                      mutation={createConfig.mutation}
-                      dialogConfig={createConfig.dialogConfig}
+                      entityType={activeCreateConfig.entityType}
+                      mutation={activeCreateConfig.mutation}
+                      dialogConfig={activeCreateConfig.dialogConfig}
                     />
                   )}
                 </Group>
@@ -110,7 +116,7 @@ export default function EditableTable<T extends object>({
             {columns.map((col) => (
               <Table.Th key={col.header}>{col.header}</Table.Th>
             ))}
-            {editConfig && <Table.Th>Actions</Table.Th>}
+            {activeEditConfig && <Table.Th>Actions</Table.Th>}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -127,8 +133,8 @@ export default function EditableTable<T extends object>({
                   }
                   cells={cells}
                   entityIdField={entityIdField}
-                  editConfig={editConfig}
-                  deleteConfig={deleteConfig}
+                  editConfig={activeEditConfig}
+                  deleteConfig={activeDeleteConfig}
                 />
               );
             })

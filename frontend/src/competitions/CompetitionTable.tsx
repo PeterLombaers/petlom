@@ -9,7 +9,6 @@ import {
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
 import { useCompetitions } from "./useCompetitions";
-import { useAuth } from "@/auth";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
@@ -60,7 +59,6 @@ const validateData = (competition: CompetitionPublic) => {
 const getRequestBody = (competition: CompetitionPublic) => competition;
 
 export default function CompetitionTable() {
-  const { isModerator } = useAuth();
   const {
     competitions,
     error,
@@ -89,30 +87,18 @@ export default function CompetitionTable() {
         { header: "Created Date" },
         { header: "Updated Date" },
       ]}
-      editConfig={
-        isModerator
-          ? { editMutation, validateData, sanitizeData, getRequestBody }
-          : undefined
-      }
-      deleteConfig={
-        isModerator
-          ? {
-              deleteMutation,
-              entityType: "competition",
-              getEntityName: (c) => c.name,
-            }
-          : undefined
-      }
-      title={isModerator ? "Competitions" : undefined}
-      createConfig={
-        isModerator
-          ? {
-              entityType: "competition",
-              mutation: createMutation,
-              dialogConfig: createDialogConfig,
-            }
-          : undefined
-      }
+      editConfig={{ editMutation, validateData, sanitizeData, getRequestBody }}
+      deleteConfig={{
+        deleteMutation,
+        entityType: "competition",
+        getEntityName: (c) => c.name,
+      }}
+      title="Competitions"
+      createConfig={{
+        entityType: "competition",
+        mutation: createMutation,
+        dialogConfig: createDialogConfig,
+      }}
       emptyMessage="No competitions yet."
     />
   );

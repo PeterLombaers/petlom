@@ -10,7 +10,6 @@ import {
 import { CreateDialogConfig } from "@components/CreateButton";
 import PlayerSelect from "@components/PlayerSelect";
 import { useMatches } from "./useMatches";
-import { useAuth } from "@/auth";
 
 type MatchPublic = components["schemas"]["MatchPublic"];
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
@@ -59,7 +58,6 @@ const getRequestBody = (match: MatchPublic) => ({
 });
 
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
-  const { isModerator } = useAuth();
   const {
     matches,
     error,
@@ -149,34 +147,22 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         { header: "Result", width: 200 },
       ]}
       actionsWidth={100}
-      editConfig={
-        isModerator
-          ? { editMutation, validateData, sanitizeData, getRequestBody }
-          : undefined
-      }
-      deleteConfig={
-        isModerator
-          ? {
-              deleteMutation,
-              entityType: "match",
-              getEntityName: (m) => {
-                const result = m.result ? ` (${m.result})` : "";
-                return `${m.player_white.name} - ${m.player_black.name}${result}`;
-              },
-              requireTypedConfirmation: false,
-            }
-          : undefined
-      }
+      editConfig={{ editMutation, validateData, sanitizeData, getRequestBody }}
+      deleteConfig={{
+        deleteMutation,
+        entityType: "match",
+        getEntityName: (m) => {
+          const result = m.result ? ` (${m.result})` : "";
+          return `${m.player_white.name} - ${m.player_black.name}${result}`;
+        },
+        requireTypedConfirmation: false,
+      }}
       title={`${competition_name} — Round ${round}`}
-      createConfig={
-        isModerator
-          ? {
-              entityType: "match",
-              mutation: createMutation,
-              dialogConfig: createDialogConfig,
-            }
-          : undefined
-      }
+      createConfig={{
+        entityType: "match",
+        mutation: createMutation,
+        dialogConfig: createDialogConfig,
+      }}
       emptyMessage="No matches yet."
     />
   );

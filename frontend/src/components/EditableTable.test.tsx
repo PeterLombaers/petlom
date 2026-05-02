@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import EditableTable from "@components/EditableTable";
 import { render, makeMockMutation } from "./test-utils";
 
+vi.mock("@/auth", () => ({ useAuth: () => ({ isModerator: true }) }));
+
 type TestEntity = { id: number; name: string };
 
 const testRows: TestEntity[] = [
