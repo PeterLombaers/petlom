@@ -18,42 +18,58 @@ type ColumnDef = {
   width?: string | number;
 };
 
-// EditableTable-specific configs: mutations come from queryResult, not here.
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
-type TableDeleteConfig<T> = Omit<DeleteConfig<T>, "deleteMutation">;
-type TableCreateConfig = {
-  entityType: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dialogConfig: CreateDialogConfig<any>;
-};
 
 type EditableTableProps<T extends object> = {
   queryResult: TableQueryResult;
+  entityType: string;
   rows: T[];
   getRowKey: (row: T) => string | number;
   entityIdField: keyof T;
   cells: CellConfigs<T>;
   columns: ColumnDef[];
   editConfig?: TableEditConfig<T>;
-  deleteConfig?: TableDeleteConfig<T>;
-  title?: React.ReactNode;
-  createConfig?: TableCreateConfig;
-  emptyMessage: string;
+  getEntityName?: (row: T) => string;
+  requireTypedConfirmation?: boolean;
+  title?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createDialogConfig?: CreateDialogConfig<any>;
   actionsWidth?: number;
 };
 
+function pluralize(noun: string): string {
+  // words ending in s, x, z, ch, sh → add "es"
+  if (/(s|x|z|ch|sh)$/i.test(noun)) {
+    return noun + "es";
+  }
+
+  // words ending in consonant + y → replace "y" with "ies"
+  if (/[bcdfghjklmnpqrstvwxyz]y$/i.test(noun)) {
+    return noun.replace(/y$/i, "ies");
+  }
+
+  // words ending in "f" or "fe" → replace with "ves"
+  if (/(f|fe)$/i.test(noun)) {
+    return noun.replace(/(f|fe)$/i, "ves");
+  }
+
+  // default → add "s"
+  return noun + "s";
+}
+
 export default function EditableTable<T extends object>({
   queryResult,
+  entityType,
   rows,
   getRowKey,
   entityIdField,
   cells,
   columns,
   editConfig,
-  deleteConfig,
+  getEntityName,
+  requireTypedConfirmation,
   title,
-  createConfig,
-  emptyMessage,
+  createDialogConfig,
   actionsWidth,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
@@ -74,18 +90,15 @@ export default function EditableTable<T extends object>({
   const activeEditConfig: EditConfig<T> | undefined =
     isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
   const activeDeleteConfig: DeleteConfig<T> | undefined =
-    isModerator && deleteConfig
-      ? { ...deleteConfig, deleteMutation }
-      : undefined;
-  const activeCreateConfig =
-    isModerator && createConfig
-      ? { ...createConfig, mutation: createMutation }
+    isModerator && getEntityName
+      ? { getEntityName, entityType, deleteMutation, requireTypedConfirmation }
       : undefined;
 
   const hasColgroup =
     columns.some((c) => c.width !== undefined) || actionsWidth !== undefined;
   const nCols = columns.length + (activeEditConfig ? 1 : 0);
-  const showTitleBar = title !== undefined || activeCreateConfig !== undefined;
+  const showCreate = isModerator && createDialogConfig !== undefined;
+  const tableTitle = title || pluralize(entityType);
 
   return (
     <Paper withBorder>
@@ -116,22 +129,20 @@ export default function EditableTable<T extends object>({
           </colgroup>
         )}
         <Table.Thead>
-          {showTitleBar && (
-            <Table.Tr>
-              <Table.Td colSpan={nCols}>
-                <Group justify="space-between">
-                  <Text>{title}</Text>
-                  {activeCreateConfig && (
-                    <CreateButton
-                      entityType={activeCreateConfig.entityType}
-                      mutation={activeCreateConfig.mutation}
-                      dialogConfig={activeCreateConfig.dialogConfig}
-                    />
-                  )}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          )}
+          <Table.Tr>
+            <Table.Td colSpan={nCols}>
+              <Group justify="space-between">
+                <Text>{tableTitle}</Text>
+                {showCreate && (
+                  <CreateButton
+                    entityType={entityType}
+                    mutation={createMutation}
+                    dialogConfig={createDialogConfig}
+                  />
+                )}
+              </Group>
+            </Table.Td>
+          </Table.Tr>
           <Table.Tr>
             {columns.map((col) => (
               <Table.Th key={col.header}>{col.header}</Table.Th>
@@ -161,7 +172,7 @@ export default function EditableTable<T extends object>({
           ) : (
             <Table.Tr>
               <Table.Td colSpan={nCols} c="dimmed" ta="center">
-                {emptyMessage}
+                No {pluralize(entityType)} yet.
               </Table.Td>
             </Table.Tr>
           )}

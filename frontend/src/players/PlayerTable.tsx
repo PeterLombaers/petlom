@@ -62,16 +62,15 @@ export default function PlayerTable() {
   return (
     <EditableTable<PlayerPublic>
       queryResult={queryResult}
+      entityType="player"
       rows={sortedPlayers}
       getRowKey={(p) => p.id}
       entityIdField="id"
       cells={tableCells}
       columns={[{ header: "ID" }, { header: "Name" }]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
-      deleteConfig={{ entityType: "player", getEntityName: (p) => p.name }}
-      title="Players"
-      createConfig={{ entityType: "player", dialogConfig: createDialogConfig }}
-      emptyMessage="No players yet."
+      getEntityName={(p) => p.name}
+      createDialogConfig={createDialogConfig}
     />
   );
 }

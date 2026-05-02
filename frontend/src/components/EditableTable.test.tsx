@@ -58,12 +58,12 @@ function renderTable(
   return render(
     <EditableTable<TestEntity>
       queryResult={baseQueryResult}
+      entityType="item"
       rows={testRows}
       getRowKey={(r) => r.id}
       entityIdField="id"
       cells={testCells}
       columns={testColumns}
-      emptyMessage="No items yet."
       {...overrides}
     />,
   );
@@ -135,15 +135,12 @@ describe("EditableTable", () => {
 
     it("shows create button when createConfig is provided", () => {
       renderTable({
-        createConfig: {
-          entityType: "item",
-          dialogConfig: {
-            getInitialFormData: () => ({}),
-            validateForm: () => ({}),
-            sanitizeForm: (d) => d,
-            getRequestBody: (d) => d,
-            renderContent: () => <div />,
-          },
+        createDialogConfig: {
+          getInitialFormData: () => ({}),
+          validateForm: () => ({}),
+          sanitizeForm: (d) => d,
+          getRequestBody: (d) => d,
+          renderContent: () => <div />,
         },
       });
       expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();

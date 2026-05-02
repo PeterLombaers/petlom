@@ -67,6 +67,7 @@ export default function CompetitionTable() {
   return (
     <EditableTable<CompetitionPublic>
       queryResult={queryResult}
+      entityType="competition"
       rows={sortedCompetitions}
       getRowKey={(c) => c.name}
       entityIdField="name"
@@ -77,13 +78,8 @@ export default function CompetitionTable() {
         { header: "Updated Date" },
       ]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
-      deleteConfig={{ entityType: "competition", getEntityName: (c) => c.name }}
-      title="Competitions"
-      createConfig={{
-        entityType: "competition",
-        dialogConfig: createDialogConfig,
-      }}
-      emptyMessage="No competitions yet."
+      getEntityName={(c) => c.name}
+      createDialogConfig={createDialogConfig}
     />
   );
 }

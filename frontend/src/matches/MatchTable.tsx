@@ -125,6 +125,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   return (
     <EditableTable<MatchPublic>
       queryResult={queryResult}
+      entityType="match"
       rows={matchList}
       getRowKey={(m) => m.id}
       entityIdField="id"
@@ -137,17 +138,13 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       ]}
       actionsWidth={100}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
-      deleteConfig={{
-        entityType: "match",
-        getEntityName: (m) => {
-          const result = m.result ? ` (${m.result})` : "";
-          return `${m.player_white.name} - ${m.player_black.name}${result}`;
-        },
-        requireTypedConfirmation: false,
+      getEntityName={(m) => {
+        const result = m.result ? ` (${m.result})` : "";
+        return `${m.player_white.name} - ${m.player_black.name}${result}`;
       }}
+      requireTypedConfirmation={false}
       title={`${competition_name} — Round ${round}`}
-      createConfig={{ entityType: "match", dialogConfig: createDialogConfig }}
-      emptyMessage="No matches yet."
+      createDialogConfig={createDialogConfig}
     />
   );
 };
