@@ -11,11 +11,6 @@ import { usePlayers } from "./usePlayers";
 
 type PlayerPublic = components["schemas"]["PlayerPublic"];
 
-const tableCells = {
-  id: createReadOnlyNumberCell(),
-  name: createTextCell("player-name", "Name"),
-};
-
 const validatePlayerName = createNonEmptyStringValidator("name");
 
 const createDialogConfig: CreateDialogConfig<{ name: string }> = {
@@ -64,10 +59,10 @@ export default function PlayerTable() {
       queryResult={queryResult}
       entityType="player"
       rows={sortedPlayers}
-      getRowKey={(p) => p.id}
-      entityIdField="id"
-      cells={tableCells}
-      columns={[{ header: "ID" }, { header: "Name" }]}
+      columns={[
+        { field: "id", isId: true, cell: createReadOnlyNumberCell() },
+        { field: "name", cell: createTextCell("player-name", "Name") },
+      ]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       getEntityName={(p) => p.name}
       createDialogConfig={createDialogConfig}

@@ -4,6 +4,7 @@ import EditableRow from "./EditableRow";
 import { CreateButton, CreateDialogConfig } from "./CreateButton";
 import {
   CellConfigs,
+  Column,
   DeleteConfig,
   EditConfig,
   TableQueryResult,
@@ -14,21 +15,13 @@ import { useAuth } from "@/auth";
 import { formatHTTPValidationError } from "@/client/api";
 import { pluralize } from "@/utils";
 
-type ColumnDef = {
-  header: string;
-  width?: string | number;
-};
-
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 
 type EditableTableProps<T extends object> = {
   queryResult: TableQueryResult;
   entityType: string;
   rows: T[];
-  getRowKey: (row: T) => string | number;
-  entityIdField: keyof T;
-  cells: CellConfigs<T>;
-  columns: ColumnDef[];
+  columns: Column<T>[];
   editConfig?: TableEditConfig<T>;
   getEntityName?: (row: T) => string;
   requireTypedConfirmation?: boolean;
@@ -42,9 +35,6 @@ export default function EditableTable<T extends object>({
   queryResult,
   entityType,
   rows,
-  getRowKey,
-  entityIdField,
-  cells,
   columns,
   editConfig,
   getEntityName,
@@ -68,6 +58,15 @@ export default function EditableTable<T extends object>({
   if (isPending) return <LoadingState />;
   if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
 
+  const idColumn = columns.find((c) => c.isId)!;
+  const entityIdField = idColumn.field;
+  const getRowKey = (row: T) => row[entityIdField] as string | number;
+
+  const visibleColumns = columns.filter((c) => !c.hidden);
+  const cellConfigs = Object.fromEntries(
+    visibleColumns.map((c) => [c.field, c.cell]),
+  ) as CellConfigs<T>;
+
   const activeEditConfig: EditConfig<T> | undefined =
     isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
   const activeDeleteConfig: DeleteConfig<T> | undefined =
@@ -76,8 +75,9 @@ export default function EditableTable<T extends object>({
       : undefined;
 
   const hasColgroup =
-    columns.some((c) => c.width !== undefined) || actionsWidth !== undefined;
-  const nCols = columns.length + (activeEditConfig ? 1 : 0);
+    visibleColumns.some((c) => c.width !== undefined) ||
+    actionsWidth !== undefined;
+  const nCols = visibleColumns.length + (activeEditConfig ? 1 : 0);
   const showCreate = isModerator && createDialogConfig !== undefined;
   const tableTitle = title || pluralize(entityType);
 
@@ -90,7 +90,7 @@ export default function EditableTable<T extends object>({
       >
         {hasColgroup && (
           <colgroup>
-            {columns.map((col, i) => (
+            {visibleColumns.map((col, i) => (
               <col
                 key={i}
                 style={
@@ -113,7 +113,11 @@ export default function EditableTable<T extends object>({
           <Table.Tr>
             <Table.Td colSpan={nCols}>
               <Group justify="space-between">
-                <Text style={{ textTransform: 'capitalize' }}>{tableTitle}</Text>
+                <Text
+                  style={title ? undefined : { textTransform: "capitalize" }}
+                >
+                  {tableTitle}
+                </Text>
                 {showCreate && (
                   <CreateButton
                     entityType={entityType}
@@ -125,8 +129,13 @@ export default function EditableTable<T extends object>({
             </Table.Td>
           </Table.Tr>
           <Table.Tr>
-            {columns.map((col) => (
-              <Table.Th key={col.header}>{col.header}</Table.Th>
+            {visibleColumns.map((col) => (
+              <Table.Th
+                key={String(col.field)}
+                style={col.header ? undefined : { textTransform: "capitalize" }}
+              >
+                {col.header ?? String(col.field)}
+              </Table.Th>
             ))}
             {activeEditConfig && <Table.Th>Actions</Table.Th>}
           </Table.Tr>
@@ -143,7 +152,7 @@ export default function EditableTable<T extends object>({
                   setIsEditing={(isEditing) =>
                     setEditableId(isEditing ? key : null)
                   }
-                  cells={cells}
+                  cells={cellConfigs}
                   entityIdField={entityIdField}
                   editConfig={activeEditConfig}
                   deleteConfig={activeDeleteConfig}

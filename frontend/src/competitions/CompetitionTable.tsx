@@ -11,16 +11,6 @@ import { useCompetitions } from "./useCompetitions";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
-const tableCells = {
-  name: createLinkTextCell(
-    "competition-name",
-    "Name",
-    (name) => `/competitions/${name}`,
-  ),
-  created_at: createReadOnlyDateCell(),
-  updated_at: createReadOnlyDateCell(),
-};
-
 const validateCompetitionName = createNonEmptyStringValidator("name");
 
 const createDialogConfig: CreateDialogConfig<{ name: string }> = {
@@ -69,13 +59,10 @@ export default function CompetitionTable() {
       queryResult={queryResult}
       entityType="competition"
       rows={sortedCompetitions}
-      getRowKey={(c) => c.name}
-      entityIdField="name"
-      cells={tableCells}
       columns={[
-        { header: "Name" },
-        { header: "Created Date" },
-        { header: "Updated Date" },
+        { field: "name", isId: true, cell: createLinkTextCell("competition-name", "Name", (name) => `/competitions/${name}`) },
+        { field: "created_at", header: "Created Date", cell: createReadOnlyDateCell() },
+        { field: "updated_at", header: "Updated Date", cell: createReadOnlyDateCell() },
       ]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       getEntityName={(c) => c.name}

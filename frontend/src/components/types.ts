@@ -33,6 +33,17 @@ export type CellConfig<T, K extends keyof T> = {
 
 export type CellConfigs<T> = { [K in keyof T]?: CellConfig<T, K> };
 
+export type Column<T> = {
+  [K in keyof T]: {
+    field: K;
+    isId?: boolean;
+    hidden?: boolean;
+    header?: string;
+    cell?: CellConfig<T, K>;
+    width?: string | number;
+  };
+}[keyof T];
+
 export type TableQueryResult = {
   isPending: boolean;
   isError: boolean;

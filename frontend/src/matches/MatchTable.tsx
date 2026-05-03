@@ -13,13 +13,6 @@ import { useMatches } from "./useMatches";
 type MatchPublic = components["schemas"]["MatchPublic"];
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 
-const tableCells = {
-  board: createNumberCell("board"),
-  player_white: createPlayerSelectCell(),
-  player_black: createPlayerSelectCell(),
-  result: createResultToggleCell(),
-};
-
 type MatchListProps = {
   competition_name: string;
   round: number;
@@ -127,14 +120,12 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       queryResult={queryResult}
       entityType="match"
       rows={matchList}
-      getRowKey={(m) => m.id}
-      entityIdField="id"
-      cells={tableCells}
       columns={[
-        { header: "Board", width: 80 },
-        { header: "White" },
-        { header: "Black" },
-        { header: "Result", width: 200 },
+        { field: "id", isId: true, hidden: true },
+        { field: "board", width: 80, cell: createNumberCell("board") },
+        { field: "player_white", header: "White", cell: createPlayerSelectCell() },
+        { field: "player_black", header: "Black", cell: createPlayerSelectCell() },
+        { field: "result", width: 200, cell: createResultToggleCell() },
       ]}
       actionsWidth={100}
       editConfig={{ validateData, sanitizeData, getRequestBody }}

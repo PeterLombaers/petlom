@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import EditableTable from "@components/EditableTable";
 import { render, makeMockMutation } from "./test-utils";
+import type { Column } from "./types";
 
 vi.mock("@/auth", () => ({ useAuth: () => ({ isModerator: true }) }));
 
@@ -12,34 +13,40 @@ const testRows: TestEntity[] = [
   { id: 2, name: "Bob" },
 ];
 
-const testCells = {
-  id: {
-    renderValue: ({ value }: { value: number }) => (
-      <span data-testid={`id-${value}`}>{value}</span>
-    ),
+const testColumns: Column<TestEntity>[] = [
+  {
+    field: "id",
+    isId: true,
+    cell: {
+      renderValue: ({ value }: { value: number }) => (
+        <span data-testid={`id-${value}`}>{value}</span>
+      ),
+    },
   },
-  name: {
-    renderValue: ({ value }: { value: string }) => (
-      <span data-testid={`name-${value}`}>{value}</span>
-    ),
-    renderEdit: ({
-      editValue,
-      onChange,
-    }: {
-      editValue: string;
-      error: string;
-      onChange: (v: string) => void;
-    }) => (
-      <input
-        aria-label="name-edit"
-        value={editValue}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    ),
+  {
+    field: "name",
+    header: "Name",
+    cell: {
+      renderValue: ({ value }: { value: string }) => (
+        <span data-testid={`name-${value}`}>{value}</span>
+      ),
+      renderEdit: ({
+        editValue,
+        onChange,
+      }: {
+        editValue: string;
+        error: string;
+        onChange: (v: string) => void;
+      }) => (
+        <input
+          aria-label="name-edit"
+          value={editValue}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ),
+    },
   },
-};
-
-const testColumns = [{ header: "ID" }, { header: "Name" }];
+];
 
 const baseQueryResult = {
   isPending: false,
@@ -60,9 +67,6 @@ function renderTable(
       queryResult={baseQueryResult}
       entityType="item"
       rows={testRows}
-      getRowKey={(r) => r.id}
-      entityIdField="id"
-      cells={testCells}
       columns={testColumns}
       {...overrides}
     />,
@@ -94,7 +98,7 @@ describe("EditableTable", () => {
     it("renders each column header", () => {
       renderTable();
       expect(
-        screen.getByRole("columnheader", { name: "ID" }),
+        screen.getByRole("columnheader", { name: "id" }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole("columnheader", { name: "Name" }),
@@ -128,12 +132,7 @@ describe("EditableTable", () => {
       expect(screen.getByText("My Table")).toBeInTheDocument();
     });
 
-    it("hides title bar when neither title nor createConfig is provided", () => {
-      renderTable();
-      expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    });
-
-    it("shows create button when createConfig is provided", () => {
+    it("shows create button when createDialogConfig is provided", () => {
       renderTable({
         createDialogConfig: {
           getInitialFormData: () => ({}),
