@@ -54,14 +54,14 @@ export default function PlayerTable() {
     <EditableTable<PlayerPublic>
       queryResult={queryResult}
       entityType="player"
-      sort={(a, b) => a.name.localeCompare(b.name)}
       columns={[
-        { field: "id", isId: true, cell: createReadOnlyNumberCell() },
+        { field: "id", cell: createReadOnlyNumberCell(), isId: true },
         { field: "name", cell: createTextCell("player-name", "Name") },
       ]}
+      sort={(a, b) => a.name.localeCompare(b.name)}
+      createConfig={createDialogConfig}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{ getEntityName: (p) => p.name }}
-      createConfig={createDialogConfig}
     />
   );
 }

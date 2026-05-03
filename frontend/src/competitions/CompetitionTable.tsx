@@ -54,31 +54,23 @@ export default function CompetitionTable() {
     <EditableTable<CompetitionPublic>
       queryResult={queryResult}
       entityType="competition"
-      sort={(a, b) => b.updated_at.localeCompare(a.updated_at)}
       columns={[
         {
           field: "name",
-          isId: true,
           cell: createLinkTextCell(
             "competition-name",
             "Name",
             (name) => `/competitions/${name}`,
           ),
+          isId: true,
         },
-        {
-          field: "created_at",
-          header: "Created Date",
-          cell: createReadOnlyDateCell(),
-        },
-        {
-          field: "updated_at",
-          header: "Updated Date",
-          cell: createReadOnlyDateCell(),
-        },
+        { field: "created_at", cell: createReadOnlyDateCell(), header: "Created Date" },
+        { field: "updated_at", cell: createReadOnlyDateCell(), header: "Updated Date" },
       ]}
+      sort={(a, b) => b.updated_at.localeCompare(a.updated_at)}
+      createConfig={createDialogConfig}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{ getEntityName: (c) => c.name }}
-      createConfig={createDialogConfig}
     />
   );
 }

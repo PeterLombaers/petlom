@@ -120,19 +120,13 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       entityType="match"
       columns={[
         { field: "id", isId: true, hidden: true },
-        { field: "board", width: 80, cell: createNumberCell("board") },
-        {
-          field: "player_white",
-          header: "White",
-          cell: createPlayerSelectCell(),
-        },
-        {
-          field: "player_black",
-          header: "Black",
-          cell: createPlayerSelectCell(),
-        },
-        { field: "result", width: 200, cell: createResultToggleCell() },
+        { field: "board", cell: createNumberCell("board"), width: 80 },
+        { field: "player_white", cell: createPlayerSelectCell(), header: "White" },
+        { field: "player_black", cell: createPlayerSelectCell(), header: "Black" },
+        { field: "result", cell: createResultToggleCell(), width: 200 },
       ]}
+      title={`${competition_name} — Round ${round}`}
+      createConfig={createDialogConfig}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{
         getEntityName: (m) => {
@@ -141,8 +135,6 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         },
         requireTypedConfirmation: false,
       }}
-      title={`${competition_name} — Round ${round}`}
-      createConfig={createDialogConfig}
     />
   );
 };

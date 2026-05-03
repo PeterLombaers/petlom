@@ -66,9 +66,9 @@ export type Column<T> = {
   [K in keyof T]: {
     field: K;
     cell?: CellConfig<T, K>;
+    header?: string;
     isId?: boolean;
     hidden?: boolean;
-    header?: string;
     width?: string | number;
   };
 }[keyof T];
