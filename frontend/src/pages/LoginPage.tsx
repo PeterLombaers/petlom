@@ -10,7 +10,8 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { IconAlertCircle, IconChess } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
+import { PetlomLogo } from "@/components/PetlomLogo";
 import { useAuth } from "@/auth";
 
 export default function LoginPage() {
@@ -41,7 +42,7 @@ export default function LoginPage() {
     <Center h="100vh">
       <Stack w={360} gap="sm">
         <Stack align="center" gap={4}>
-          <IconChess size={40} />
+          <PetlomLogo size={80} />
           <Text c="dimmed" size="sm">
             Moderator login
           </Text>

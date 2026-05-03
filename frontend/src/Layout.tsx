@@ -10,7 +10,6 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
-  IconChess,
   IconMoon,
   IconSun,
   IconTrophy,
@@ -18,6 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { useCompetitions } from "@/competitions/useCompetitions";
 import { AuthControls } from "@/components/AuthControls";
+import { PetlomLogo } from "@/components/PetlomLogo";
 
 function ThemeToggle() {
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
@@ -103,7 +103,7 @@ export default function Layout() {
               hiddenFrom="sm"
               size="sm"
             />
-            <IconChess size={24} />
+            <PetlomLogo size={50} />
           </Group>
           <Group>
             <ThemeToggle />
