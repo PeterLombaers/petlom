@@ -50,9 +50,8 @@ const getRequestBody = (match: MatchPublic) => ({
 });
 
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
-  const { matches, ...queryResult } = useMatches(competition_name, round);
-
-  const matchList = matches ?? [];
+  const queryResult = useMatches(competition_name, round);
+  const matchList = queryResult.rows ?? [];
   const maxBoard =
     matchList.length > 0 ? Math.max(...matchList.map((m) => m.board)) : 0;
 
@@ -119,12 +118,19 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
     <EditableTable<MatchPublic>
       queryResult={queryResult}
       entityType="match"
-      rows={matchList}
       columns={[
         { field: "id", isId: true, hidden: true },
         { field: "board", width: 80, cell: createNumberCell("board") },
-        { field: "player_white", header: "White", cell: createPlayerSelectCell() },
-        { field: "player_black", header: "Black", cell: createPlayerSelectCell() },
+        {
+          field: "player_white",
+          header: "White",
+          cell: createPlayerSelectCell(),
+        },
+        {
+          field: "player_black",
+          header: "Black",
+          cell: createPlayerSelectCell(),
+        },
         { field: "result", width: 200, cell: createResultToggleCell() },
       ]}
       actionsWidth={100}

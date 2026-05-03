@@ -48,21 +48,33 @@ const validateData = (competition: CompetitionPublic) => {
 const getRequestBody = (competition: CompetitionPublic) => competition;
 
 export default function CompetitionTable() {
-  const { competitions, ...queryResult } = useCompetitions();
-
-  const sortedCompetitions = [...(competitions ?? [])].sort((a, b) =>
-    b.updated_at.localeCompare(a.updated_at),
-  );
+  const queryResult = useCompetitions();
 
   return (
     <EditableTable<CompetitionPublic>
       queryResult={queryResult}
       entityType="competition"
-      rows={sortedCompetitions}
+      sort={(a, b) => b.updated_at.localeCompare(a.updated_at)}
       columns={[
-        { field: "name", isId: true, cell: createLinkTextCell("competition-name", "Name", (name) => `/competitions/${name}`) },
-        { field: "created_at", header: "Created Date", cell: createReadOnlyDateCell() },
-        { field: "updated_at", header: "Updated Date", cell: createReadOnlyDateCell() },
+        {
+          field: "name",
+          isId: true,
+          cell: createLinkTextCell(
+            "competition-name",
+            "Name",
+            (name) => `/competitions/${name}`,
+          ),
+        },
+        {
+          field: "created_at",
+          header: "Created Date",
+          cell: createReadOnlyDateCell(),
+        },
+        {
+          field: "updated_at",
+          header: "Updated Date",
+          cell: createReadOnlyDateCell(),
+        },
       ]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       getEntityName={(c) => c.name}

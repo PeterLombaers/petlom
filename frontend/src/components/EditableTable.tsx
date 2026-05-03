@@ -18,9 +18,9 @@ import { pluralize } from "@/utils";
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 
 type EditableTableProps<T extends object> = {
-  queryResult: TableQueryResult;
+  queryResult: TableQueryResult<T>;
   entityType: string;
-  rows: T[];
+  sort?: (a: T, b: T) => number;
   columns: Column<T>[];
   editConfig?: TableEditConfig<T>;
   getEntityName?: (row: T) => string;
@@ -34,7 +34,7 @@ type EditableTableProps<T extends object> = {
 export default function EditableTable<T extends object>({
   queryResult,
   entityType,
-  rows,
+  sort,
   columns,
   editConfig,
   getEntityName,
@@ -47,6 +47,7 @@ export default function EditableTable<T extends object>({
   const [editableId, setEditableId] = useState<string | number | null>(null);
 
   const {
+    rows: rawRows,
     isPending,
     isError,
     error,
@@ -54,6 +55,8 @@ export default function EditableTable<T extends object>({
     deleteMutation,
     createMutation,
   } = queryResult;
+
+  const rows = sort ? [...(rawRows ?? [])].sort(sort) : (rawRows ?? []);
 
   if (isPending) return <LoadingState />;
   if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;

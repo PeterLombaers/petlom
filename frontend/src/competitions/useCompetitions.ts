@@ -42,7 +42,7 @@ export function useCompetitions() {
   });
 
   return {
-    competitions,
+    rows: competitions,
     error,
     isError,
     isPending,

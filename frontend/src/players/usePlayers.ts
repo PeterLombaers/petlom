@@ -36,7 +36,7 @@ export function usePlayers() {
   });
 
   return {
-    players,
+    rows: players,
     error,
     isError,
     isPending,

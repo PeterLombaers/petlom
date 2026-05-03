@@ -49,6 +49,7 @@ const testColumns: Column<TestEntity>[] = [
 ];
 
 const baseQueryResult = {
+  rows: testRows,
   isPending: false,
   isError: false,
   error: null,
@@ -66,7 +67,6 @@ function renderTable(
     <EditableTable<TestEntity>
       queryResult={baseQueryResult}
       entityType="item"
-      rows={testRows}
       columns={testColumns}
       {...overrides}
     />,
@@ -76,7 +76,7 @@ function renderTable(
 describe("EditableTable", () => {
   describe("empty state", () => {
     it("renders emptyMessage when rows is empty", () => {
-      renderTable({ rows: [] });
+      renderTable({ queryResult: { ...baseQueryResult, rows: [] } });
       expect(screen.getByText("No items yet.")).toBeInTheDocument();
     });
 

@@ -44,7 +44,8 @@ export type Column<T> = {
   };
 }[keyof T];
 
-export type TableQueryResult = {
+export type TableQueryResult<T> = {
+  rows: T[] | undefined;
   isPending: boolean;
   isError: boolean;
   error: components["schemas"]["HTTPValidationError"] | null;

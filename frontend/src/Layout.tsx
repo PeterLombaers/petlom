@@ -34,7 +34,7 @@ function ThemeToggle() {
 }
 
 function CompetitionNavLinks() {
-  const { competitions } = useCompetitions();
+  const { rows: competitions } = useCompetitions();
   const { pathname } = useLocation();
   const { colorScheme } = useMantineColorScheme();
   const borderColor =

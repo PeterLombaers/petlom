@@ -47,7 +47,7 @@ export function useMatches(competitionName: string, round: number) {
   });
 
   return {
-    matches,
+    rows: matches,
     error,
     isError,
     isPending,

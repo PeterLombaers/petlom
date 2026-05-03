@@ -48,17 +48,13 @@ const validateData = (player: PlayerPublic) => {
 const getRequestBody = (player: PlayerPublic) => player;
 
 export default function PlayerTable() {
-  const { players, ...queryResult } = usePlayers();
-
-  const sortedPlayers = [...(players ?? [])].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
+  const queryResult = usePlayers();
 
   return (
     <EditableTable<PlayerPublic>
       queryResult={queryResult}
       entityType="player"
-      rows={sortedPlayers}
+      sort={(a, b) => a.name.localeCompare(b.name)}
       columns={[
         { field: "id", isId: true, cell: createReadOnlyNumberCell() },
         { field: "name", cell: createTextCell("player-name", "Name") },
