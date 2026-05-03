@@ -54,6 +54,10 @@ export type CellConfigs<T> = { [K in keyof T]?: CellConfig<T, K> };
  *   identifier. Its value is used as the React key and as the path parameter
  *   in edit/delete mutations.
  *
+ * @property isEditable - Should the column be editable. If yes, an edit button will be
+ *   rendered beside the column header allow the whole column to be toggled to edit
+ *   mode.
+ *
  * @property hidden - When `true`, the column is excluded from the rendered
  *   table entirely (no header, no cell). Use this for surrogate ID fields that
  *   are needed for mutations but have no display value (e.g. a numeric `id`
@@ -68,6 +72,7 @@ export type Column<T> = {
     cell?: CellConfig<T, K>;
     header?: string;
     isId?: boolean;
+    isEditable?: boolean;
     hidden?: boolean;
     width?: string | number;
   };

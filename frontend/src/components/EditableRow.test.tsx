@@ -308,6 +308,85 @@ describe("EditableRow", () => {
     });
   });
 
+  describe("column edit mode", () => {
+    it("renders the column cell in edit mode with columnEditValue when columnEditField is set", () => {
+      renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          cells={testCells}
+          entityIdField="id"
+          columnEditField="name"
+          columnEditValue="Edited"
+          columnEditError=""
+          onColumnEditChange={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole("textbox", { name: "name-edit" })).toHaveValue(
+        "Edited",
+      );
+    });
+
+    it("calls onColumnEditChange when the column edit cell value changes", async () => {
+      const user = userEvent.setup();
+      const onColumnEditChange = vi.fn();
+      renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          cells={testCells}
+          entityIdField="id"
+          columnEditField="name"
+          columnEditValue="Alice"
+          columnEditError=""
+          onColumnEditChange={onColumnEditChange}
+        />,
+      );
+      const input = screen.getByRole("textbox", { name: "name-edit" });
+      await user.clear(input);
+      await user.type(input, "Z");
+      expect(onColumnEditChange).toHaveBeenCalled();
+    });
+
+    it("displays columnEditError in the column edit cell", () => {
+      renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          cells={testCells}
+          entityIdField="id"
+          columnEditField="name"
+          columnEditValue=""
+          columnEditError="Name is required"
+          onColumnEditChange={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId("name-error")).toHaveTextContent(
+        "Name is required",
+      );
+    });
+
+    it("hides Edit and Delete buttons when hideRowEditButton is true", () => {
+      renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          cells={testCells}
+          entityIdField="id"
+          editConfig={makeEditConfig(makeMockMutation())}
+          hideRowEditButton={true}
+        />,
+      );
+      expect(
+        screen.queryByRole("button", { name: "Edit" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("pending state", () => {
     it("disables the Edit button when mutation isPending", () => {
       const editMutation = makeMockMutation({ isPending: true });

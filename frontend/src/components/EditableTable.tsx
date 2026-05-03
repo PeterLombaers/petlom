@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Group, Paper, Table, Text } from "@mantine/core";
 import EditableRow from "./EditableRow";
+import { EditButton } from "./EditButton";
 import { CreateButton, CreateDialogConfig } from "./CreateButton";
 import {
   CellConfigs,
@@ -87,6 +88,14 @@ export default function EditableTable<T extends object>({
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
   const [editableId, setEditableId] = useState<string | number | null>(null);
+  const [columnEditField, setColumnEditField] = useState<keyof T | null>(null);
+  const [columnEditValues, setColumnEditValues] = useState<
+    Map<string | number, unknown>
+  >(new Map());
+  const [columnEditErrors, setColumnEditErrors] = useState<
+    Map<string | number, string>
+  >(new Map());
+  const isColumnEditing = columnEditField !== null;
 
   const {
     rows: rawRows,
@@ -123,6 +132,79 @@ export default function EditableTable<T extends object>({
           requireTypedConfirmation: deleteConfig.requireTypedConfirmation,
         }
       : undefined;
+
+  const handleStartColumnEdit = (field: keyof T) => {
+    setEditableId(null);
+    setColumnEditField(field);
+    setColumnEditValues(
+      new Map(rows.map((row) => [getRowKey(row), row[field]])),
+    );
+    setColumnEditErrors(new Map());
+  };
+
+  const handleColumnEditChange = (
+    rowKey: string | number,
+    newValue: unknown,
+  ) => {
+    setColumnEditValues((prev) => new Map(prev).set(rowKey, newValue));
+    setColumnEditErrors((prev) => {
+      const n = new Map(prev);
+      n.delete(rowKey);
+      return n;
+    });
+  };
+
+  const handleCancelColumnEdit = () => {
+    setColumnEditField(null);
+    setColumnEditValues(new Map());
+    setColumnEditErrors(new Map());
+  };
+
+  const handleSaveColumnEdit = async () => {
+    if (!columnEditField || !activeEditConfig) return;
+    const { editMutation, validateData, sanitizeData, getRequestBody } =
+      activeEditConfig;
+
+    const newErrors = new Map<string | number, string>();
+    rows.forEach((row) => {
+      const key = getRowKey(row);
+      const merged = {
+        ...row,
+        [columnEditField]: columnEditValues.get(key),
+      } as T;
+      const err = validateData(sanitizeData(merged))[columnEditField];
+      if (err) newErrors.set(key, err);
+    });
+    if (newErrors.size > 0) {
+      setColumnEditErrors(newErrors);
+      return;
+    }
+
+    const changedRows = rows.filter(
+      (row) => columnEditValues.get(getRowKey(row)) !== row[columnEditField],
+    );
+
+    try {
+      await Promise.all(
+        changedRows.map((row) => {
+          const key = getRowKey(row);
+          const sanitized = sanitizeData({
+            ...row,
+            [columnEditField]: columnEditValues.get(key),
+          } as T);
+          return editMutation.mutateAsync({
+            body: getRequestBody(sanitized),
+            params: { path: { [String(entityIdField)]: key } },
+          });
+        }),
+      );
+      setColumnEditField(null);
+      setColumnEditValues(new Map());
+      setColumnEditErrors(new Map());
+    } catch {
+      // stay in column edit mode on failure
+    }
+  };
 
   const hasColgroup = visibleColumns.some((c) => c.width !== undefined);
   const nCols = visibleColumns.length + (activeEditConfig ? 1 : 0);
@@ -169,14 +251,34 @@ export default function EditableTable<T extends object>({
             </Table.Td>
           </Table.Tr>
           <Table.Tr>
-            {visibleColumns.map((col) => (
-              <Table.Th
-                key={String(col.field)}
-                style={col.header ? undefined : { textTransform: "capitalize" }}
-              >
-                {col.header ?? String(col.field)}
-              </Table.Th>
-            ))}
+            {visibleColumns.map((col) => {
+              const isThisColumnEditing = columnEditField === col.field;
+              const showColumnEditButton =
+                activeEditConfig &&
+                col.isEditable &&
+                (!isColumnEditing || isThisColumnEditing);
+              return (
+                <Table.Th
+                  key={String(col.field)}
+                  style={
+                    col.header ? undefined : { textTransform: "capitalize" }
+                  }
+                >
+                  <Group gap="xs" wrap="nowrap">
+                    <span>{col.header ?? String(col.field)}</span>
+                    {showColumnEditButton && (
+                      <EditButton
+                        isEditing={isThisColumnEditing}
+                        isPending={activeEditConfig!.editMutation.isPending}
+                        onEdit={() => handleStartColumnEdit(col.field)}
+                        onSave={handleSaveColumnEdit}
+                        onCancel={handleCancelColumnEdit}
+                      />
+                    )}
+                  </Group>
+                </Table.Th>
+              );
+            })}
             {activeEditConfig && <Table.Th>Actions</Table.Th>}
           </Table.Tr>
         </Table.Thead>
@@ -189,13 +291,25 @@ export default function EditableTable<T extends object>({
                   key={key}
                   data={row}
                   isEditing={editableId === key}
-                  setIsEditing={(isEditing) =>
-                    setEditableId(isEditing ? key : null)
-                  }
+                  setIsEditing={(isEditing) => {
+                    if (isEditing) {
+                      setColumnEditField(null);
+                      setColumnEditValues(new Map());
+                      setColumnEditErrors(new Map());
+                    }
+                    setEditableId(isEditing ? key : null);
+                  }}
                   cells={cellConfigs}
                   entityIdField={entityIdField}
                   editConfig={activeEditConfig}
                   deleteConfig={activeDeleteConfig}
+                  columnEditField={columnEditField}
+                  columnEditValue={columnEditValues.get(key)}
+                  columnEditError={columnEditErrors.get(key) ?? ""}
+                  onColumnEditChange={(newValue) =>
+                    handleColumnEditChange(key, newValue)
+                  }
+                  hideRowEditButton={isColumnEditing}
                 />
               );
             })

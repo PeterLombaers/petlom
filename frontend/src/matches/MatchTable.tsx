@@ -131,7 +131,12 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
           cell: createPlayerSelectCell(),
           header: "Black",
         },
-        { field: "result", cell: createResultToggleCell(), width: 200 },
+        {
+          field: "result",
+          cell: createResultToggleCell(),
+          width: 200,
+          isEditable: true,
+        },
       ]}
       title={`${competition_name} — Round ${round}`}
       createConfig={createDialogConfig}

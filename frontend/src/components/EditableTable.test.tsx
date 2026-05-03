@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import EditableTable from "@components/EditableTable";
 import { render, makeMockMutation } from "./test-utils";
@@ -143,6 +143,209 @@ describe("EditableTable", () => {
         },
       });
       expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
+    });
+  });
+
+  describe("column edit mode", () => {
+    const editableColumns: Column<TestEntity>[] = [
+      {
+        field: "id",
+        isId: true,
+        hidden: true,
+        cell: {
+          renderValue: ({ value }: { value: number }) => (
+            <span data-testid={`id-${value}`}>{value}</span>
+          ),
+        },
+      },
+      {
+        field: "name",
+        header: "Name",
+        isEditable: true,
+        cell: {
+          renderValue: ({ value }: { value: string }) => (
+            <span data-testid={`name-${value}`}>{value}</span>
+          ),
+          renderEdit: ({
+            editValue,
+            error,
+            onChange,
+          }: {
+            editValue: string;
+            error: string;
+            onChange: (v: string) => void;
+          }) => (
+            <>
+              <input
+                aria-label="name-edit"
+                value={editValue}
+                onChange={(e) => onChange(e.target.value)}
+              />
+              {error && <span data-testid="name-error">{error}</span>}
+            </>
+          ),
+        },
+      },
+    ];
+
+    const columnEditConfig = {
+      validateData: () => ({}),
+      sanitizeData: (d: TestEntity) => d,
+      getRequestBody: (d: TestEntity) => d,
+    };
+
+    function renderColumnTable(
+      overrides: Partial<
+        React.ComponentProps<typeof EditableTable<TestEntity>>
+      > = {},
+    ) {
+      return render(
+        <EditableTable<TestEntity>
+          queryResult={baseQueryResult}
+          entityType="item"
+          columns={editableColumns}
+          editConfig={columnEditConfig}
+          {...overrides}
+        />,
+      );
+    }
+
+    it("shows an Edit button in the header of an isEditable column when editConfig is provided", () => {
+      renderColumnTable();
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      expect(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      ).toBeInTheDocument();
+    });
+
+    it("does not show an Edit button in non-isEditable column headers", () => {
+      renderTable({ editConfig: columnEditConfig });
+      screen.getAllByRole("columnheader").forEach((header) => {
+        expect(
+          within(header).queryByRole("button", { name: "Edit" }),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it("clicking column Edit puts all rows' cells in that column into edit mode", async () => {
+      const user = userEvent.setup();
+      renderColumnTable();
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+      expect(
+        screen.getAllByRole("textbox", { name: "name-edit" }),
+      ).toHaveLength(testRows.length);
+    });
+
+    it("entering column edit hides row-level Edit buttons", async () => {
+      const user = userEvent.setup();
+      renderColumnTable();
+      // Before: 1 column Edit + 2 row Edit buttons = 3 total
+      expect(screen.getAllByRole("button", { name: "Edit" })).toHaveLength(3);
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+      expect(screen.queryAllByRole("button", { name: "Edit" })).toHaveLength(0);
+    });
+
+    it("Save and Cancel appear in column header when in column edit mode", async () => {
+      const user = userEvent.setup();
+      renderColumnTable();
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+      expect(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      ).toBeInTheDocument();
+      expect(
+        within(nameHeader).getByRole("button", { name: "Cancel" }),
+      ).toBeInTheDocument();
+      expect(
+        within(nameHeader).queryByRole("button", { name: "Edit" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("Cancel exits column edit mode and restores display values", async () => {
+      const user = userEvent.setup();
+      renderColumnTable();
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Cancel" }),
+      );
+      expect(
+        screen.queryByRole("textbox", { name: "name-edit" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("name-Alice")).toBeInTheDocument();
+      expect(screen.getByTestId("name-Bob")).toBeInTheDocument();
+    });
+
+    it("Save calls mutateAsync only for rows where the value changed", async () => {
+      const user = userEvent.setup();
+      const mutateAsync = vi.fn().mockResolvedValue({});
+      renderColumnTable({
+        queryResult: {
+          ...baseQueryResult,
+          editMutation: makeMockMutation({ mutateAsync }),
+        },
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+
+      const inputs = screen.getAllByRole("textbox", { name: "name-edit" });
+      await user.clear(inputs[0]);
+      await user.type(inputs[0], "Charlie");
+
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      );
+
+      expect(mutateAsync).toHaveBeenCalledTimes(1);
+      expect(mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ name: "Charlie" }),
+          params: { path: { id: 1 } },
+        }),
+      );
+    });
+
+    it("Save shows per-row validation errors and does not call mutateAsync", async () => {
+      const user = userEvent.setup();
+      const mutateAsync = vi.fn().mockResolvedValue({});
+      renderColumnTable({
+        queryResult: {
+          ...baseQueryResult,
+          editMutation: makeMockMutation({ mutateAsync }),
+        },
+        editConfig: {
+          validateData: (d: TestEntity) =>
+            d.name === "" ? { name: "Name is required" } : {},
+          sanitizeData: (d: TestEntity) => d,
+          getRequestBody: (d: TestEntity) => d,
+        },
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+
+      const inputs = screen.getAllByRole("textbox", { name: "name-edit" });
+      await user.clear(inputs[0]);
+
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      );
+
+      expect(mutateAsync).not.toHaveBeenCalled();
+      expect(screen.getAllByTestId("name-error")).toHaveLength(1);
     });
   });
 

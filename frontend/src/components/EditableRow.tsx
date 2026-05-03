@@ -13,6 +13,11 @@ interface EditableRowProps<T = unknown> {
   entityIdField: keyof T;
   editConfig?: EditConfig<T>;
   deleteConfig?: DeleteConfig<T>;
+  columnEditField?: keyof T | null;
+  columnEditValue?: unknown;
+  columnEditError?: string;
+  onColumnEditChange?: (newValue: unknown) => void;
+  hideRowEditButton?: boolean;
 }
 
 export default function EditableRow<T = unknown>({
@@ -23,6 +28,11 @@ export default function EditableRow<T = unknown>({
   entityIdField,
   editConfig,
   deleteConfig,
+  columnEditField,
+  columnEditValue,
+  columnEditError,
+  onColumnEditChange,
+  hideRowEditButton,
 }: EditableRowProps<T>) {
   const [editData, setEditData] = useState<T>({ ...data });
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
@@ -71,6 +81,20 @@ export default function EditableRow<T = unknown>({
     <Table.Tr>
       {(Object.keys(cells) as Array<keyof T>).map((key) => {
         const cell = cells[key]!;
+        if (columnEditField === key && cell.renderEdit) {
+          return (
+            <EditableCell
+              key={String(key)}
+              isEditing={true}
+              value={data[key]}
+              editValue={columnEditValue as T[typeof key]}
+              setEditValue={(newValue) => onColumnEditChange?.(newValue)}
+              renderValue={cell.renderValue}
+              renderEdit={cell.renderEdit}
+              error={columnEditError ?? ""}
+            />
+          );
+        }
         if (cell.renderEdit) {
           return (
             <EditableCell
@@ -94,14 +118,16 @@ export default function EditableRow<T = unknown>({
       {editConfig && (
         <Table.Td>
           <Group>
-            <EditButton
-              isEditing={isEditing}
-              isPending={editConfig.editMutation.isPending}
-              onEdit={handleStartEdit}
-              onSave={handleSave}
-              onCancel={() => setIsEditing(false)}
-            />
-            {deleteConfig && !isEditing && (
+            {!hideRowEditButton && (
+              <EditButton
+                isEditing={isEditing}
+                isPending={editConfig.editMutation.isPending}
+                onEdit={handleStartEdit}
+                onSave={handleSave}
+                onCancel={() => setIsEditing(false)}
+              />
+            )}
+            {deleteConfig && !isEditing && !hideRowEditButton && (
               <DeleteButton
                 entityType={deleteConfig.entityType}
                 entityName={deleteConfig.getEntityName(data)}
