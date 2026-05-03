@@ -3,7 +3,10 @@ interface PetlomLogoProps {
   color?: string;
 }
 
-export function PetlomLogo({ size = 24, color = "var(--mantine-color-red-6)" }: PetlomLogoProps) {
+export function PetlomLogo({
+  size = 24,
+  color = "var(--mantine-color-red-6)",
+}: PetlomLogoProps) {
   return (
     <svg
       width={size}

@@ -121,8 +121,16 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       columns={[
         { field: "id", isId: true, hidden: true },
         { field: "board", cell: createNumberCell("board"), width: 80 },
-        { field: "player_white", cell: createPlayerSelectCell(), header: "White" },
-        { field: "player_black", cell: createPlayerSelectCell(), header: "Black" },
+        {
+          field: "player_white",
+          cell: createPlayerSelectCell(),
+          header: "White",
+        },
+        {
+          field: "player_black",
+          cell: createPlayerSelectCell(),
+          header: "Black",
+        },
         { field: "result", cell: createResultToggleCell(), width: 200 },
       ]}
       title={`${competition_name} — Round ${round}`}

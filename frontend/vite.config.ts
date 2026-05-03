@@ -25,5 +25,5 @@ export default defineConfig({
       "@client": path.resolve(__dirname, "./src/client"),
     },
   },
-  build: {chunkSizeWarningLimit: 1000},
+  build: { chunkSizeWarningLimit: 1000 },
 });

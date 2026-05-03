@@ -9,12 +9,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import {
-  IconMoon,
-  IconSun,
-  IconTrophy,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconMoon, IconSun, IconTrophy, IconUsers } from "@tabler/icons-react";
 import { useCompetitions } from "@/competitions/useCompetitions";
 import { AuthControls } from "@/components/AuthControls";
 import { PetlomLogo } from "@/components/PetlomLogo";

@@ -64,8 +64,16 @@ export default function CompetitionTable() {
           ),
           isId: true,
         },
-        { field: "created_at", cell: createReadOnlyDateCell(), header: "Created Date" },
-        { field: "updated_at", cell: createReadOnlyDateCell(), header: "Updated Date" },
+        {
+          field: "created_at",
+          cell: createReadOnlyDateCell(),
+          header: "Created Date",
+        },
+        {
+          field: "updated_at",
+          cell: createReadOnlyDateCell(),
+          header: "Updated Date",
+        },
       ]}
       sort={(a, b) => b.updated_at.localeCompare(a.updated_at)}
       createConfig={createDialogConfig}
