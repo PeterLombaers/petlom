@@ -77,7 +77,7 @@ export default function CompetitionTable() {
         },
       ]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
-      getEntityName={(c) => c.name}
+      deleteConfig={{ getEntityName: (c) => c.name }}
       createConfig={createDialogConfig}
     />
   );

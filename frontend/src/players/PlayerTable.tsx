@@ -60,7 +60,7 @@ export default function PlayerTable() {
         { field: "name", cell: createTextCell("player-name", "Name") },
       ]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
-      getEntityName={(p) => p.name}
+      deleteConfig={{ getEntityName: (p) => p.name }}
       createConfig={createDialogConfig}
     />
   );

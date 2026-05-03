@@ -16,6 +16,10 @@ import { formatHTTPValidationError } from "@/client/api";
 import { pluralize } from "@/utils";
 
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
+type TableDeleteConfig<T> = Omit<
+  DeleteConfig<T>,
+  "deleteMutation" | "entityType"
+>;
 
 type EditableTableProps<T extends object> = {
   queryResult: TableQueryResult<T>;
@@ -23,15 +27,53 @@ type EditableTableProps<T extends object> = {
   columns: Column<T>[];
   title?: string;
   sort?: (a: T, b: T) => number;
-  getEntityName?: (row: T) => string;
   // The generic type of the create dialog is the type of the submit form data. The
   // table doesn't need to know the type but simply passes it on to CreateButton, so we
   // put an `any` type here.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createConfig?: CreateDialogConfig<any>;
   editConfig?: TableEditConfig<T>;
-  typedDeleteConfirmation?: boolean;
+  deleteConfig?: TableDeleteConfig<T>;
 };
+
+/**
+ * Generic data table with optional inline editing, row deletion, and entity creation.
+ *
+ * @param queryResult - Direct output of a data hook (e.g. `usePlayers()`). Drives
+ *   loading/error states and supplies the three mutations. Contains `rows`, which is
+ *   the raw unordered data array.
+ *
+ * @param entityType - Singular lowercase name for the entity, e.g. `"player"`. Used as
+ *   the default table title (pluralised), in the empty-state message ("No players
+ *   yet."), and in create/delete button labels.
+ *
+ * @param columns - Full column definitions in display order. Each entry carries the
+ *   field name (typed against `T`), an optional header (defaults to the field name with
+ *   CSS capitalisation), an optional fixed width, and a cell config with `renderValue`
+ *   and optional `renderEdit`. Mark one column `isId: true` to identify the entity —
+ *   its value becomes the React key and the mutation path parameter. Set `hidden: true`
+ *   on the id column to keep it out of the rendered table (e.g. when the id is a
+ *   database surrogate key with no display value).
+ *
+ * @param title - Overrides the default title shown in the table header. The default is
+ *   `pluralize(entityType)` rendered with CSS `text-transform: capitalize`.
+ *
+ * @param sort - Optional comparator passed to `Array.sort` on the raw rows before
+ *   rendering. Omit to preserve the API order.
+ *
+ * @param createConfig - Enables the Add button for moderators. The dialog config drives
+ *   the create form (initial values, validation, rendering, and request body). When
+ *   absent, no Add button is rendered.
+ *
+ * @param editConfig - Enables inline row editing for moderators. Provides
+ *   `validateData`, `sanitizeData`, and `getRequestBody`. When absent, no Edit button
+ *   is rendered and the Actions column is hidden entirely.
+ *
+ * @param deleteConfig - Enables the Delete button for moderators. `getEntityName`
+ *   returns the display name shown in the confirmation dialog. Set `typedConfirmation`
+ *   to `false` to skip requiring the user to type the name (defaults to `true`). When
+ *   absent, no Delete button is rendered.
+ */
 
 export default function EditableTable<T extends object>({
   queryResult,
@@ -39,10 +81,9 @@ export default function EditableTable<T extends object>({
   columns,
   title,
   sort,
-  getEntityName,
+  deleteConfig,
   createConfig,
   editConfig,
-  typedDeleteConfirmation,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
   const [editableId, setEditableId] = useState<string | number | null>(null);
@@ -74,12 +115,12 @@ export default function EditableTable<T extends object>({
   const activeEditConfig: EditConfig<T> | undefined =
     isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
   const activeDeleteConfig: DeleteConfig<T> | undefined =
-    isModerator && getEntityName
+    isModerator && deleteConfig
       ? {
-          getEntityName,
+          getEntityName: deleteConfig.getEntityName,
           entityType,
           deleteMutation,
-          requireTypedConfirmation: typedDeleteConfirmation,
+          requireTypedConfirmation: deleteConfig.requireTypedConfirmation,
         }
       : undefined;
 
