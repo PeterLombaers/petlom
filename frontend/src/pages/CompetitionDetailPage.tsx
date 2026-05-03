@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Anchor,
   Breadcrumbs,
   Button,
+  Collapse,
   Group,
   Select,
   Stack,
@@ -12,10 +14,6 @@ import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchList } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
 import RoundPlayerList from "@/competitions/RoundPlayerList";
-import {
-  useRoundPlayers,
-  useCreateRoundPlayers,
-} from "@/competitions/useRoundPlayers";
 import NotFoundPage from "./NotFoundPage";
 import { useAuth } from "@/auth";
 
@@ -39,68 +37,55 @@ function CompetitionDetail({
   const { data: competition, isPending, isError } = useCompetition(name);
   const navigate = useNavigate();
   const { isModerator } = useAuth();
-  const createRoundPlayersMutation = useCreateRoundPlayers();
-
-  const nRounds = competition?.n_rounds ?? 0;
-  const nextRound = nRounds + 1;
-  const { roundPlayers: draftPlayers } = useRoundPlayers(name, nextRound);
+  const [playersVisible, setPlayersVisible] = useState(false);
 
   if (isPending) return <Text>Loading...</Text>;
   if (isError || !competition) return <NotFoundPage />;
 
+  const nRounds = competition.n_rounds;
+  const nextRound = nRounds + 1;
   const currentRound = roundNr ?? nRounds;
-  const isLatestRound = currentRound === nRounds;
-  const hasDraft =
-    (draftPlayers && draftPlayers.length > 0) ||
-    createRoundPlayersMutation.isSuccess;
+  const isDraftRound = currentRound > nRounds;
+  const backUrl = `/competitions/${name}`;
+  const nextRoundUrl = `/competitions/${name}/round/${nextRound}`;
 
-  const handleCreateDraft = () => {
-    createRoundPlayersMutation.mutate({
-      params: {
-        path: { name },
-        query: { round_nr: nextRound },
-      },
-    });
-  };
+  if (isDraftRound && !isModerator) return <NotFoundPage />;
 
-  const handlePairingCreated = () => {
-    createRoundPlayersMutation.reset();
-    navigate(`/competitions/${name}`);
-  };
+  if (isDraftRound) {
+    return (
+      <Stack>
+        <CompetitionBreadcrumbs name={name} currentRound={currentRound} nRounds={nRounds} />
+        <RoundPlayerList
+          competitionName={name}
+          roundNr={currentRound}
+          onPairingCreated={() => navigate(backUrl)}
+          onDraftCleared={() => navigate(backUrl)}
+        />
+      </Stack>
+    );
+  }
 
   if (currentRound === 0) {
     return (
       <Stack>
-        <Breadcrumbs>
-          <Anchor href="/competitions">Competitions</Anchor>
-          <Text>{name}</Text>
-        </Breadcrumbs>
-        {isModerator && hasDraft ? (
-          <RoundPlayerList
-            competitionName={name}
-            roundNr={nextRound}
-            onPairingCreated={handlePairingCreated}
-          />
-        ) : (
-          <>
-            <Text>No rounds yet.</Text>
-            {isModerator && (
-              <Button onClick={handleCreateDraft}>
-                Create pairing for round 1
-              </Button>
-            )}
-          </>
+        <CompetitionBreadcrumbs name={name} currentRound={0} nRounds={0} />
+        <Text>No rounds yet.</Text>
+        {isModerator && (
+          <Button onClick={() => navigate(nextRoundUrl)}>
+            Create pairing for round 1
+          </Button>
         )}
       </Stack>
     );
   }
 
+  const isLatestRound = currentRound === nRounds;
+
   const handleRoundChange = (roundValue: number) => {
-    if (roundValue === nRounds) {
-      navigate(`/competitions/${name}`);
-    } else {
-      navigate(`/competitions/${name}/round/${roundValue}`);
-    }
+    navigate(roundValue === nRounds
+      ? backUrl
+      : `/competitions/${name}/round/${roundValue}`
+    );
   };
 
   const roundOptions = Array.from({ length: nRounds }, (_, i) => ({
@@ -110,15 +95,7 @@ function CompetitionDetail({
 
   return (
     <Stack>
-      <Breadcrumbs>
-        <Anchor href="/competitions">Competitions</Anchor>
-        {isLatestRound ? (
-          <Text>{name}</Text>
-        ) : (
-          <Anchor href={`/competitions/${name}`}>{name}</Anchor>
-        )}
-        {!isLatestRound && <Text>Round {currentRound}</Text>}
-      </Breadcrumbs>
+      <CompetitionBreadcrumbs name={name} currentRound={currentRound} nRounds={nRounds} />
 
       <Group>
         <Select
@@ -126,24 +103,43 @@ function CompetitionDetail({
           onChange={(val) => val && handleRoundChange(Number(val))}
           data={roundOptions}
         />
-
-        {isModerator && isLatestRound && !hasDraft && (
-          <Button onClick={handleCreateDraft}>
+        {isModerator && isLatestRound ? (
+          <Button onClick={() => navigate(nextRoundUrl)}>
             Create pairing for round {nextRound}
+          </Button>
+        ) : (
+          <Button variant="default" onClick={() => setPlayersVisible((v) => !v)}>
+            {playersVisible ? "Hide players" : "Show players"}
           </Button>
         )}
       </Group>
 
-      {isModerator && isLatestRound && hasDraft && (
-        <RoundPlayerList
-          competitionName={name}
-          roundNr={nextRound}
-          onPairingCreated={handlePairingCreated}
-        />
-      )}
-
+      <Collapse expanded={playersVisible}>
+        <RoundPlayerList competitionName={name} roundNr={currentRound} readOnly />
+      </Collapse>
       <MatchList competition_name={name} round={currentRound} />
       <RankingTable competitionName={name} roundNr={currentRound} />
     </Stack>
+  );
+}
+
+function CompetitionBreadcrumbs({
+  name,
+  currentRound,
+  nRounds,
+}: {
+  name: string;
+  currentRound: number;
+  nRounds: number;
+}) {
+  const nameIsLink = currentRound !== nRounds;
+  return (
+    <Breadcrumbs>
+      <Anchor href="/competitions">Competitions</Anchor>
+      {nameIsLink
+        ? <Anchor href={`/competitions/${name}`}>{name}</Anchor>
+        : <Text>{name}</Text>}
+      {nameIsLink && <Text>Round {currentRound}</Text>}
+    </Breadcrumbs>
   );
 }
