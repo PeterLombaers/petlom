@@ -55,7 +55,7 @@ export default function PlayerTable() {
       queryResult={queryResult}
       entityType="player"
       columns={[
-        { field: "id", cell: createReadOnlyNumberCell(), isId: true },
+        { field: "id", cell: createReadOnlyNumberCell(), isId: true, hidden: true },
         { field: "name", cell: createTextCell("player-name", "Name") },
       ]}
       sort={(a, b) => a.name.localeCompare(b.name)}
