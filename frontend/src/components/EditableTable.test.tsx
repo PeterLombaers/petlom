@@ -132,9 +132,9 @@ describe("EditableTable", () => {
       expect(screen.getByText("My Table")).toBeInTheDocument();
     });
 
-    it("shows create button when createDialogConfig is provided", () => {
+    it("shows create button when createConfig is provided", () => {
       renderTable({
-        createDialogConfig: {
+        createConfig: {
           getInitialFormData: () => ({}),
           validateForm: () => ({}),
           sanitizeForm: (d) => d,

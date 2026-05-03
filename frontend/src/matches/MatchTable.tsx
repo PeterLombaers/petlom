@@ -133,15 +133,14 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         },
         { field: "result", width: 200, cell: createResultToggleCell() },
       ]}
-      actionsWidth={100}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       getEntityName={(m) => {
         const result = m.result ? ` (${m.result})` : "";
         return `${m.player_white.name} - ${m.player_black.name}${result}`;
       }}
-      requireTypedConfirmation={false}
+      typedDeleteConfirmation={false}
       title={`${competition_name} — Round ${round}`}
-      createDialogConfig={createDialogConfig}
+      createConfig={createDialogConfig}
     />
   );
 };

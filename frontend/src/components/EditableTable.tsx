@@ -20,28 +20,29 @@ type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 type EditableTableProps<T extends object> = {
   queryResult: TableQueryResult<T>;
   entityType: string;
-  sort?: (a: T, b: T) => number;
   columns: Column<T>[];
-  editConfig?: TableEditConfig<T>;
-  getEntityName?: (row: T) => string;
-  requireTypedConfirmation?: boolean;
   title?: string;
+  sort?: (a: T, b: T) => number;
+  getEntityName?: (row: T) => string;
+  // The generic type of the create dialog is the type of the submit form data. The
+  // table doesn't need to know the type but simply passes it on to CreateButton, so we
+  // put an `any` type here.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createDialogConfig?: CreateDialogConfig<any>;
-  actionsWidth?: number;
+  createConfig?: CreateDialogConfig<any>;
+  editConfig?: TableEditConfig<T>;
+  typedDeleteConfirmation?: boolean;
 };
 
 export default function EditableTable<T extends object>({
   queryResult,
   entityType,
-  sort,
   columns,
-  editConfig,
-  getEntityName,
-  requireTypedConfirmation,
   title,
-  createDialogConfig,
-  actionsWidth,
+  sort,
+  getEntityName,
+  createConfig,
+  editConfig,
+  typedDeleteConfirmation,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
   const [editableId, setEditableId] = useState<string | number | null>(null);
@@ -74,14 +75,17 @@ export default function EditableTable<T extends object>({
     isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
   const activeDeleteConfig: DeleteConfig<T> | undefined =
     isModerator && getEntityName
-      ? { getEntityName, entityType, deleteMutation, requireTypedConfirmation }
+      ? {
+          getEntityName,
+          entityType,
+          deleteMutation,
+          requireTypedConfirmation: typedDeleteConfirmation,
+        }
       : undefined;
 
-  const hasColgroup =
-    visibleColumns.some((c) => c.width !== undefined) ||
-    actionsWidth !== undefined;
+  const hasColgroup = visibleColumns.some((c) => c.width !== undefined);
   const nCols = visibleColumns.length + (activeEditConfig ? 1 : 0);
-  const showCreate = isModerator && createDialogConfig !== undefined;
+  const showCreate = isModerator && createConfig !== undefined;
   const tableTitle = title || pluralize(entityType);
 
   return (
@@ -101,15 +105,7 @@ export default function EditableTable<T extends object>({
                 }
               />
             ))}
-            {activeEditConfig && (
-              <col
-                style={
-                  actionsWidth !== undefined
-                    ? { width: actionsWidth }
-                    : undefined
-                }
-              />
-            )}
+            {activeEditConfig && <col style={{ width: 100 }} />}
           </colgroup>
         )}
         <Table.Thead>
@@ -125,7 +121,7 @@ export default function EditableTable<T extends object>({
                   <CreateButton
                     entityType={entityType}
                     mutation={createMutation}
-                    dialogConfig={createDialogConfig}
+                    dialogConfig={createConfig}
                   />
                 )}
               </Group>

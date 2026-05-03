@@ -61,7 +61,7 @@ export default function PlayerTable() {
       ]}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       getEntityName={(p) => p.name}
-      createDialogConfig={createDialogConfig}
+      createConfig={createDialogConfig}
     />
   );
 }
