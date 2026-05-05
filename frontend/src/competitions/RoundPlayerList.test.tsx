@@ -13,17 +13,15 @@ vi.mock("@client/api", () => ({
 
 const mockUseRoundPlayers = vi.mocked(useRoundPlayersModule.useRoundPlayers);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockUseQuery = (apiModule.$api as any).useQuery as ReturnType<typeof vi.fn>;
+const mockUseQuery = (apiModule.$api as any).useQuery as ReturnType<
+  typeof vi.fn
+>;
 
 const ALICE = { id: 1, name: "Alice", is_active: true };
 const BOB = { id: 2, name: "Bob", is_active: true };
 const CAROL = { id: 3, name: "Carol", is_active: true };
 
-function makeRoundPlayer(
-  id: number,
-  player: typeof ALICE,
-  is_bye = false,
-) {
+function makeRoundPlayer(id: number, player: typeof ALICE, is_bye = false) {
   return { id, player, is_bye, initial_rating: null };
 }
 
@@ -145,16 +143,15 @@ describe("RoundPlayerList", () => {
   describe("odd player warning", () => {
     it("shows warning when player count is odd and no bye is set", () => {
       renderList([makeRoundPlayer(10, ALICE)]);
-      expect(
-        screen.getByText(/Odd number of players/),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Odd number of players/)).toBeInTheDocument();
     });
 
     it("warning appears after the table, not before it", () => {
       renderList([makeRoundPlayer(10, ALICE)]);
       const table = screen.getByRole("table");
-      const alert = screen.getByText(/Odd number of players/).closest("[role='alert']")
-        ?? screen.getByText(/Odd number of players/).parentElement!;
+      const alert =
+        screen.getByText(/Odd number of players/).closest("[role='alert']") ??
+        screen.getByText(/Odd number of players/).parentElement!;
       // The table should come before the warning in the DOM
       expect(
         table.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -163,14 +160,18 @@ describe("RoundPlayerList", () => {
 
     it("does not show warning when player count is even", () => {
       renderList([makeRoundPlayer(10, ALICE), makeRoundPlayer(11, BOB)]);
-      expect(screen.queryByText(/Odd number of players/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/Odd number of players/),
+      ).not.toBeInTheDocument();
     });
   });
 
   describe("Clear All", () => {
     it("shows Clear All button", () => {
       renderList();
-      expect(screen.getByRole("button", { name: "Clear All" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Clear All" }),
+      ).toBeInTheDocument();
     });
 
     it("opens a confirmation modal when Clear All is clicked", async () => {
@@ -180,7 +181,9 @@ describe("RoundPlayerList", () => {
       await user.click(screen.getByRole("button", { name: "Clear All" }));
 
       expect(screen.getByRole("dialog")).toBeInTheDocument();
-      expect(screen.getByText(/Are you sure you want to clear all players/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Are you sure you want to clear all players/),
+      ).toBeInTheDocument();
     });
 
     it("does not call deleteMutation when Cancel is clicked in the modal", async () => {
@@ -224,7 +227,9 @@ describe("RoundPlayerList", () => {
       await user.click(screen.getByRole("button", { name: "Clear All" }));
       // Click the red Confirm button inside the modal
       const dialog = screen.getByRole("dialog");
-      await user.click(within(dialog).getByRole("button", { name: "Clear All" }));
+      await user.click(
+        within(dialog).getByRole("button", { name: "Clear All" }),
+      );
 
       expect(deleteMutation.mutate).toHaveBeenCalled();
       expect(onDraftCleared).toHaveBeenCalled();

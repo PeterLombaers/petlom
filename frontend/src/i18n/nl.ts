@@ -1,0 +1,108 @@
+import type { TranslationSchema } from "./en";
+
+const nl: TranslationSchema = {
+  nav: {
+    competitions: "Competities",
+    players: "Spelers",
+  },
+  auth: {
+    moderatorLogin: "Moderator login",
+    username: "Gebruikersnaam",
+    password: "Wachtwoord",
+    login: "Inloggen",
+    logout: "Uitloggen",
+    invalidCredentials: "Ongeldige gebruikersnaam of wachtwoord.",
+  },
+  common: {
+    loading: "Laden...",
+    error: "Fout",
+    notFound: "404 Niet gevonden",
+    actions: "Acties",
+    name: "Naam",
+    cancel: "Annuleren",
+    edit: "Bewerken",
+    save: "Opslaan",
+    add: "Toevoegen",
+    delete: "Verwijderen",
+    toggleColorScheme: "Kleurschema wisselen",
+    valueRequired: "Waarde mag niet leeg zijn",
+  },
+  create: {
+    addEntity: "{{entityType}} toevoegen",
+    addNewEntity: "Nieuwe {{entityType}} toevoegen",
+    saveAndClose: "Opslaan en sluiten",
+    saveAndAddAnother: "Opslaan en nog een toevoegen",
+  },
+  delete: {
+    confirmDelete: "Verwijdering bevestigen",
+    confirmPrompt: "Wil je de {{entityType}} {{entityName}} verwijderen?",
+    irreversiblePrompt:
+      "Deze actie is onomkeerbaar. Typ {{entityName}} om te bevestigen.",
+    deleteEntity: "{{entityName}} verwijderen",
+  },
+  table: {
+    noEntitiesYet: "Nog geen {{entityType}}.",
+  },
+  competition: {
+    noRoundsYet: "Nog geen rondes.",
+    createPairingRound1: "Indeling maken voor ronde 1",
+    createPairingRoundN: "Indeling maken voor ronde {{nextRound}}",
+    showPlayers: "Spelers tonen",
+    hidePlayers: "Spelers verbergen",
+    roundLabel: "Ronde {{currentRound}}",
+    createdDate: "Aangemaakt op",
+    updatedDate: "Bijgewerkt op",
+  },
+  ranking: {
+    title: "Klassement",
+    titleAfterRound: "Klassement na ronde {{roundNr}}",
+    position: "#",
+    player: "Speler",
+    points: "Punten",
+    games: "Partijen",
+    saldo: "Saldo",
+    colorSaldo: "Kleursaldo",
+    wins: "W",
+    draws: "R",
+    losses: "V",
+    noData: "Nog geen klassementsgegevens.",
+  },
+  roundPlayers: {
+    titleReadOnly: "Spelers ({{playerCount}})",
+    titleEdit: "Spelerslijst voor ronde {{roundNr}} ({{playerCount}} spelers)",
+    loadingList: "Spelerslijst laden...",
+    errorLoading: "Fout bij laden spelerslijst.",
+    player: "Speler",
+    bye: "Bye",
+    selectPlayers: "Spelers selecteren...",
+    add: "Toevoegen",
+    oddPlayersWarning:
+      "Oneven aantal spelers. Selecteer een vrijgestelde speler voordat je de indeling genereert.",
+    generating: "Genereren...",
+    generatePairing: "Indeling genereren voor ronde {{roundNr}}",
+    clearAll: "Alles wissen",
+    clearAllPlayers: "Alle spelers wissen",
+    confirmClearAll:
+      "Weet je zeker dat je alle spelers voor deze ronde wilt wissen?",
+  },
+  match: {
+    boardMin: "Bord moet minimaal 1 zijn",
+    boardDuplicate: "Bord {{board}} bestaat al in deze ronde",
+    whiteRequired: "Witte speler is verplicht",
+    blackRequired: "Zwarte speler is verplicht",
+    board: "Bord",
+    white: "Wit",
+    black: "Zwart",
+    roundTitle: "{{competitionName}} — Ronde {{round}}",
+  },
+  entityType: {
+    player: "speler",
+    player_plural: "spelers",
+    competition: "competitie",
+    competition_plural: "competities",
+    match: "partij",
+    match_plural: "partijen",
+  },
+};
+
+export default nl;

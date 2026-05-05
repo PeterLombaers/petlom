@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import "./i18n/index";
 
 const { getComputedStyle } = window;
 window.getComputedStyle = (elt) => getComputedStyle(elt);

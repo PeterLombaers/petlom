@@ -1,5 +1,6 @@
 import { ActionIcon, Group } from "@mantine/core";
 import { IconPencil, IconCheck, IconX } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 
 interface EditButtonProps {
   isEditing: boolean;
@@ -16,9 +17,14 @@ export function EditButton({
   onSave,
   onCancel,
 }: EditButtonProps) {
+  const { t } = useTranslation();
   if (!isEditing) {
     return (
-      <ActionIcon onClick={onEdit} disabled={isPending} aria-label="Edit">
+      <ActionIcon
+        onClick={onEdit}
+        disabled={isPending}
+        aria-label={t("common.edit")}
+      >
         <IconPencil size={18} />
       </ActionIcon>
     );
@@ -26,10 +32,18 @@ export function EditButton({
 
   return (
     <Group>
-      <ActionIcon onClick={onSave} disabled={isPending} aria-label="Save">
+      <ActionIcon
+        onClick={onSave}
+        disabled={isPending}
+        aria-label={t("common.save")}
+      >
         <IconCheck size={18} />
       </ActionIcon>
-      <ActionIcon onClick={onCancel} disabled={isPending} aria-label="Cancel">
+      <ActionIcon
+        onClick={onCancel}
+        disabled={isPending}
+        aria-label={t("common.cancel")}
+      >
         <IconX size={18} />
       </ActionIcon>
     </Group>

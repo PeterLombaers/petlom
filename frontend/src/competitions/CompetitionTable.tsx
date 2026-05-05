@@ -7,48 +7,53 @@ import {
   createReadOnlyDateCell,
   createNonEmptyStringValidator,
 } from "@/components/cellConfigs";
+import { useTranslation } from "react-i18next";
 import { useCompetitions } from "./useCompetitions";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
-const validateCompetitionName = createNonEmptyStringValidator("name");
-
-const createDialogConfig: CreateDialogConfig<{ name: string }> = {
-  getInitialFormData: () => ({ name: "" }),
-  validateForm: (formData) => {
-    const errors: Record<string, string> = {};
-    validateCompetitionName(formData.name, errors);
-    return errors;
-  },
-  sanitizeForm: (formData) => ({ ...formData, name: formData.name.trim() }),
-  getRequestBody: (formData) => ({ ...formData, type: "simkro" }),
-  renderContent: ({ formData, errors, onChange }) => (
-    <TextInput
-      autoFocus
-      required
-      name="competition-name"
-      id="competition-name"
-      label="Name"
-      value={formData.name}
-      error={errors.name || undefined}
-      onChange={(e) => onChange("name", e.target.value)}
-    />
-  ),
-};
-
-const sanitizeData = (competition: CompetitionPublic) => ({
-  ...competition,
-  name: competition.name.trim(),
-});
-const validateData = (competition: CompetitionPublic) => {
-  const errors: Record<string, string> = {};
-  validateCompetitionName(competition.name, errors);
-  return errors;
-};
-const getRequestBody = (competition: CompetitionPublic) => competition;
-
 export default function CompetitionTable() {
+  const { t } = useTranslation();
   const queryResult = useCompetitions();
+
+  const validateCompetitionName = createNonEmptyStringValidator(
+    "name",
+    t("common.valueRequired"),
+  );
+
+  const createDialogConfig: CreateDialogConfig<{ name: string }> = {
+    getInitialFormData: () => ({ name: "" }),
+    validateForm: (formData) => {
+      const errors: Record<string, string> = {};
+      validateCompetitionName(formData.name, errors);
+      return errors;
+    },
+    sanitizeForm: (formData) => ({ ...formData, name: formData.name.trim() }),
+    getRequestBody: (formData) => ({ ...formData, type: "simkro" }),
+    renderContent: ({ formData, errors, onChange }) => (
+      <TextInput
+        autoFocus
+        required
+        name="competition-name"
+        id="competition-name"
+        label={t("common.name")}
+        value={formData.name}
+        error={errors.name || undefined}
+        onChange={(e) => onChange("name", e.target.value)}
+      />
+    ),
+  };
+
+  const sanitizeData = (competition: CompetitionPublic) => ({
+    ...competition,
+    name: competition.name.trim(),
+  });
+  const validateData = (competition: CompetitionPublic) => {
+    const errors: Record<string, string> = {};
+    validateCompetitionName(competition.name, errors);
+    return errors;
+  };
+  const getRequestBody = (competition: CompetitionPublic) => competition;
 
   return (
     <EditableTable<CompetitionPublic>
@@ -59,7 +64,7 @@ export default function CompetitionTable() {
           field: "name",
           cell: createLinkTextCell(
             "competition-name",
-            "Name",
+            t("common.name"),
             (name) => `/competitions/${name}`,
           ),
           isId: true,
@@ -67,12 +72,12 @@ export default function CompetitionTable() {
         {
           field: "created_at",
           cell: createReadOnlyDateCell(),
-          header: "Created Date",
+          header: t("competition.createdDate"),
         },
         {
           field: "updated_at",
           cell: createReadOnlyDateCell(),
-          header: "Updated Date",
+          header: t("competition.updatedDate"),
         },
       ]}
       sort={(a, b) => b.updated_at.localeCompare(a.updated_at)}

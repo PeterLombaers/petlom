@@ -1,10 +1,12 @@
 import { ActionIcon, Button, Menu } from "@mantine/core";
 import { IconLogout } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth";
 
 export function AuthControls() {
   const { isModerator, username, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   if (isModerator) {
@@ -26,7 +28,7 @@ export function AuthControls() {
             color="red"
             onClick={logout}
           >
-            Log out
+            {t("auth.logout")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
@@ -36,7 +38,7 @@ export function AuthControls() {
     <Button
       onClick={() => navigate("/login", { state: { from: location.pathname } })}
     >
-      Login
+      {t("auth.login")}
     </Button>
   );
 }

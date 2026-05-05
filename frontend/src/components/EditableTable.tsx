@@ -14,7 +14,8 @@ import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
 import { useAuth } from "@/auth";
 import { formatHTTPValidationError } from "@/client/api";
-import { pluralize } from "@/utils";
+import { translateEntity } from "@/i18n/pluralizeEntity";
+import { useTranslation } from "react-i18next";
 
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 type TableDeleteConfig<T> = Omit<
@@ -87,6 +88,7 @@ export default function EditableTable<T extends object>({
   editConfig,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
+  const { t } = useTranslation();
   const [editableId, setEditableId] = useState<string | number | null>(null);
   const [columnEditField, setColumnEditField] = useState<keyof T | null>(null);
   const [columnEditValues, setColumnEditValues] = useState<
@@ -209,7 +211,7 @@ export default function EditableTable<T extends object>({
   const hasColgroup = visibleColumns.some((c) => c.width !== undefined);
   const nCols = visibleColumns.length + (activeEditConfig ? 1 : 0);
   const showCreate = isModerator && createConfig !== undefined;
-  const tableTitle = title || pluralize(entityType);
+  const tableTitle = title || translateEntity(t, entityType, true);
 
   return (
     <Paper withBorder>
@@ -279,7 +281,7 @@ export default function EditableTable<T extends object>({
                 </Table.Th>
               );
             })}
-            {activeEditConfig && <Table.Th>Actions</Table.Th>}
+            {activeEditConfig && <Table.Th>{t("common.actions")}</Table.Th>}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -316,7 +318,9 @@ export default function EditableTable<T extends object>({
           ) : (
             <Table.Tr>
               <Table.Td colSpan={nCols} c="dimmed" ta="center">
-                No {pluralize(entityType)} yet.
+                {t("table.noEntitiesYet", {
+                  entityType: translateEntity(t, entityType, true),
+                })}
               </Table.Td>
             </Table.Tr>
           )}

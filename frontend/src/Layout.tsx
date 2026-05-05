@@ -12,16 +12,19 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { IconMoon, IconSun, IconTrophy, IconUsers } from "@tabler/icons-react";
 import { useCompetitions } from "@/competitions/useCompetitions";
 import { AuthControls } from "@/components/AuthControls";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { PetlomLogo } from "@/components/PetlomLogo";
+import { useTranslation } from "react-i18next";
 
 function ThemeToggle() {
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const { t } = useTranslation();
   return (
     <ActionIcon
       onClick={toggleColorScheme}
       variant="subtle"
       size="lg"
-      aria-label="Toggle color scheme"
+      aria-label={t("common.toggleColorScheme")}
     >
       {colorScheme === "dark" ? <IconSun size={18} /> : <IconMoon size={18} />}
     </ActionIcon>
@@ -32,6 +35,7 @@ function CompetitionNavLinks() {
   const { rows: competitions } = useCompetitions();
   const { pathname } = useLocation();
   const { colorScheme } = useMantineColorScheme();
+  const { t } = useTranslation();
   const borderColor =
     colorScheme === "dark"
       ? "var(--mantine-color-red-9)"
@@ -46,7 +50,7 @@ function CompetitionNavLinks() {
   return (
     <>
       <NavLink
-        label="Competitions"
+        label={t("nav.competitions")}
         leftSection={<IconTrophy size={16} />}
         component={Link}
         to="/competitions"
@@ -82,6 +86,7 @@ function CompetitionNavLinks() {
 export default function Layout() {
   const [navOpen, { toggle: toggleNavOpen }] = useDisclosure();
   const { pathname } = useLocation();
+  const { t } = useTranslation();
 
   return (
     <AppShell
@@ -101,6 +106,7 @@ export default function Layout() {
             <PetlomLogo size={50} />
           </Group>
           <Group>
+            <LanguageSwitcher />
             <ThemeToggle />
             <AuthControls />
           </Group>
@@ -109,7 +115,7 @@ export default function Layout() {
       <AppShell.Navbar p="xs">
         <CompetitionNavLinks />
         <NavLink
-          label="Players"
+          label={t("nav.players")}
           leftSection={<IconUsers size={16} />}
           component={Link}
           to="/players"

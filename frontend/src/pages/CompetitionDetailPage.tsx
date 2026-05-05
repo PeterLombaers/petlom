@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchList } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
@@ -37,9 +38,10 @@ function CompetitionDetail({
   const { data: competition, isPending, isError } = useCompetition(name);
   const navigate = useNavigate();
   const { isModerator } = useAuth();
+  const { t } = useTranslation();
   const [playersVisible, setPlayersVisible] = useState(false);
 
-  if (isPending) return <Text>Loading...</Text>;
+  if (isPending) return <Text>{t("common.loading")}</Text>;
   if (isError || !competition) return <NotFoundPage />;
 
   const nRounds = competition.n_rounds;
@@ -54,7 +56,11 @@ function CompetitionDetail({
   if (isDraftRound) {
     return (
       <Stack>
-        <CompetitionBreadcrumbs name={name} currentRound={currentRound} nRounds={nRounds} />
+        <CompetitionBreadcrumbs
+          name={name}
+          currentRound={currentRound}
+          nRounds={nRounds}
+        />
         <RoundPlayerList
           competitionName={name}
           roundNr={currentRound}
@@ -69,10 +75,10 @@ function CompetitionDetail({
     return (
       <Stack>
         <CompetitionBreadcrumbs name={name} currentRound={0} nRounds={0} />
-        <Text>No rounds yet.</Text>
+        <Text>{t("competition.noRoundsYet")}</Text>
         {isModerator && (
           <Button onClick={() => navigate(nextRoundUrl)}>
-            Create pairing for round 1
+            {t("competition.createPairingRound1")}
           </Button>
         )}
       </Stack>
@@ -82,20 +88,25 @@ function CompetitionDetail({
   const isLatestRound = currentRound === nRounds;
 
   const handleRoundChange = (roundValue: number) => {
-    navigate(roundValue === nRounds
-      ? backUrl
-      : `/competitions/${name}/round/${roundValue}`
+    navigate(
+      roundValue === nRounds
+        ? backUrl
+        : `/competitions/${name}/round/${roundValue}`,
     );
   };
 
   const roundOptions = Array.from({ length: nRounds }, (_, i) => ({
     value: String(i + 1),
-    label: `Round ${i + 1}`,
+    label: t("competition.roundLabel", { currentRound: i + 1 }),
   }));
 
   return (
     <Stack>
-      <CompetitionBreadcrumbs name={name} currentRound={currentRound} nRounds={nRounds} />
+      <CompetitionBreadcrumbs
+        name={name}
+        currentRound={currentRound}
+        nRounds={nRounds}
+      />
 
       <Group>
         <Select
@@ -105,17 +116,26 @@ function CompetitionDetail({
         />
         {isModerator && isLatestRound ? (
           <Button onClick={() => navigate(nextRoundUrl)}>
-            Create pairing for round {nextRound}
+            {t("competition.createPairingRoundN", { nextRound })}
           </Button>
         ) : (
-          <Button variant="default" onClick={() => setPlayersVisible((v) => !v)}>
-            {playersVisible ? "Hide players" : "Show players"}
+          <Button
+            variant="default"
+            onClick={() => setPlayersVisible((v) => !v)}
+          >
+            {playersVisible
+              ? t("competition.hidePlayers")
+              : t("competition.showPlayers")}
           </Button>
         )}
       </Group>
 
       <Collapse expanded={playersVisible}>
-        <RoundPlayerList competitionName={name} roundNr={currentRound} readOnly />
+        <RoundPlayerList
+          competitionName={name}
+          roundNr={currentRound}
+          readOnly
+        />
       </Collapse>
       <MatchList competition_name={name} round={currentRound} />
       <RankingTable competitionName={name} roundNr={currentRound} />
@@ -132,14 +152,19 @@ function CompetitionBreadcrumbs({
   currentRound: number;
   nRounds: number;
 }) {
+  const { t } = useTranslation();
   const nameIsLink = currentRound !== nRounds;
   return (
     <Breadcrumbs>
-      <Anchor href="/competitions">Competitions</Anchor>
-      {nameIsLink
-        ? <Anchor href={`/competitions/${name}`}>{name}</Anchor>
-        : <Text>{name}</Text>}
-      {nameIsLink && <Text>Round {currentRound}</Text>}
+      <Anchor href="/competitions">{t("nav.competitions")}</Anchor>
+      {nameIsLink ? (
+        <Anchor href={`/competitions/${name}`}>{name}</Anchor>
+      ) : (
+        <Text>{name}</Text>
+      )}
+      {nameIsLink && (
+        <Text>{t("competition.roundLabel", { currentRound })}</Text>
+      )}
     </Breadcrumbs>
   );
 }

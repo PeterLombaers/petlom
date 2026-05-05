@@ -1,4 +1,5 @@
 import { Paper, Table, Text } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { formatHTTPValidationError } from "@/client/api";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -11,6 +12,7 @@ export default function RankingTable({
   competitionName: string;
   roundNr?: number;
 }) {
+  const { t } = useTranslation();
   const {
     data: ranking,
     isPending,
@@ -29,21 +31,21 @@ export default function RankingTable({
             <Table.Td colSpan={9}>
               <Text>
                 {roundNr !== undefined
-                  ? `Ranking after round ${roundNr}`
-                  : "Ranking"}
+                  ? t("ranking.titleAfterRound", { roundNr })
+                  : t("ranking.title")}
               </Text>
             </Table.Td>
           </Table.Tr>
           <Table.Tr>
-            <Table.Th>#</Table.Th>
-            <Table.Th>Player</Table.Th>
-            <Table.Th>Points</Table.Th>
-            <Table.Th>Games</Table.Th>
-            <Table.Th>Saldo</Table.Th>
-            <Table.Th>Color saldo</Table.Th>
-            <Table.Th>W</Table.Th>
-            <Table.Th>D</Table.Th>
-            <Table.Th>L</Table.Th>
+            <Table.Th>{t("ranking.position")}</Table.Th>
+            <Table.Th>{t("ranking.player")}</Table.Th>
+            <Table.Th>{t("ranking.points")}</Table.Th>
+            <Table.Th>{t("ranking.games")}</Table.Th>
+            <Table.Th>{t("ranking.saldo")}</Table.Th>
+            <Table.Th>{t("ranking.colorSaldo")}</Table.Th>
+            <Table.Th>{t("ranking.wins")}</Table.Th>
+            <Table.Th>{t("ranking.draws")}</Table.Th>
+            <Table.Th>{t("ranking.losses")}</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -64,7 +66,7 @@ export default function RankingTable({
           ) : (
             <Table.Tr>
               <Table.Td colSpan={9} c="dimmed" ta="center">
-                No ranking data yet.
+                {t("ranking.noData")}
               </Table.Td>
             </Table.Tr>
           )}

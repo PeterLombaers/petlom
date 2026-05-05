@@ -11,11 +11,13 @@ import {
   TextInput,
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import { PetlomLogo } from "@/components/PetlomLogo";
 import { useAuth } from "@/auth";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string })?.from ?? "/competitions";
@@ -32,7 +34,7 @@ export default function LoginPage() {
       await login(username, password);
       navigate(from, { replace: true });
     } catch {
-      setError("Invalid username or password.");
+      setError(t("auth.invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -44,7 +46,7 @@ export default function LoginPage() {
         <Stack align="center" gap={4}>
           <PetlomLogo size={80} />
           <Text c="dimmed" size="sm">
-            Moderator login
+            {t("auth.moderatorLogin")}
           </Text>
         </Stack>
         <Card withBorder shadow="sm">
@@ -55,14 +57,14 @@ export default function LoginPage() {
               </Alert>
             )}
             <TextInput
-              label="Username"
+              label={t("auth.username")}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoFocus
               required
             />
             <PasswordInput
-              label="Password"
+              label={t("auth.password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -74,7 +76,7 @@ export default function LoginPage() {
               fullWidth
               mt="xs"
             >
-              Login
+              {t("auth.login")}
             </Button>
           </Stack>
         </Card>

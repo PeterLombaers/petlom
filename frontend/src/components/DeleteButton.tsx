@@ -9,7 +9,9 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 import { IconTrash } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import { formatHTTPValidationError } from "@/client/api";
+import { translateEntity } from "@/i18n/pluralizeEntity";
 import { AnyMutation } from "./types";
 
 interface DeleteButtonProps {
@@ -27,6 +29,7 @@ export default function DeleteButton({
   mutation,
   requireTypedConfirmation = true,
 }: DeleteButtonProps) {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmDialogInput, setConfirmDialogInput] = useState("");
 
@@ -67,24 +70,23 @@ export default function DeleteButton({
         onClick={handleDialogOpen}
         disabled={mutation.isPending}
         color="red"
-        aria-label="Delete"
+        aria-label={t("common.delete")}
       >
         <IconTrash size={18} />
       </ActionIcon>
       <Modal
         opened={dialogOpen}
         onClose={handleDialogClose}
-        title="Confirm Delete"
+        title={t("delete.confirmDelete")}
       >
         <Stack>
           <Text>
-            Do you want to delete the {entityType} {entityName}?
+            {t("delete.confirmPrompt", {
+              entityType: translateEntity(t, entityType),
+              entityName,
+            })}
             {requireTypedConfirmation && (
-              <>
-                {" "}
-                This action is irreversible. Type <b>{entityName}</b> to
-                confirm.
-              </>
+              <> {t("delete.irreversiblePrompt", { entityName })}</>
             )}
           </Text>
           {requireTypedConfirmation && (
@@ -93,7 +95,7 @@ export default function DeleteButton({
               required
               name={`${entityType}-name`}
               id={`${entityType}-name`}
-              label="Name"
+              label={t("common.name")}
               value={confirmDialogInput}
               onChange={(e) => setConfirmDialogInput(e.target.value)}
             />
@@ -103,7 +105,7 @@ export default function DeleteButton({
               onClick={handleDelete}
               disabled={!isConfirmed || mutation.isPending}
             >
-              Delete {entityName}
+              {t("delete.deleteEntity", { entityName })}
             </Button>
           </Group>
         </Stack>

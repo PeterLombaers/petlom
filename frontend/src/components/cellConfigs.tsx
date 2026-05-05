@@ -104,8 +104,9 @@ export const createLinkTextCell = (
 });
 
 export const createNonEmptyStringValidator =
-  (field: string) => (value: string, errors: Record<string, string>) => {
+  (field: string, message = "Value should not be empty") =>
+  (value: string, errors: Record<string, string>) => {
     if (!value) {
-      errors[field] = "Value should not be empty";
+      errors[field] = message;
     }
   };

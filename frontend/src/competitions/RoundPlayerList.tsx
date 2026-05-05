@@ -9,10 +9,10 @@ import {
   Stack,
   Table,
   Text,
-  Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconCheck, IconTrash } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import { $api } from "@client/api";
 import { components } from "@/client/schema";
 import { useRoundPlayers } from "./useRoundPlayers";
@@ -33,6 +33,7 @@ export default function RoundPlayerList({
   onPairingCreated?: () => void;
   onDraftCleared?: () => void;
 }) {
+  const { t } = useTranslation();
   const {
     roundPlayers,
     isPending,
@@ -51,8 +52,9 @@ export default function RoundPlayerList({
     enabled: !readOnly,
   });
 
-  if (isPending) return <Text>Loading player list...</Text>;
-  if (isError || !roundPlayers) return <Text>Error loading player list.</Text>;
+  if (isPending) return <Text>{t("roundPlayers.loadingList")}</Text>;
+  if (isError || !roundPlayers)
+    return <Text>{t("roundPlayers.errorLoading")}</Text>;
 
   // Derived state shared by both modes.
   const playerCount = roundPlayers.length;
@@ -63,12 +65,11 @@ export default function RoundPlayerList({
   if (readOnly) {
     return (
       <Stack>
-        <Title order={3}>Players ({playerCount})</Title>
         <Table>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Player</Table.Th>
-              {hasBye && <Table.Th>Bye</Table.Th>}
+              <Table.Th>{t("roundPlayers.player")}</Table.Th>
+              {hasBye && <Table.Th>{t("roundPlayers.bye")}</Table.Th>}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -103,17 +104,26 @@ export default function RoundPlayerList({
   const handleAddPlayers = () => {
     if (!selectedPlayerIds.length) return;
     updateMutation.mutate(
-      { ...roundParams, body: { player_ids_to_add: selectedPlayerIds.map(Number) } },
+      {
+        ...roundParams,
+        body: { player_ids_to_add: selectedPlayerIds.map(Number) },
+      },
       { onSuccess: () => setSelectedPlayerIds([]) },
     );
   };
 
   const handleRemovePlayer = (playerId: number) => {
-    updateMutation.mutate({ ...roundParams, body: { player_ids_to_remove: [playerId] } });
+    updateMutation.mutate({
+      ...roundParams,
+      body: { player_ids_to_remove: [playerId] },
+    });
   };
 
   const handleSetBye = (playerId: number) => {
-    updateMutation.mutate({ ...roundParams, body: { bye_player_id: playerId } });
+    updateMutation.mutate({
+      ...roundParams,
+      body: { bye_player_id: playerId },
+    });
   };
 
   const handleClearBye = () => {
@@ -125,30 +135,39 @@ export default function RoundPlayerList({
       .filter((rp: RoundPlayerPublic) => !rp.is_bye)
       .map((rp: RoundPlayerPublic) => rp.player.id);
     createPairingMutation.mutate(
-      { params: { path: { name: competitionName } }, body: { round_nr: roundNr, player_ids: playerIds } },
+      {
+        params: { path: { name: competitionName } },
+        body: { round_nr: roundNr, player_ids: playerIds },
+      },
       { onSuccess: onPairingCreated },
     );
   };
 
   const handleConfirmClearAll = () => {
     deleteMutation.mutate(
-      { params: { path: { name: competitionName }, query: { round_nr: roundNr } } },
-      { onSuccess: () => { closeClearModal(); onDraftCleared?.(); } },
+      {
+        params: {
+          path: { name: competitionName },
+          query: { round_nr: roundNr },
+        },
+      },
+      {
+        onSuccess: () => {
+          closeClearModal();
+          onDraftCleared?.();
+        },
+      },
     );
   };
 
   return (
     <Stack>
-      <Title>
-        Player list for round {roundNr} ({playerCount} players)
-      </Title>
-
       <Table>
         <Table.Thead>
           <Table.Tr>
-            <Table.Th>Player</Table.Th>
-            {isOdd && <Table.Th>Bye</Table.Th>}
-            <Table.Th>Actions</Table.Th>
+            <Table.Th>{t("roundPlayers.player")}</Table.Th>
+            {isOdd && <Table.Th>{t("roundPlayers.bye")}</Table.Th>}
+            <Table.Th>{t("common.actions")}</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -159,7 +178,9 @@ export default function RoundPlayerList({
                 <Table.Td>
                   <Radio
                     checked={rp.is_bye}
-                    onChange={() => rp.is_bye ? handleClearBye() : handleSetBye(rp.player.id)}
+                    onChange={() =>
+                      rp.is_bye ? handleClearBye() : handleSetBye(rp.player.id)
+                    }
                   />
                 </Table.Td>
               )}
@@ -174,7 +195,11 @@ export default function RoundPlayerList({
             <Table.Td colSpan={isOdd ? 3 : 2}>
               <div
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !comboboxOpen && selectedPlayerIds.length) {
+                  if (
+                    e.key === "Enter" &&
+                    !comboboxOpen &&
+                    selectedPlayerIds.length
+                  ) {
                     handleAddPlayers();
                   }
                 }}
@@ -188,14 +213,19 @@ export default function RoundPlayerList({
                     onDropdownClose={() => setComboboxOpen(false)}
                     searchable
                     clearable
-                    placeholder="Select players..."
-                    comboboxProps={{ width: "max-content", position: "bottom-start" }}
+                    placeholder={t("roundPlayers.selectPlayers")}
+                    comboboxProps={{
+                      width: "max-content",
+                      position: "bottom-start",
+                    }}
                   />
                   <Button
                     onClick={handleAddPlayers}
-                    disabled={!selectedPlayerIds.length || updateMutation.isPending}
+                    disabled={
+                      !selectedPlayerIds.length || updateMutation.isPending
+                    }
                   >
-                    Add
+                    {t("roundPlayers.add")}
                   </Button>
                 </Group>
               </div>
@@ -205,9 +235,7 @@ export default function RoundPlayerList({
       </Table>
 
       {isOdd && !byePlayer && (
-        <Alert>
-          Odd number of players. Select a bye player before generating the pairing.
-        </Alert>
+        <Alert>{t("roundPlayers.oddPlayersWarning")}</Alert>
       )}
 
       <Group>
@@ -216,20 +244,30 @@ export default function RoundPlayerList({
           disabled={!canGenerate || createPairingMutation.isPending}
         >
           {createPairingMutation.isPending
-            ? "Generating..."
-            : `Generate pairing for round ${roundNr}`}
+            ? t("roundPlayers.generating")
+            : t("roundPlayers.generatePairing", { roundNr })}
         </Button>
         <Button variant="default" onClick={openClearModal}>
-          Clear All
+          {t("roundPlayers.clearAll")}
         </Button>
       </Group>
 
-      <Modal opened={clearModalOpened} onClose={closeClearModal} title="Clear all players">
-        <Text>Are you sure you want to clear all players for this round?</Text>
+      <Modal
+        opened={clearModalOpened}
+        onClose={closeClearModal}
+        title={t("roundPlayers.clearAllPlayers")}
+      >
+        <Text>{t("roundPlayers.confirmClearAll")}</Text>
         <Group mt="md" justify="flex-end">
-          <Button variant="default" onClick={closeClearModal}>Cancel</Button>
-          <Button color="red" onClick={handleConfirmClearAll} loading={deleteMutation.isPending}>
-            Clear All
+          <Button variant="default" onClick={closeClearModal}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            color="red"
+            onClick={handleConfirmClearAll}
+            loading={deleteMutation.isPending}
+          >
+            {t("roundPlayers.clearAll")}
           </Button>
         </Group>
       </Modal>

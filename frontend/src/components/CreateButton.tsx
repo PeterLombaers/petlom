@@ -1,10 +1,12 @@
 import { ActionIcon, Divider, Group, Modal, Stack } from "@mantine/core";
 import { useState } from "react";
 import { IconPlus, IconCheck, IconCirclePlus } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import {
   formatHTTPValidationError,
   parseHTTPValidationErrors,
 } from "@/client/api";
+import { translateEntity } from "@/i18n/pluralizeEntity";
 import { AnyMutation } from "./types";
 
 export interface CreateDialogConfig<T = unknown> {
@@ -38,6 +40,7 @@ export function CreateButton<T = unknown>({
     renderContent,
   },
 }: CreateButtonProps<T>) {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState<T>(getInitialFormData());
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -108,14 +111,18 @@ export function CreateButton<T = unknown>({
       <ActionIcon
         onClick={handleDialogOpen}
         disabled={mutation.isPending}
-        aria-label={`Add ${entityType}`}
+        aria-label={t("create.addEntity", {
+          entityType: translateEntity(t, entityType),
+        })}
       >
         <IconPlus size={18} />
       </ActionIcon>
       <Modal
         opened={dialogOpen}
         onClose={handleDialogClose}
-        title={`Add new ${entityType}`}
+        title={t("create.addNewEntity", {
+          entityType: translateEntity(t, entityType),
+        })}
         onKeyDown={handleKeyDown}
       >
         <Stack>
@@ -129,16 +136,16 @@ export function CreateButton<T = unknown>({
             <ActionIcon
               onClick={() => handleSubmit(false)}
               disabled={mutation.isPending}
-              aria-label="Save and close"
-              title="Save and close"
+              aria-label={t("create.saveAndClose")}
+              title={t("create.saveAndClose")}
             >
               <IconCheck size={18} />
             </ActionIcon>
             <ActionIcon
               onClick={() => handleSubmit(true)}
               disabled={mutation.isPending}
-              aria-label="Save and add another"
-              title="Save and add another"
+              aria-label={t("create.saveAndAddAnother")}
+              title={t("create.saveAndAddAnother")}
             >
               <IconCirclePlus size={18} />
             </ActionIcon>

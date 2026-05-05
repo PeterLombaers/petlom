@@ -1,4 +1,5 @@
 import { NumberInput, Stack } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { components } from "@client/schema";
 import EditableTable from "@components/EditableTable";
 import {
@@ -28,20 +29,6 @@ const emptyPlayer: PlayerPublicMinimal = { id: 0, name: "", is_active: true };
 
 const sanitizeData = (match: MatchPublic) => match;
 
-const validateData = (match: MatchPublic) => {
-  const errors: Partial<Record<keyof MatchPublic, string>> = {};
-  if (!match.player_white?.id) {
-    errors.player_white = "White player is required";
-  }
-  if (!match.player_black?.id) {
-    errors.player_black = "Black player is required";
-  }
-  if (!match.board || match.board < 1) {
-    errors.board = "Board must be at least 1";
-  }
-  return errors;
-};
-
 const getRequestBody = (match: MatchPublic) => ({
   player_white_id: match.player_white.id,
   player_black_id: match.player_black.id,
@@ -50,10 +37,19 @@ const getRequestBody = (match: MatchPublic) => ({
 });
 
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
+  const { t } = useTranslation();
   const queryResult = useMatches(competition_name, round);
   const matchList = queryResult.rows ?? [];
   const maxBoard =
     matchList.length > 0 ? Math.max(...matchList.map((m) => m.board)) : 0;
+
+  const validateData = (match: MatchPublic) => {
+    const errors: Partial<Record<keyof MatchPublic, string>> = {};
+    if (!match.player_white?.id) errors.player_white = t("match.whiteRequired");
+    if (!match.player_black?.id) errors.player_black = t("match.blackRequired");
+    if (!match.board || match.board < 1) errors.board = t("match.boardMin");
+    return errors;
+  };
 
   const createDialogConfig: CreateDialogConfig<MatchFormData> = {
     getInitialFormData: () => ({
@@ -69,15 +65,15 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
     validateForm: (formData) => {
       const errors: Record<string, string> = {};
       if (formData.board === null || formData.board < 1) {
-        errors.board = "Board must be at least 1";
+        errors.board = t("match.boardMin");
       } else if (matchList.some((m) => m.board === formData.board)) {
-        errors.board = `Board ${formData.board} already exists in this round`;
+        errors.board = t("match.boardDuplicate", { board: formData.board });
       }
       if (!formData.player_white || !formData.player_white.id) {
-        errors.player_white = "White player is required";
+        errors.player_white = t("match.whiteRequired");
       }
       if (!formData.player_black || !formData.player_black.id) {
-        errors.player_black = "Black player is required";
+        errors.player_black = t("match.blackRequired");
       }
       return errors;
     },
@@ -120,16 +116,21 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
       entityType="match"
       columns={[
         { field: "id", isId: true, hidden: true },
-        { field: "board", cell: createNumberCell("board"), width: 80 },
+        {
+          field: "board",
+          cell: createNumberCell("board"),
+          header: t("match.board"),
+          width: 80,
+        },
         {
           field: "player_white",
           cell: createPlayerSelectCell(),
-          header: "White",
+          header: t("match.white"),
         },
         {
           field: "player_black",
           cell: createPlayerSelectCell(),
-          header: "Black",
+          header: t("match.black"),
         },
         {
           field: "result",
@@ -138,7 +139,10 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
           isEditable: true,
         },
       ]}
-      title={`${competition_name} — Round ${round}`}
+      title={t("match.roundTitle", {
+        competitionName: competition_name,
+        round,
+      })}
       createConfig={createDialogConfig}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{
