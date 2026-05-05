@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -22,59 +22,6 @@ class RatingAlgorithm(str, Enum):
 
 
 # ---------------------------------------------------------------------------
-# External rating type + rating
-# ---------------------------------------------------------------------------
-
-
-class ExternalRatingType(str, Enum):
-    FIDE = "fide"
-    KNSB = "knsb"
-
-
-class ExternalRating(SQLModel, table=True):
-    """The rating of a player at a specific date for an external rating type.
-
-    Database table for storing the external rating of players at a given point in time.
-    It can be used to query the most recent rating of players, the rating at the start
-    of a competition or similar queries."""
-
-    __table_args__ = (UniqueConstraint("player_id", "rating_type", "date"),)
-    id: int | None = Field(default=None, primary_key=True)
-    player_id: int = Field(foreign_key="player.id", ondelete="CASCADE")
-    rating_type: ExternalRatingType
-    rating: float
-    date: date
-    external_player_id: str | None = Field(
-        default=None,
-        description=(
-            "External identifier for the player from the provider of the external"
-            " rating."
-        ),
-    )
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-
-    player: "Player" = Relationship(back_populates="external_ratings")
-
-
-class ExternalRatingPublic(SQLModel):
-    id: int
-    rating_type: ExternalRatingType
-    rating: float
-    date: date
-    external_player_id: str | None
-    created_at: datetime
-    updated_at: datetime
-
-
-class ExternalRatingInput(SQLModel):
-    rating_type: ExternalRatingType
-    rating: float
-    date: date
-    external_player_id: str | None = None
-
-
-# ---------------------------------------------------------------------------
 # Competition rating type + rating
 # ---------------------------------------------------------------------------
 
@@ -95,14 +42,7 @@ class CompetitionRatingType(SQLModel, table=True):
         default=None,
         description=(
             "Initial rating that should be used for players for which no manual rating"
-            " is provided and no external rating can be found."
-        ),
-    )
-    source_external_rating_type: ExternalRatingType | None = Field(
-        default=None,
-        description=(
-            "External rating type which should be used to provide an initial rating for"
-            " players if no manual rating is provided."
+            " is provided."
         ),
     )
     created_at: datetime = Field(default_factory=datetime.now)
@@ -119,7 +59,6 @@ class CompetitionRatingTypeCreate(SQLModel):
     algorithm: RatingAlgorithm
     algorithm_config: dict[str, Any] | None = None
     default_initial_rating: float | None = None
-    source_external_rating_type: ExternalRatingType | None = None
 
 
 class CompetitionRatingTypePublic(SQLModel):
@@ -129,7 +68,6 @@ class CompetitionRatingTypePublic(SQLModel):
     algorithm_config: dict[str, Any] | None
     competition_name: str
     default_initial_rating: float | None
-    source_external_rating_type: ExternalRatingType | None
     created_at: datetime
     updated_at: datetime
 
@@ -139,7 +77,6 @@ class CompetitionRatingTypeUpdate(SQLModel):
     algorithm: RatingAlgorithm | None = None
     algorithm_config: dict[str, Any] | None = None
     default_initial_rating: float | None = None
-    source_external_rating_type: ExternalRatingType | None = None
 
 
 class CompetitionRating(SQLModel, table=True):
@@ -211,9 +148,6 @@ class Player(PlayerBase, table=True):
             foreign_keys="[Match.player_black_id]",
         )
     )
-    external_ratings: list[ExternalRating] = Relationship(
-        back_populates="player", cascade_delete=True
-    )
     competition_ratings: list[CompetitionRating] = Relationship(
         back_populates="player", cascade_delete=True
     )
@@ -227,14 +161,12 @@ class Player(PlayerBase, table=True):
 
 class PlayerCreate(PlayerBase):
     is_active: bool = True
-    external_ratings: list[ExternalRatingInput] | None = None
 
 
 class PlayerPublic(PlayerBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    external_ratings: list[ExternalRatingPublic]
 
 
 class PlayerPublicMinimal(SQLModel):
@@ -246,7 +178,6 @@ class PlayerPublicMinimal(SQLModel):
 class PlayerUpdate(PlayerBase):
     name: constr(strip_whitespace=True, min_length=1) | None = None
     is_active: bool | None = None
-    external_ratings: list[ExternalRatingInput] | None = None
 
 
 # ---------------------------------------------------------------------------

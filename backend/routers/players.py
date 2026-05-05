@@ -8,7 +8,6 @@ from sqlmodel import select
 from backend.auth import ModeratorDep
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
 from backend.models import (
-    ExternalRating,
     Player,
     PlayerCreate,
     PlayerPublic,
@@ -22,12 +21,8 @@ router = APIRouter(prefix="/players", tags=["players"])
 def create_player(
     player: PlayerCreate, session: SessionDep, _: ModeratorDep
 ) -> PlayerPublic:
-    external_ratings_data = player.external_ratings or []
-    db_player = Player.model_validate(player.model_dump(exclude={"external_ratings"}))
+    db_player = Player.model_validate(player.model_dump())
     session.add(db_player)
-    session.flush()
-    for rating_data in external_ratings_data:
-        session.add(ExternalRating(player_id=db_player.id, **rating_data.model_dump()))
     session.commit()
     session.refresh(db_player)
     return db_player

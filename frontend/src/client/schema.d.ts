@@ -278,49 +278,6 @@ export interface components {
             name?: string | null;
             type?: components["schemas"]["CompetitionType"] | null;
         };
-        /** ExternalRatingInput */
-        ExternalRatingInput: {
-            rating_type: components["schemas"]["ExternalRatingType"];
-            /** Rating */
-            rating: number;
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** External Player Id */
-            external_player_id?: string | null;
-        };
-        /** ExternalRatingPublic */
-        ExternalRatingPublic: {
-            /** Id */
-            id: number;
-            rating_type: components["schemas"]["ExternalRatingType"];
-            /** Rating */
-            rating: number;
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** External Player Id */
-            external_player_id: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
-        /**
-         * ExternalRatingType
-         * @enum {string}
-         */
-        ExternalRatingType: "fide" | "knsb";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -405,8 +362,6 @@ export interface components {
              * @default true
              */
             is_active: boolean;
-            /** External Ratings */
-            external_ratings?: components["schemas"]["ExternalRatingInput"][] | null;
         };
         /** PlayerPublic */
         PlayerPublic: {
@@ -429,8 +384,6 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-            /** External Ratings */
-            external_ratings: components["schemas"]["ExternalRatingPublic"][];
         };
         /** PlayerPublicMinimal */
         PlayerPublicMinimal: {
@@ -447,8 +400,6 @@ export interface components {
             name?: string | null;
             /** Is Active */
             is_active?: boolean | null;
-            /** External Ratings */
-            external_ratings?: components["schemas"]["ExternalRatingInput"][] | null;
         };
         /**
          * Result
