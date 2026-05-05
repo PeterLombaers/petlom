@@ -44,6 +44,7 @@ def test_get_competition(competition: Competition, client: TestClient):
     res.raise_for_status()
     res_competition = res.json()
     assert res_competition.pop("n_rounds") == 0
+    assert res_competition.pop("rating_type") is None
     # The response gives matches as an emtpy list, the serialized object doesn't include
     # matches in this case.
     assert res_competition == jsonable_encoder(competition)
