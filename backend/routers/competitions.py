@@ -8,11 +8,18 @@ from sqlmodel import select
 from backend.auth import ModeratorDep
 from backend.competitions.simkro import calculate_ranking, create_matchups
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
+from backend.enums import Result
 from backend.models import (
     Competition,
-    CompetitionBase,
+    CompetitionCreate,
     CompetitionPublic,
     CompetitionPublicWithNRounds,
+    CompetitionRating,
+    CompetitionRatingPublic,
+    CompetitionRatingType,
+    CompetitionRatingTypeCreate,
+    CompetitionRatingTypePublic,
+    CompetitionRatingTypeUpdate,
     CompetitionUpdate,
     Match,
     MatchPublic,
@@ -23,6 +30,7 @@ from backend.models import (
     RoundPlayerUpdate,
     SimkroRank,
 )
+from backend.ratings import calculate_ratings
 
 router = APIRouter(prefix="/competitions", tags=["competitions"])
 
@@ -34,22 +42,23 @@ def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
     return session.scalar(n_rounds_stmt) or 0
 
 
-def add_n_rounds(competition: Competition, session: SessionDep) -> Competition:
-    """Add 'n_rounds' property to `Competition` instance."""
-    n_rounds = get_latest_round_nr(competition, session)
-    # I have to go via the `__dict__` attribute because if you set
-    # `competition.n_rounds` directly, Pydantic validation is triggered and will
-    # complain that `Competition` has no attribute `n_rounds`. This means that after you
-    # call `add_n_rounds` you can not fully rely on Pydantic validation, so you should
-    # only call it right before returning a competition from a route.
-    competition.__dict__["n_rounds"] = n_rounds
-    return competition
+def to_competition_response(
+    competition: Competition, session: SessionDep
+) -> CompetitionPublicWithNRounds:
+    return CompetitionPublicWithNRounds(
+        name=competition.name,
+        type=competition.type,
+        created_at=competition.created_at,
+        updated_at=competition.updated_at,
+        n_rounds=get_latest_round_nr(competition, session),
+        rating_type=competition.rating_type,
+    )
 
 
 @router.post("/")
 def create_competition(
-    competition: CompetitionBase, session: SessionDep, _: ModeratorDep
-) -> CompetitionPublic:
+    competition: CompetitionCreate, session: SessionDep, _: ModeratorDep
+) -> CompetitionPublicWithNRounds:
     if session.get(Competition, competition.name):
         raise HTTPException(
             status_code=409,
@@ -63,9 +72,22 @@ def create_competition(
         )
     db_competition = Competition.model_validate(competition)
     session.add(db_competition)
+    session.flush()
+
+    if competition.rating_type is not None:
+        rt = competition.rating_type
+        db_rating_type = CompetitionRatingType(
+            name=rt.name or f"{competition.name}_rating",
+            algorithm=rt.algorithm,
+            algorithm_config=rt.algorithm_config,
+            default_initial_rating=rt.default_initial_rating,
+            competition_name=competition.name,
+        )
+        session.add(db_rating_type)
+
     session.commit()
     session.refresh(db_competition)
-    return db_competition
+    return to_competition_response(db_competition, session)
 
 
 @router.get("/")
@@ -83,7 +105,7 @@ def retrieve_competition(
     name: str, session: SessionDep
 ) -> CompetitionPublicWithNRounds:
     competition = find_object(model=Competition, identifier=name, session=session)
-    return add_n_rounds(competition=competition, session=session)
+    return to_competition_response(competition, session)
 
 
 @router.delete("/{name}")
@@ -104,7 +126,105 @@ def update_competition(
     session.add(db_competition)
     session.commit()
     session.refresh(db_competition)
-    return add_n_rounds(competition=db_competition, session=session)
+    return to_competition_response(db_competition, session)
+
+
+# ---------------------------------------------------------------------------
+# Rating type endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{name}/rating")
+def retrieve_rating(name: str, session: SessionDep) -> CompetitionRatingTypePublic:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    if not competition.rating_type:
+        raise HTTPException(
+            status_code=404, detail="No rating configured for this competition."
+        )
+    return competition.rating_type
+
+
+@router.post("/{name}/rating")
+def create_rating(
+    name: str,
+    rating_type: CompetitionRatingTypeCreate,
+    session: SessionDep,
+    _: ModeratorDep,
+) -> CompetitionRatingTypePublic:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    if competition.rating_type:
+        raise HTTPException(
+            status_code=409,
+            detail="A rating is already configured for this competition.",
+        )
+    db_rating_type = CompetitionRatingType(
+        name=rating_type.name or f"{name}_rating",
+        algorithm=rating_type.algorithm,
+        algorithm_config=rating_type.algorithm_config,
+        default_initial_rating=rating_type.default_initial_rating,
+        competition_name=name,
+    )
+    session.add(db_rating_type)
+    session.commit()
+    session.refresh(db_rating_type)
+    return db_rating_type
+
+
+@router.patch("/{name}/rating")
+def update_rating(
+    name: str,
+    update: CompetitionRatingTypeUpdate,
+    session: SessionDep,
+    _: ModeratorDep,
+) -> CompetitionRatingTypePublic:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    if not competition.rating_type:
+        raise HTTPException(
+            status_code=404, detail="No rating configured for this competition."
+        )
+    competition.rating_type.sqlmodel_update(update.model_dump(exclude_unset=True))
+    competition.rating_type.updated_at = datetime.now()
+    session.add(competition.rating_type)
+    session.commit()
+    session.refresh(competition.rating_type)
+    return competition.rating_type
+
+
+@router.delete("/{name}/rating")
+def delete_rating(name: str, session: SessionDep, _: ModeratorDep):
+    competition = find_object(model=Competition, identifier=name, session=session)
+    if not competition.rating_type:
+        raise HTTPException(
+            status_code=404, detail="No rating configured for this competition."
+        )
+    session.delete(competition.rating_type)
+    session.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Player ratings endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{name}/player-ratings")
+def retrieve_player_ratings(
+    name: str, session: SessionDep
+) -> list[CompetitionRatingPublic]:
+    competition = find_object(model=Competition, identifier=name, session=session)
+    if not competition.rating_type:
+        return []
+    ratings = session.exec(
+        select(CompetitionRating).where(
+            CompetitionRating.rating_type_id == competition.rating_type.id
+        )
+    ).all()
+    return ratings
+
+
+# ---------------------------------------------------------------------------
+# Pairing endpoints
+# ---------------------------------------------------------------------------
 
 
 @router.get("/{name}/pairing")
@@ -203,6 +323,11 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
     return {"ok": True}
 
 
+# ---------------------------------------------------------------------------
+# Ranking endpoint
+# ---------------------------------------------------------------------------
+
+
 @router.get("/{name}/ranking")
 def retrieve_ranking(
     name: str, session: SessionDep, round_nr: int | None = None
@@ -215,7 +340,59 @@ def retrieve_ranking(
         .where(Match.round <= round_nr)
         .where(Match.competition == competition)
     ).all()
-    return calculate_ranking(matches)
+    ranking = calculate_ranking(matches)
+
+    if competition.rating_type:
+        comp_ratings_list = session.exec(
+            select(CompetitionRating).where(
+                CompetitionRating.rating_type_id == competition.rating_type.id
+            )
+        ).all()
+
+        initial_ratings = {cr.player_id: cr.initial_rating for cr in comp_ratings_list}
+        match_tuples = [
+            (
+                m.player_white_id,
+                m.player_black_id,
+                1.0
+                if m.result == Result.WHITE_WIN
+                else 0.5
+                if m.result == Result.DRAW
+                else 0.0,
+            )
+            for m in sorted(
+                (m for m in matches if m.result is not None),
+                key=lambda m: (m.round, m.board),
+            )
+        ]
+
+        new_ratings = calculate_ratings(
+            initial_ratings, match_tuples, competition.rating_type.get_rating_function()
+        )
+
+        for cr in comp_ratings_list:
+            new_rating = new_ratings.get(cr.player_id)
+            if new_rating is not None:
+                cr.current_rating = new_rating
+                cr.updated_at = datetime.now()
+                session.add(cr)
+
+        ratings_by_player = {
+            cr.player_id: cr.current_rating for cr in comp_ratings_list
+        }
+        for rank in ranking:
+            current = ratings_by_player.get(rank.player.id)
+            if current is not None:
+                rank.current_rating = current
+
+        session.commit()
+
+    return ranking
+
+
+# ---------------------------------------------------------------------------
+# Round player endpoints
+# ---------------------------------------------------------------------------
 
 
 @router.post("/{name}/players")
@@ -266,6 +443,7 @@ def update_round_players(
     _: ModeratorDep,
 ) -> list[RoundPlayerPublic]:
     competition = find_object(model=Competition, identifier=name, session=session)
+    rating_type = competition.rating_type
 
     if update.player_ids_to_add:
         # Validate players exist.
@@ -278,7 +456,23 @@ def update_round_players(
             raise HTTPException(
                 status_code=404, detail=f"Player ids not found: {missing}"
             )
-        for player_id in update.player_ids_to_add:
+
+        # Build map of existing competition ratings if rating is configured.
+        existing_comp_ratings: dict[int, CompetitionRating] = {}
+        if rating_type:
+            existing_comp_ratings = {
+                cr.player_id: cr
+                for cr in session.exec(
+                    select(CompetitionRating).where(
+                        CompetitionRating.rating_type_id == rating_type.id,
+                        CompetitionRating.player_id.in_(update.player_ids_to_add),
+                    )
+                ).all()
+            }
+
+        for player in db_players:
+            player_id = player.id
+
             # Skip if already in the list.
             existing = session.exec(
                 select(RoundPlayer).where(
@@ -287,14 +481,54 @@ def update_round_players(
                     RoundPlayer.player_id == player_id,
                 )
             ).first()
-            if not existing:
-                session.add(
-                    RoundPlayer(
-                        competition_name=competition.name,
-                        round=round_nr,
-                        player_id=player_id,
-                    )
+            if existing:
+                continue
+
+            initial_rating: float | None = None
+
+            if rating_type:
+                comp_rating = existing_comp_ratings.get(player_id)
+                if comp_rating is None:
+                    # Determine the initial rating for this player.
+                    manual_rating = (update.initial_ratings or {}).get(player_id)
+                    if manual_rating is not None:
+                        comp_rating = CompetitionRating(
+                            player_id=player_id,
+                            rating_type_id=rating_type.id,
+                            initial_rating=manual_rating,
+                            current_rating=manual_rating,
+                            is_manual=True,
+                        )
+                        session.add(comp_rating)
+                        session.flush()
+                    elif rating_type.default_initial_rating is not None:
+                        comp_rating = CompetitionRating(
+                            player_id=player_id,
+                            rating_type_id=rating_type.id,
+                            initial_rating=rating_type.default_initial_rating,
+                            current_rating=rating_type.default_initial_rating,
+                            is_manual=False,
+                        )
+                        session.add(comp_rating)
+                        session.flush()
+                    else:
+                        raise HTTPException(
+                            status_code=422,
+                            detail=(
+                                f"Player '{player.name}' has no rating for this competition."
+                                " Provide an initial rating or configure a default."
+                            ),
+                        )
+                initial_rating = comp_rating.current_rating
+
+            session.add(
+                RoundPlayer(
+                    competition_name=competition.name,
+                    round=round_nr,
+                    player_id=player_id,
+                    initial_rating=initial_rating,
                 )
+            )
 
     if update.player_ids_to_remove:
         for player_id in update.player_ids_to_remove:

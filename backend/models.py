@@ -9,12 +9,8 @@ from sqlalchemy.types import JSON
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 from backend.competitions import CompetitionType
-
-
-class Result(str, Enum):
-    WHITE_WIN = "1-0"
-    DRAW = "1/2-1/2"
-    BLACK_WIN = "0-1"
+from backend.enums import Result
+from backend.ratings import BaseRating, SimkroRating
 
 
 class RatingAlgorithm(str, Enum):
@@ -53,9 +49,16 @@ class CompetitionRatingType(SQLModel, table=True):
         back_populates="rating_type", cascade_delete=True
     )
 
+    def get_rating_function(self) -> BaseRating:
+        config = dict(self.algorithm_config or {})
+        sequential = config.pop("sequential", True)
+        if self.algorithm == RatingAlgorithm.ELO:
+            return SimkroRating(sequential=sequential, **config)
+        raise ValueError(f"Unknown algorithm: {self.algorithm}")
+
 
 class CompetitionRatingTypeCreate(SQLModel):
-    name: str
+    name: str | None = None
     algorithm: RatingAlgorithm
     algorithm_config: dict[str, Any] | None = None
     default_initial_rating: float | None = None
@@ -206,8 +209,13 @@ class CompetitionPublic(CompetitionBase):
     updated_at: datetime
 
 
+class CompetitionCreate(CompetitionBase):
+    rating_type: CompetitionRatingTypeCreate | None = None
+
+
 class CompetitionPublicWithNRounds(CompetitionPublic):
     n_rounds: int
+    rating_type: CompetitionRatingTypePublic | None = None
 
 
 class PairingCreate(SQLModel):
@@ -332,6 +340,7 @@ class SimkroRank(SQLModel):
     wins: int
     draws: int
     losses: int
+    current_rating: float | None = None
 
 
 # ---------------------------------------------------------------------------

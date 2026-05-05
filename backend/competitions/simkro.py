@@ -66,7 +66,8 @@ import random
 from collections import defaultdict
 from typing import Literal
 
-from backend.models import Competition, Match, Player, Result, SimkroRank
+from backend.enums import Result
+from backend.models import Competition, Match, Player, SimkroRank
 
 # The number of rounds that scores are influenced by a high amount. This has influence
 # on attendence scores, results scores, etc.
