@@ -70,21 +70,22 @@ def create_competition(
                 }
             ],
         )
-    db_competition = Competition.model_validate(competition)
+    db_competition = Competition.model_validate(
+        competition.model_dump(exclude={"rating_type"})
+    )
     session.add(db_competition)
     session.flush()
 
-    if competition.rating_type is not None:
-        rt = competition.rating_type
-        db_rating_type = CompetitionRatingType(
+    rt = competition.rating_type
+    session.add(
+        CompetitionRatingType(
             name=rt.name or f"{competition.name}_rating",
             algorithm=rt.algorithm,
             algorithm_config=rt.algorithm_config,
             default_initial_rating=rt.default_initial_rating,
             competition_name=competition.name,
         )
-        session.add(db_rating_type)
-
+    )
     session.commit()
     session.refresh(db_competition)
     return to_competition_response(db_competition, session)
@@ -121,7 +122,11 @@ def update_competition(
     name: str, competition: CompetitionUpdate, session: SessionDep, _: ModeratorDep
 ) -> CompetitionPublicWithNRounds:
     db_competition = find_object(model=Competition, identifier=name, session=session)
-    db_competition.sqlmodel_update(competition.model_dump(exclude_unset=True))
+    update_data = competition.model_dump(exclude_unset=True)
+    if "name" in update_data and db_competition.rating_type:
+        db_competition.rating_type.competition_name = update_data["name"]
+        session.add(db_competition.rating_type)
+    db_competition.sqlmodel_update(update_data)
     db_competition.updated_at = datetime.now()
     session.add(db_competition)
     session.commit()
@@ -212,8 +217,6 @@ def retrieve_player_ratings(
     name: str, session: SessionDep
 ) -> list[CompetitionRatingPublic]:
     competition = find_object(model=Competition, identifier=name, session=session)
-    if not competition.rating_type:
-        return []
     ratings = session.exec(
         select(CompetitionRating).where(
             CompetitionRating.rating_type_id == competition.rating_type.id
@@ -342,51 +345,47 @@ def retrieve_ranking(
     ).all()
     ranking = calculate_ranking(matches)
 
-    if competition.rating_type:
-        comp_ratings_list = session.exec(
-            select(CompetitionRating).where(
-                CompetitionRating.rating_type_id == competition.rating_type.id
-            )
-        ).all()
-
-        initial_ratings = {cr.player_id: cr.initial_rating for cr in comp_ratings_list}
-        match_tuples = [
-            (
-                m.player_white_id,
-                m.player_black_id,
-                1.0
-                if m.result == Result.WHITE_WIN
-                else 0.5
-                if m.result == Result.DRAW
-                else 0.0,
-            )
-            for m in sorted(
-                (m for m in matches if m.result is not None),
-                key=lambda m: (m.round, m.board),
-            )
-        ]
-
-        new_ratings = calculate_ratings(
-            initial_ratings, match_tuples, competition.rating_type.get_rating_function()
+    comp_ratings_list = session.exec(
+        select(CompetitionRating).where(
+            CompetitionRating.rating_type_id == competition.rating_type.id
         )
+    ).all()
 
-        for cr in comp_ratings_list:
-            new_rating = new_ratings.get(cr.player_id)
-            if new_rating is not None:
-                cr.current_rating = new_rating
-                cr.updated_at = datetime.now()
-                session.add(cr)
+    initial_ratings = {cr.player_id: cr.initial_rating for cr in comp_ratings_list}
+    match_tuples = [
+        (
+            m.player_white_id,
+            m.player_black_id,
+            1.0
+            if m.result == Result.WHITE_WIN
+            else 0.5
+            if m.result == Result.DRAW
+            else 0.0,
+        )
+        for m in sorted(
+            (m for m in matches if m.result is not None),
+            key=lambda m: (m.round, m.board),
+        )
+    ]
 
-        ratings_by_player = {
-            cr.player_id: cr.current_rating for cr in comp_ratings_list
-        }
-        for rank in ranking:
-            current = ratings_by_player.get(rank.player.id)
-            if current is not None:
-                rank.current_rating = current
+    new_ratings = calculate_ratings(
+        initial_ratings, match_tuples, competition.rating_type.get_rating_function()
+    )
 
-        session.commit()
+    for cr in comp_ratings_list:
+        new_rating = new_ratings.get(cr.player_id)
+        if new_rating is not None:
+            cr.current_rating = new_rating
+            cr.updated_at = datetime.now()
+            session.add(cr)
 
+    ratings_by_player = {cr.player_id: cr.current_rating for cr in comp_ratings_list}
+    for rank in ranking:
+        current = ratings_by_player.get(rank.player.id)
+        if current is not None:
+            rank.current_rating = current
+
+    session.commit()
     return ranking
 
 
@@ -457,18 +456,15 @@ def update_round_players(
                 status_code=404, detail=f"Player ids not found: {missing}"
             )
 
-        # Build map of existing competition ratings if rating is configured.
-        existing_comp_ratings: dict[int, CompetitionRating] = {}
-        if rating_type:
-            existing_comp_ratings = {
-                cr.player_id: cr
-                for cr in session.exec(
-                    select(CompetitionRating).where(
-                        CompetitionRating.rating_type_id == rating_type.id,
-                        CompetitionRating.player_id.in_(update.player_ids_to_add),
-                    )
-                ).all()
-            }
+        existing_comp_ratings: dict[int, CompetitionRating] = {
+            cr.player_id: cr
+            for cr in session.exec(
+                select(CompetitionRating).where(
+                    CompetitionRating.rating_type_id == rating_type.id,
+                    CompetitionRating.player_id.in_(update.player_ids_to_add),
+                )
+            ).all()
+        }
 
         for player in db_players:
             player_id = player.id
@@ -484,49 +480,44 @@ def update_round_players(
             if existing:
                 continue
 
-            initial_rating: float | None = None
-
-            if rating_type:
-                comp_rating = existing_comp_ratings.get(player_id)
-                if comp_rating is None:
-                    # Determine the initial rating for this player.
-                    manual_rating = (update.initial_ratings or {}).get(player_id)
-                    if manual_rating is not None:
-                        comp_rating = CompetitionRating(
-                            player_id=player_id,
-                            rating_type_id=rating_type.id,
-                            initial_rating=manual_rating,
-                            current_rating=manual_rating,
-                            is_manual=True,
-                        )
-                        session.add(comp_rating)
-                        session.flush()
-                    elif rating_type.default_initial_rating is not None:
-                        comp_rating = CompetitionRating(
-                            player_id=player_id,
-                            rating_type_id=rating_type.id,
-                            initial_rating=rating_type.default_initial_rating,
-                            current_rating=rating_type.default_initial_rating,
-                            is_manual=False,
-                        )
-                        session.add(comp_rating)
-                        session.flush()
-                    else:
-                        raise HTTPException(
-                            status_code=422,
-                            detail=(
-                                f"Player '{player.name}' has no rating for this competition."
-                                " Provide an initial rating or configure a default."
-                            ),
-                        )
-                initial_rating = comp_rating.current_rating
+            comp_rating = existing_comp_ratings.get(player_id)
+            if comp_rating is None:
+                manual_rating = (update.initial_ratings or {}).get(player_id)
+                if manual_rating is not None:
+                    comp_rating = CompetitionRating(
+                        player_id=player_id,
+                        rating_type_id=rating_type.id,
+                        initial_rating=manual_rating,
+                        current_rating=manual_rating,
+                        is_manual=True,
+                    )
+                    session.add(comp_rating)
+                    session.flush()
+                elif rating_type.default_initial_rating is not None:
+                    comp_rating = CompetitionRating(
+                        player_id=player_id,
+                        rating_type_id=rating_type.id,
+                        initial_rating=rating_type.default_initial_rating,
+                        current_rating=rating_type.default_initial_rating,
+                        is_manual=False,
+                    )
+                    session.add(comp_rating)
+                    session.flush()
+                else:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=(
+                            f"Player '{player.name}' has no rating for this competition."
+                            " Provide an initial rating or configure a default."
+                        ),
+                    )
 
             session.add(
                 RoundPlayer(
                     competition_name=competition.name,
                     round=round_nr,
                     player_id=player_id,
-                    initial_rating=initial_rating,
+                    initial_rating=comp_rating.current_rating,
                 )
             )
 

@@ -17,7 +17,12 @@ from backend.models import (
 def test_create_competition(session: Session, auth_client: TestClient):
     competition_name = "interne"
     res = auth_client.post(
-        "/competitions/", json={"name": competition_name, "type": "simkro"}
+        "/competitions/",
+        json={
+            "name": competition_name,
+            "type": "simkro",
+            "rating_type": {"algorithm": "elo"},
+        },
     )
     res.raise_for_status()
     competition = session.scalars(select(Competition)).all()
@@ -30,8 +35,9 @@ def test_create_competition(session: Session, auth_client: TestClient):
 
 
 def test_create_competition_duplicate_name(auth_client: TestClient):
-    auth_client.post("/competitions/", json={"name": "interne", "type": "simkro"})
-    res = auth_client.post("/competitions/", json={"name": "interne", "type": "simkro"})
+    body = {"name": "interne", "type": "simkro", "rating_type": {"algorithm": "elo"}}
+    auth_client.post("/competitions/", json=body)
+    res = auth_client.post("/competitions/", json=body)
     assert res.status_code == 409
     detail = res.json()["detail"]
     assert any(
@@ -44,7 +50,7 @@ def test_get_competition(competition: Competition, client: TestClient):
     res.raise_for_status()
     res_competition = res.json()
     assert res_competition.pop("n_rounds") == 0
-    assert res_competition.pop("rating_type") is None
+    assert res_competition.pop("rating_type") is not None
     # The response gives matches as an emtpy list, the serialized object doesn't include
     # matches in this case.
     assert res_competition == jsonable_encoder(competition)

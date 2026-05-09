@@ -26,7 +26,7 @@ class CompetitionRatingType(SQLModel, table=True):
     """The configuration of the rating for a competition."""
 
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(unique=True)
+    name: str
     algorithm: RatingAlgorithm
     algorithm_config: dict[str, Any] | None = Field(
         default=None, sa_column=Column(JSON)
@@ -199,8 +199,8 @@ class Competition(CompetitionBase, table=True):
     matches: list["Match"] = Relationship(
         back_populates="competition", cascade_delete=True
     )
-    rating_type: CompetitionRatingType | None = Relationship(
-        back_populates="competition"
+    rating_type: CompetitionRatingType = Relationship(
+        back_populates="competition", cascade_delete=True
     )
 
 
@@ -210,12 +210,12 @@ class CompetitionPublic(CompetitionBase):
 
 
 class CompetitionCreate(CompetitionBase):
-    rating_type: CompetitionRatingTypeCreate | None = None
+    rating_type: CompetitionRatingTypeCreate
 
 
 class CompetitionPublicWithNRounds(CompetitionPublic):
     n_rounds: int
-    rating_type: CompetitionRatingTypePublic | None = None
+    rating_type: CompetitionRatingTypePublic
 
 
 class PairingCreate(SQLModel):

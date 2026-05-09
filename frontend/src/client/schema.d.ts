@@ -269,7 +269,7 @@ export interface components {
             /** Name */
             name: string;
             type: components["schemas"]["CompetitionType"];
-            rating_type?: components["schemas"]["CompetitionRatingTypeCreate"] | null;
+            rating_type: components["schemas"]["CompetitionRatingTypeCreate"];
         };
         /** CompetitionPublic */
         CompetitionPublic: {
@@ -304,7 +304,7 @@ export interface components {
             updated_at: string;
             /** N Rounds */
             n_rounds: number;
-            rating_type?: components["schemas"]["CompetitionRatingTypePublic"] | null;
+            rating_type: components["schemas"]["CompetitionRatingTypePublic"];
         };
         /** CompetitionRatingPublic */
         CompetitionRatingPublic: {

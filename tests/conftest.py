@@ -11,7 +11,15 @@ from backend.auth import create_access_token, hash_password
 from backend.competitions import CompetitionType
 from backend.dependencies import get_session
 from backend.main import app
-from backend.models import Competition, Match, Moderator, Player, Result
+from backend.models import (
+    Competition,
+    CompetitionRatingType,
+    Match,
+    Moderator,
+    Player,
+    RatingAlgorithm,
+    Result,
+)
 
 fake = Faker()
 
@@ -76,7 +84,18 @@ def CompetitionFactory(session: Session) -> Callable[..., Competition]:
 
 @pytest.fixture
 def competition(session: Session) -> Generator[Competition, Any, None]:
-    yield CompetitionFactory(session)()
+    comp = CompetitionFactory(session)()
+    session.add(
+        CompetitionRatingType(
+            name=f"{comp.name}_rating",
+            algorithm=RatingAlgorithm.ELO,
+            competition_name=comp.name,
+            default_initial_rating=1500.0,
+        )
+    )
+    session.commit()
+    session.refresh(comp)
+    yield comp
 
 
 @pytest.fixture
