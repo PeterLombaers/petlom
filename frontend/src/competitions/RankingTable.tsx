@@ -64,7 +64,9 @@ export default function RankingTable({
                 <Table.Td>{rank.draws}</Table.Td>
                 <Table.Td>{rank.losses}</Table.Td>
                 <Table.Td>
-                  {rank.current_rating != null ? Math.round(rank.current_rating) : "—"}
+                  {rank.current_rating != null
+                    ? Math.round(rank.current_rating)
+                    : "—"}
                 </Table.Td>
               </Table.Tr>
             ))

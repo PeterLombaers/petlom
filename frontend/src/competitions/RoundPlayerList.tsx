@@ -52,9 +52,13 @@ export default function RoundPlayerList({
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [clearModalOpened, { open: openClearModal, close: closeClearModal }] =
     useDisclosure(false);
-  const [ratingsModalOpened, { open: openRatingsModal, close: closeRatingsModal }] =
-    useDisclosure(false);
-  const [pendingRatings, setPendingRatings] = useState<Record<number, number | string>>({});
+  const [
+    ratingsModalOpened,
+    { open: openRatingsModal, close: closeRatingsModal },
+  ] = useDisclosure(false);
+  const [pendingRatings, setPendingRatings] = useState<
+    Record<number, number | string>
+  >({});
   const [playersNeedingRatings, setPlayersNeedingRatings] = useState<
     { id: number; name: string }[]
   >([]);
@@ -95,7 +99,9 @@ export default function RoundPlayerList({
               <Table.Tr key={rp.id}>
                 <Table.Td>{rp.player.name}</Table.Td>
                 <Table.Td>
-                  {rp.initial_rating != null ? Math.round(rp.initial_rating) : "—"}
+                  {rp.initial_rating != null
+                    ? Math.round(rp.initial_rating)
+                    : "—"}
                 </Table.Td>
                 {hasBye && (
                   <Table.Td>{rp.is_bye && <IconCheck size={16} />}</Table.Td>
@@ -116,7 +122,9 @@ export default function RoundPlayerList({
     .filter((p) => !enrolledPlayerIds.has(p.id))
     .map((p) => ({ value: String(p.id), label: p.name }));
 
-  const ratedPlayerIds = new Set((existingRatings ?? []).map((r) => r.player_id));
+  const ratedPlayerIds = new Set(
+    (existingRatings ?? []).map((r) => r.player_id),
+  );
 
   const roundParams = {
     params: { path: { name: competitionName }, query: { round_nr: roundNr } },
@@ -250,7 +258,9 @@ export default function RoundPlayerList({
             <Table.Tr key={rp.id}>
               <Table.Td>{rp.player.name}</Table.Td>
               <Table.Td>
-                {rp.initial_rating != null ? Math.round(rp.initial_rating) : "—"}
+                {rp.initial_rating != null
+                  ? Math.round(rp.initial_rating)
+                  : "—"}
               </Table.Td>
               {isOdd && (
                 <Table.Td>

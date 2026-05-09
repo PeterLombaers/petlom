@@ -1,12 +1,6 @@
 import { CreateDialogConfig } from "@/components/CreateButton";
 import EditableTable from "@/components/EditableTable";
-import {
-  NumberInput,
-  Select,
-  Stack,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
+import { NumberInput, Select, Stack, Textarea, TextInput } from "@mantine/core";
 import { components } from "@/client/schema";
 import {
   createLinkTextCell,
@@ -20,7 +14,10 @@ type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 type SchemaRatingCreate = components["schemas"]["CompetitionRatingTypeCreate"];
 
 // algorithm_config is a JSON string in the form (textarea).
-type RatingFormData = Omit<SchemaRatingCreate, "algorithm_config" | "default_initial_rating"> & {
+type RatingFormData = Omit<
+  SchemaRatingCreate,
+  "algorithm_config" | "default_initial_rating"
+> & {
   algorithm_config: string;
   default_initial_rating: number | null;
 };
@@ -42,7 +39,11 @@ export default function CompetitionTable() {
   const createDialogConfig: CreateDialogConfig<CompetitionFormData> = {
     getInitialFormData: () => ({
       name: "",
-      rating_type: { algorithm: "elo", default_initial_rating: null, algorithm_config: "" },
+      rating_type: {
+        algorithm: "elo",
+        default_initial_rating: null,
+        algorithm_config: "",
+      },
     }),
     validateForm: (formData) => {
       const errors: Record<string, string> = {};
@@ -59,7 +60,13 @@ export default function CompetitionTable() {
           algorithm: rt.algorithm,
           default_initial_rating: rt.default_initial_rating,
           algorithm_config: rt.algorithm_config.trim()
-            ? (() => { try { return JSON.parse(rt.algorithm_config); } catch { return null; } })()
+            ? (() => {
+                try {
+                  return JSON.parse(rt.algorithm_config);
+                } catch {
+                  return null;
+                }
+              })()
             : null,
         },
       };
@@ -89,7 +96,11 @@ export default function CompetitionTable() {
           <NumberInput
             label={t("rating.defaultInitialRating")}
             value={rt.default_initial_rating ?? ""}
-            onChange={(v) => setRating({ default_initial_rating: typeof v === "number" ? v : null })}
+            onChange={(v) =>
+              setRating({
+                default_initial_rating: typeof v === "number" ? v : null,
+              })
+            }
             min={0}
             allowDecimal={false}
           />
