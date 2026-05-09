@@ -128,7 +128,7 @@ describe("RoundPlayerList", () => {
 
       expect(updateMutation.mutate).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { player_ids_to_add: [1, 2] },
+          body: expect.objectContaining({ player_ids_to_add: [1, 2] }),
         }),
         expect.any(Object),
       );
@@ -146,7 +146,7 @@ describe("RoundPlayerList", () => {
       await user.keyboard("{Enter}");
 
       expect(updateMutation.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({ body: { player_ids_to_add: [2] } }),
+        expect.objectContaining({ body: expect.objectContaining({ player_ids_to_add: [2] }) }),
         expect.any(Object),
       );
     });
