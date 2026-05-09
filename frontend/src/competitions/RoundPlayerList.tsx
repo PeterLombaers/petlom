@@ -5,6 +5,7 @@ import {
   Group,
   Modal,
   MultiSelect,
+  NumberInput,
   Radio,
   Stack,
   Table,
@@ -19,17 +20,21 @@ import { useRoundPlayers } from "./useRoundPlayers";
 import { useState } from "react";
 
 type RoundPlayerPublic = components["schemas"]["RoundPlayerPublic"];
+type CompetitionRatingTypePublic =
+  components["schemas"]["CompetitionRatingTypePublic"];
 
 export default function RoundPlayerList({
   competitionName,
   roundNr,
   readOnly = false,
+  ratingType,
   onPairingCreated,
   onDraftCleared,
 }: {
   competitionName: string;
   roundNr: number;
   readOnly?: boolean;
+  ratingType: CompetitionRatingTypePublic;
   onPairingCreated?: () => void;
   onDraftCleared?: () => void;
 }) {
@@ -47,16 +52,28 @@ export default function RoundPlayerList({
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [clearModalOpened, { open: openClearModal, close: closeClearModal }] =
     useDisclosure(false);
+  const [ratingsModalOpened, { open: openRatingsModal, close: closeRatingsModal }] =
+    useDisclosure(false);
+  const [pendingRatings, setPendingRatings] = useState<Record<number, number | string>>({});
+  const [playersNeedingRatings, setPlayersNeedingRatings] = useState<
+    { id: number; name: string }[]
+  >([]);
 
   const { data: allPlayers } = $api.useQuery("get", "/players/", undefined, {
     enabled: !readOnly,
   });
 
+  const { data: existingRatings } = $api.useQuery(
+    "get",
+    "/competitions/{name}/player-ratings",
+    { params: { path: { name: competitionName } } },
+    { enabled: !readOnly },
+  );
+
   if (isPending) return <Text>{t("roundPlayers.loadingList")}</Text>;
   if (isError || !roundPlayers)
     return <Text>{t("roundPlayers.errorLoading")}</Text>;
 
-  // Derived state shared by both modes.
   const playerCount = roundPlayers.length;
   const isOdd = playerCount % 2 !== 0;
   const byePlayer = roundPlayers.find((rp: RoundPlayerPublic) => rp.is_bye);
@@ -69,6 +86,7 @@ export default function RoundPlayerList({
           <Table.Thead>
             <Table.Tr>
               <Table.Th>{t("roundPlayers.player")}</Table.Th>
+              <Table.Th>{t("rating.ratingHeader")}</Table.Th>
               {hasBye && <Table.Th>{t("roundPlayers.bye")}</Table.Th>}
             </Table.Tr>
           </Table.Thead>
@@ -76,6 +94,9 @@ export default function RoundPlayerList({
             {roundPlayers.map((rp: RoundPlayerPublic) => (
               <Table.Tr key={rp.id}>
                 <Table.Td>{rp.player.name}</Table.Td>
+                <Table.Td>
+                  {rp.initial_rating != null ? Math.round(rp.initial_rating) : "—"}
+                </Table.Td>
                 {hasBye && (
                   <Table.Td>{rp.is_bye && <IconCheck size={16} />}</Table.Td>
                 )}
@@ -87,7 +108,6 @@ export default function RoundPlayerList({
     );
   }
 
-  // Edit-mode derived state.
   const canGenerate = playerCount >= 2 && (!isOdd || byePlayer);
   const enrolledPlayerIds = new Set(
     roundPlayers.map((rp: RoundPlayerPublic) => rp.player.id),
@@ -96,21 +116,73 @@ export default function RoundPlayerList({
     .filter((p) => !enrolledPlayerIds.has(p.id))
     .map((p) => ({ value: String(p.id), label: p.name }));
 
-  // Shared params for all updateMutation calls.
+  const ratedPlayerIds = new Set((existingRatings ?? []).map((r) => r.player_id));
+
   const roundParams = {
     params: { path: { name: competitionName }, query: { round_nr: roundNr } },
   };
 
-  const handleAddPlayers = () => {
-    if (!selectedPlayerIds.length) return;
+  const doAddPlayers = (initialRatings?: Record<number, number>) => {
     updateMutation.mutate(
       {
         ...roundParams,
-        body: { player_ids_to_add: selectedPlayerIds.map(Number) },
+        body: {
+          player_ids_to_add: selectedPlayerIds.map(Number),
+          initial_ratings: initialRatings ?? null,
+        },
       },
-      { onSuccess: () => setSelectedPlayerIds([]) },
+      {
+        onSuccess: () => {
+          setSelectedPlayerIds([]);
+          closeRatingsModal();
+        },
+      },
     );
   };
+
+  const handleAddPlayers = () => {
+    if (!selectedPlayerIds.length) return;
+
+    if (
+      ratingType.default_initial_rating != null ||
+      selectedPlayerIds.every((id) => ratedPlayerIds.has(Number(id)))
+    ) {
+      doAddPlayers();
+      return;
+    }
+
+    const unrated = selectedPlayerIds
+      .map((id) => {
+        const num = Number(id);
+        if (ratedPlayerIds.has(num)) return null;
+        const player = (allPlayers ?? []).find((p) => p.id === num);
+        return player ? { id: num, name: player.name } : null;
+      })
+      .filter((p): p is { id: number; name: string } => p != null);
+
+    if (unrated.length === 0) {
+      doAddPlayers();
+      return;
+    }
+
+    setPlayersNeedingRatings(unrated);
+    setPendingRatings(Object.fromEntries(unrated.map((p) => [p.id, ""])));
+    openRatingsModal();
+  };
+
+  const handleConfirmRatings = () => {
+    const initialRatings: Record<number, number> = {};
+    for (const p of playersNeedingRatings) {
+      const val = pendingRatings[p.id];
+      if (val === "" || val == null) return;
+      initialRatings[p.id] = Number(val);
+    }
+    doAddPlayers(initialRatings);
+  };
+
+  const allRatingsFilled = playersNeedingRatings.every(
+    (p) => pendingRatings[p.id] !== "" && pendingRatings[p.id] != null,
+  );
 
   const handleRemovePlayer = (playerId: number) => {
     updateMutation.mutate({
@@ -160,12 +232,15 @@ export default function RoundPlayerList({
     );
   };
 
+  const colSpan = 3 + (isOdd ? 1 : 0);
+
   return (
     <Stack>
       <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t("roundPlayers.player")}</Table.Th>
+            <Table.Th>{t("rating.ratingHeader")}</Table.Th>
             {isOdd && <Table.Th>{t("roundPlayers.bye")}</Table.Th>}
             <Table.Th>{t("common.actions")}</Table.Th>
           </Table.Tr>
@@ -174,6 +249,9 @@ export default function RoundPlayerList({
           {roundPlayers.map((rp: RoundPlayerPublic) => (
             <Table.Tr key={rp.id}>
               <Table.Td>{rp.player.name}</Table.Td>
+              <Table.Td>
+                {rp.initial_rating != null ? Math.round(rp.initial_rating) : "—"}
+              </Table.Td>
               {isOdd && (
                 <Table.Td>
                   <Radio
@@ -192,7 +270,7 @@ export default function RoundPlayerList({
             </Table.Tr>
           ))}
           <Table.Tr>
-            <Table.Td colSpan={isOdd ? 3 : 2}>
+            <Table.Td colSpan={colSpan}>
               <div
                 onKeyDown={(e) => {
                   if (
@@ -270,6 +348,41 @@ export default function RoundPlayerList({
             {t("roundPlayers.clearAll")}
           </Button>
         </Group>
+      </Modal>
+
+      <Modal
+        opened={ratingsModalOpened}
+        onClose={closeRatingsModal}
+        title={t("rating.setRatingsTitle")}
+      >
+        <Stack>
+          <Text size="sm">{t("rating.setRatingsDescription")}</Text>
+          {playersNeedingRatings.map((p) => (
+            <NumberInput
+              key={p.id}
+              label={t("rating.initialRatingLabel", { playerName: p.name })}
+              value={pendingRatings[p.id]}
+              onChange={(v) =>
+                setPendingRatings((prev) => ({ ...prev, [p.id]: v }))
+              }
+              min={0}
+              allowDecimal={false}
+              required
+            />
+          ))}
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeRatingsModal}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleConfirmRatings}
+              disabled={!allRatingsFilled || updateMutation.isPending}
+              loading={updateMutation.isPending}
+            >
+              {t("rating.confirm")}
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Stack>
   );

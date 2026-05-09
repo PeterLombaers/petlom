@@ -63,7 +63,20 @@ const en = {
     wins: "W",
     draws: "D",
     losses: "L",
+    rating: "Rating",
     noData: "No ranking data yet.",
+  },
+  rating: {
+    configureRating: "Rating (optional)",
+    algorithm: "Algorithm",
+    defaultInitialRating: "Default initial rating",
+    algorithmConfig: "Algorithm config (JSON)",
+    ratingHeader: "Rating",
+    setRatingsTitle: "Set initial ratings",
+    setRatingsDescription:
+      "The following players have no rating yet. Provide an initial rating for each.",
+    initialRatingLabel: "Initial rating for {{playerName}}",
+    confirm: "Confirm",
   },
   roundPlayers: {
     titleReadOnly: "Players ({{playerCount}})",

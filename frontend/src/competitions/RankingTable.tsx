@@ -4,7 +4,6 @@ import { formatHTTPValidationError } from "@/client/api";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { useRanking } from "./useRanking";
-
 export default function RankingTable({
   competitionName,
   roundNr,
@@ -23,12 +22,14 @@ export default function RankingTable({
   if (isPending) return <LoadingState />;
   if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
 
+  const colCount = 10;
+
   return (
     <Paper withBorder>
       <Table>
         <Table.Thead>
           <Table.Tr>
-            <Table.Td colSpan={9}>
+            <Table.Td colSpan={colCount}>
               <Text>
                 {roundNr !== undefined
                   ? t("ranking.titleAfterRound", { roundNr })
@@ -46,6 +47,7 @@ export default function RankingTable({
             <Table.Th>{t("ranking.wins")}</Table.Th>
             <Table.Th>{t("ranking.draws")}</Table.Th>
             <Table.Th>{t("ranking.losses")}</Table.Th>
+            <Table.Th>{t("ranking.rating")}</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -61,11 +63,14 @@ export default function RankingTable({
                 <Table.Td>{rank.wins}</Table.Td>
                 <Table.Td>{rank.draws}</Table.Td>
                 <Table.Td>{rank.losses}</Table.Td>
+                <Table.Td>
+                  {rank.current_rating != null ? Math.round(rank.current_rating) : "—"}
+                </Table.Td>
               </Table.Tr>
             ))
           ) : (
             <Table.Tr>
-              <Table.Td colSpan={9} c="dimmed" ta="center">
+              <Table.Td colSpan={colCount} c="dimmed" ta="center">
                 {t("ranking.noData")}
               </Table.Td>
             </Table.Tr>

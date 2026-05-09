@@ -65,7 +65,20 @@ const nl: TranslationSchema = {
     wins: "W",
     draws: "R",
     losses: "V",
+    rating: "Rating",
     noData: "Nog geen klassementsgegevens.",
+  },
+  rating: {
+    configureRating: "Rating (optioneel)",
+    algorithm: "Algoritme",
+    defaultInitialRating: "Standaard beginrating",
+    algorithmConfig: "Algoritme-configuratie (JSON)",
+    ratingHeader: "Rating",
+    setRatingsTitle: "Beginratings instellen",
+    setRatingsDescription:
+      "De volgende spelers hebben nog geen rating. Geef een beginrating op voor elk.",
+    initialRatingLabel: "Beginrating voor {{playerName}}",
+    confirm: "Bevestigen",
   },
   roundPlayers: {
     titleReadOnly: "Spelers ({{playerCount}})",

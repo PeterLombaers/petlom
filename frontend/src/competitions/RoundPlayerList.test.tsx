@@ -17,6 +17,17 @@ const mockUseQuery = (apiModule.$api as any).useQuery as ReturnType<
   typeof vi.fn
 >;
 
+const MOCK_RATING_TYPE = {
+  id: 1,
+  name: "test_rating",
+  algorithm: "elo" as const,
+  algorithm_config: null,
+  competition_name: "TestComp",
+  default_initial_rating: 1500,
+  created_at: "2024-01-01T00:00:00",
+  updated_at: "2024-01-01T00:00:00",
+};
+
 const ALICE = { id: 1, name: "Alice", is_active: true };
 const BOB = { id: 2, name: "Bob", is_active: true };
 const CAROL = { id: 3, name: "Carol", is_active: true };
@@ -63,6 +74,7 @@ function renderList(roundPlayers = [] as ReturnType<typeof makeRoundPlayer>[]) {
     <RoundPlayerList
       competitionName="TestComp"
       roundNr={2}
+      ratingType={MOCK_RATING_TYPE}
       onPairingCreated={onPairingCreated}
       onDraftCleared={onDraftCleared}
     />,
@@ -219,6 +231,7 @@ describe("RoundPlayerList", () => {
         <RoundPlayerList
           competitionName="TestComp"
           roundNr={2}
+          ratingType={MOCK_RATING_TYPE}
           onPairingCreated={vi.fn()}
           onDraftCleared={onDraftCleared}
         />,

@@ -64,6 +64,7 @@ function CompetitionDetail({
         <RoundPlayerList
           competitionName={name}
           roundNr={currentRound}
+          ratingType={competition.rating_type}
           onPairingCreated={() => navigate(backUrl)}
           onDraftCleared={() => navigate(backUrl)}
         />
@@ -135,6 +136,7 @@ function CompetitionDetail({
           competitionName={name}
           roundNr={currentRound}
           readOnly
+          ratingType={competition.rating_type}
         />
       </Collapse>
       <MatchList competition_name={name} round={currentRound} />
