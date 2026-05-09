@@ -75,6 +75,43 @@ export interface paths {
         patch: operations["update_competition_competitions__name__patch"];
         trace?: never;
     };
+    "/competitions/{name}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve Rating */
+        get: operations["retrieve_rating_competitions__name__rating_get"];
+        put?: never;
+        /** Create Rating */
+        post: operations["create_rating_competitions__name__rating_post"];
+        /** Delete Rating */
+        delete: operations["delete_rating_competitions__name__rating_delete"];
+        options?: never;
+        head?: never;
+        /** Update Rating */
+        patch: operations["update_rating_competitions__name__rating_patch"];
+        trace?: never;
+    };
+    "/competitions/{name}/player-ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve Player Ratings */
+        get: operations["retrieve_player_ratings_competitions__name__player_ratings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/competitions/{name}/pairing": {
         parameters: {
             query?: never;
@@ -227,11 +264,12 @@ export interface components {
             /** Client Secret */
             client_secret?: string | null;
         };
-        /** CompetitionBase */
-        CompetitionBase: {
+        /** CompetitionCreate */
+        CompetitionCreate: {
             /** Name */
             name: string;
             type: components["schemas"]["CompetitionType"];
+            rating_type?: components["schemas"]["CompetitionRatingTypeCreate"] | null;
         };
         /** CompetitionPublic */
         CompetitionPublic: {
@@ -266,6 +304,77 @@ export interface components {
             updated_at: string;
             /** N Rounds */
             n_rounds: number;
+            rating_type?: components["schemas"]["CompetitionRatingTypePublic"] | null;
+        };
+        /** CompetitionRatingPublic */
+        CompetitionRatingPublic: {
+            /** Id */
+            id: number;
+            /** Player Id */
+            player_id: number;
+            player: components["schemas"]["PlayerPublicMinimal"];
+            /** Rating Type Id */
+            rating_type_id: number;
+            /** Initial Rating */
+            initial_rating: number;
+            /** Current Rating */
+            current_rating: number;
+            /** Is Manual */
+            is_manual: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CompetitionRatingTypeCreate */
+        CompetitionRatingTypeCreate: {
+            /** Name */
+            name?: string | null;
+            algorithm: components["schemas"]["RatingAlgorithm"];
+            /** Algorithm Config */
+            algorithm_config?: Record<string, never> | null;
+            /** Default Initial Rating */
+            default_initial_rating?: number | null;
+        };
+        /** CompetitionRatingTypePublic */
+        CompetitionRatingTypePublic: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            algorithm: components["schemas"]["RatingAlgorithm"];
+            /** Algorithm Config */
+            algorithm_config: Record<string, never> | null;
+            /** Competition Name */
+            competition_name: string;
+            /** Default Initial Rating */
+            default_initial_rating: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CompetitionRatingTypeUpdate */
+        CompetitionRatingTypeUpdate: {
+            /** Name */
+            name?: string | null;
+            algorithm?: components["schemas"]["RatingAlgorithm"] | null;
+            /** Algorithm Config */
+            algorithm_config?: Record<string, never> | null;
+            /** Default Initial Rating */
+            default_initial_rating?: number | null;
         };
         /**
          * CompetitionType
@@ -402,6 +511,11 @@ export interface components {
             is_active?: boolean | null;
         };
         /**
+         * RatingAlgorithm
+         * @enum {string}
+         */
+        RatingAlgorithm: "elo";
+        /**
          * Result
          * @enum {string}
          */
@@ -450,6 +564,8 @@ export interface components {
             draws: number;
             /** Losses */
             losses: number;
+            /** Current Rating */
+            current_rating?: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -563,7 +679,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CompetitionBase"];
+                "application/json": components["schemas"]["CompetitionCreate"];
             };
         };
         responses: {
@@ -573,7 +689,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionPublic"];
+                    "application/json": components["schemas"]["CompetitionPublicWithNRounds"];
                 };
             };
             /** @description Validation Error */
@@ -671,6 +787,169 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompetitionPublicWithNRounds"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retrieve_rating_competitions__name__rating_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionRatingTypePublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_rating_competitions__name__rating_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompetitionRatingTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionRatingTypePublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_rating_competitions__name__rating_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_rating_competitions__name__rating_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompetitionRatingTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionRatingTypePublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retrieve_player_ratings_competitions__name__player_ratings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionRatingPublic"][];
                 };
             };
             /** @description Validation Error */
