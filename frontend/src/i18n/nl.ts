@@ -26,6 +26,21 @@ const nl: TranslationSchema = {
     delete: "Verwijderen",
     toggleColorScheme: "Kleurschema wisselen",
     valueRequired: "Waarde mag niet leeg zijn",
+    skipToContent: "Naar hoofdinhoud",
+    players: "Spelers",
+  },
+  a11y: {
+    navigatedTo: "Genavigeerd naar {{page}}",
+    titleSuffix: "Petlom",
+  },
+  pageTitle: {
+    players: "Spelers",
+    playerDetail: "Speler {{name}}",
+    competitions: "Competities",
+    competitionDetail: "{{name}}",
+    competitionRound: "{{name}} — Ronde {{round}}",
+    login: "Inloggen",
+    notFound: "Niet gevonden",
   },
   create: {
     addEntity: "{{entityType}} toevoegen",

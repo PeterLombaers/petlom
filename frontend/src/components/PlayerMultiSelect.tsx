@@ -1,4 +1,5 @@
 import { MultiSelect } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { $api } from "@client/api";
 import { components } from "@client/schema";
 
@@ -12,6 +13,7 @@ export default function PlayerMultiSelect({
   players,
   setPlayers,
 }: PlayerMultiSelectProps) {
+  const { t } = useTranslation();
   const {
     data: dbPlayers,
     error,
@@ -35,7 +37,7 @@ export default function PlayerMultiSelect({
 
   return (
     <MultiSelect
-      label="Players"
+      label={t("common.players")}
       data={data}
       value={isError ? [] : players.map((p) => String(p.id))}
       onChange={handleChange}

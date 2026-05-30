@@ -24,6 +24,21 @@ const en = {
     delete: "Delete",
     toggleColorScheme: "Toggle color scheme",
     valueRequired: "Value should not be empty",
+    skipToContent: "Skip to main content",
+    players: "Players",
+  },
+  a11y: {
+    navigatedTo: "Navigated to {{page}}",
+    titleSuffix: "Petlom",
+  },
+  pageTitle: {
+    players: "Players",
+    playerDetail: "Player {{name}}",
+    competitions: "Competitions",
+    competitionDetail: "{{name}}",
+    competitionRound: "{{name}} — Round {{round}}",
+    login: "Login",
+    notFound: "Not found",
   },
   create: {
     addEntity: "Add {{entityType}}",

@@ -17,6 +17,7 @@ import RankingTable from "@/competitions/RankingTable";
 import RoundPlayerList from "@/competitions/RoundPlayerList";
 import NotFoundPage from "./NotFoundPage";
 import { useAuth } from "@/auth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function CompetitionDetailPage() {
   const { name, round } = useParams();
@@ -40,6 +41,10 @@ function CompetitionDetail({
   const { isModerator } = useAuth();
   const { t } = useTranslation();
   const [playersVisible, setPlayersVisible] = useState(false);
+  const pageTitle = roundNr
+    ? t("pageTitle.competitionRound", { name, round: roundNr })
+    : t("pageTitle.competitionDetail", { name });
+  useDocumentTitle(pageTitle);
 
   if (isPending) return <Text>{t("common.loading")}</Text>;
   if (isError || !competition) return <NotFoundPage />;
@@ -56,6 +61,7 @@ function CompetitionDetail({
   if (isDraftRound) {
     return (
       <Stack>
+        <h1 className="sr-only">{pageTitle}</h1>
         <CompetitionBreadcrumbs
           name={name}
           currentRound={currentRound}
@@ -75,6 +81,7 @@ function CompetitionDetail({
   if (currentRound === 0) {
     return (
       <Stack>
+        <h1 className="sr-only">{pageTitle}</h1>
         <CompetitionBreadcrumbs name={name} currentRound={0} nRounds={0} />
         <Text>{t("competition.noRoundsYet")}</Text>
         {isModerator && (
@@ -103,6 +110,7 @@ function CompetitionDetail({
 
   return (
     <Stack>
+      <h1 className="sr-only">{pageTitle}</h1>
       <CompetitionBreadcrumbs
         name={name}
         currentRound={currentRound}

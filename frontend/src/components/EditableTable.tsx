@@ -224,119 +224,121 @@ export default function EditableTable<T extends object>({
     <Table
       style={hasColgroup ? { tableLayout: "fixed", width: "100%" } : undefined}
     >
-        {hasColgroup && (
-          <colgroup>
-            {visibleColumns.map((col, i) => (
-              <col
-                key={i}
+      {hasColgroup && (
+        <colgroup>
+          {visibleColumns.map((col, i) => (
+            <col
+              key={i}
+              className={hideBelowClass(col)}
+              style={col.width !== undefined ? { width: col.width } : undefined}
+            />
+          ))}
+          {activeEditConfig && <col style={{ width: 100 }} />}
+        </colgroup>
+      )}
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Td colSpan={nCols}>
+            <Group justify="space-between">
+              <Text style={title ? undefined : { textTransform: "capitalize" }}>
+                {tableTitle}
+              </Text>
+              {showCreate && (
+                <CreateButton
+                  entityType={entityType}
+                  mutation={createMutation}
+                  dialogConfig={createConfig}
+                />
+              )}
+            </Group>
+          </Table.Td>
+        </Table.Tr>
+        <Table.Tr>
+          {visibleColumns.map((col) => {
+            const isThisColumnEditing = columnEditField === col.field;
+            const showColumnEditButton =
+              activeEditConfig &&
+              col.isEditable &&
+              (!isColumnEditing || isThisColumnEditing);
+            return (
+              <Table.Th
+                key={String(col.field)}
+                scope="col"
                 className={hideBelowClass(col)}
-                style={
-                  col.width !== undefined ? { width: col.width } : undefined
+                style={col.header ? undefined : { textTransform: "capitalize" }}
+              >
+                <Group gap="xs" wrap="nowrap">
+                  <span>{col.header ?? String(col.field)}</span>
+                  {showColumnEditButton && (
+                    <EditButton
+                      isEditing={isThisColumnEditing}
+                      isPending={activeEditConfig!.editMutation.isPending}
+                      onEdit={() => handleStartColumnEdit(col.field)}
+                      onSave={handleSaveColumnEdit}
+                      onCancel={handleCancelColumnEdit}
+                    />
+                  )}
+                </Group>
+              </Table.Th>
+            );
+          })}
+          {activeEditConfig && (
+            <Table.Th scope="col">{t("common.actions")}</Table.Th>
+          )}
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {rows.length > 0 ? (
+          rows.map((row) => {
+            const key = getRowKey(row);
+            return (
+              <EditableRow<T>
+                key={key}
+                data={row}
+                isEditing={editableId === key}
+                setIsEditing={(isEditing) => {
+                  if (isEditing) {
+                    setColumnEditField(null);
+                    setColumnEditValues(new Map());
+                    setColumnEditErrors(new Map());
+                  }
+                  setEditableId(isEditing ? key : null);
+                }}
+                cells={cellConfigs}
+                cellClasses={cellClasses}
+                entityIdField={entityIdField}
+                editConfig={activeEditConfig}
+                deleteConfig={activeDeleteConfig}
+                columnEditField={columnEditField}
+                columnEditValue={columnEditValues.get(key)}
+                columnEditError={columnEditErrors.get(key) ?? ""}
+                onColumnEditChange={(newValue) =>
+                  handleColumnEditChange(key, newValue)
                 }
+                hideRowEditButton={isColumnEditing}
               />
-            ))}
-            {activeEditConfig && <col style={{ width: 100 }} />}
-          </colgroup>
-        )}
-        <Table.Thead>
+            );
+          })
+        ) : (
           <Table.Tr>
-            <Table.Td colSpan={nCols}>
-              <Group justify="space-between">
-                <Text
-                  style={title ? undefined : { textTransform: "capitalize" }}
-                >
-                  {tableTitle}
-                </Text>
-                {showCreate && (
-                  <CreateButton
-                    entityType={entityType}
-                    mutation={createMutation}
-                    dialogConfig={createConfig}
-                  />
-                )}
-              </Group>
+            <Table.Td colSpan={nCols} c="dimmed" ta="center">
+              {t("table.noEntitiesYet", {
+                entityType: translateEntity(t, entityType, true),
+              })}
             </Table.Td>
           </Table.Tr>
-          <Table.Tr>
-            {visibleColumns.map((col) => {
-              const isThisColumnEditing = columnEditField === col.field;
-              const showColumnEditButton =
-                activeEditConfig &&
-                col.isEditable &&
-                (!isColumnEditing || isThisColumnEditing);
-              return (
-                <Table.Th
-                  key={String(col.field)}
-                  className={hideBelowClass(col)}
-                  style={
-                    col.header ? undefined : { textTransform: "capitalize" }
-                  }
-                >
-                  <Group gap="xs" wrap="nowrap">
-                    <span>{col.header ?? String(col.field)}</span>
-                    {showColumnEditButton && (
-                      <EditButton
-                        isEditing={isThisColumnEditing}
-                        isPending={activeEditConfig!.editMutation.isPending}
-                        onEdit={() => handleStartColumnEdit(col.field)}
-                        onSave={handleSaveColumnEdit}
-                        onCancel={handleCancelColumnEdit}
-                      />
-                    )}
-                  </Group>
-                </Table.Th>
-              );
-            })}
-            {activeEditConfig && <Table.Th>{t("common.actions")}</Table.Th>}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {rows.length > 0 ? (
-            rows.map((row) => {
-              const key = getRowKey(row);
-              return (
-                <EditableRow<T>
-                  key={key}
-                  data={row}
-                  isEditing={editableId === key}
-                  setIsEditing={(isEditing) => {
-                    if (isEditing) {
-                      setColumnEditField(null);
-                      setColumnEditValues(new Map());
-                      setColumnEditErrors(new Map());
-                    }
-                    setEditableId(isEditing ? key : null);
-                  }}
-                  cells={cellConfigs}
-                  cellClasses={cellClasses}
-                  entityIdField={entityIdField}
-                  editConfig={activeEditConfig}
-                  deleteConfig={activeDeleteConfig}
-                  columnEditField={columnEditField}
-                  columnEditValue={columnEditValues.get(key)}
-                  columnEditError={columnEditErrors.get(key) ?? ""}
-                  onColumnEditChange={(newValue) =>
-                    handleColumnEditChange(key, newValue)
-                  }
-                  hideRowEditButton={isColumnEditing}
-                />
-              );
-            })
-          ) : (
-            <Table.Tr>
-              <Table.Td colSpan={nCols} c="dimmed" ta="center">
-                {t("table.noEntitiesYet", {
-                  entityType: translateEntity(t, entityType, true),
-                })}
-              </Table.Td>
-            </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+        )}
+      </Table.Tbody>
+    </Table>
   );
 
+  const isBusy =
+    editMutation.isPending ||
+    deleteMutation.isPending ||
+    createMutation.isPending;
+
   return (
-    <Paper withBorder>
+    <Paper withBorder aria-busy={isBusy}>
       {scrollMinWidth !== undefined ? (
         <Table.ScrollContainer minWidth={scrollMinWidth} type="native">
           {table}

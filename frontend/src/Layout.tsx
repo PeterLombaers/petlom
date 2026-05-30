@@ -94,6 +94,9 @@ export default function Layout() {
       navbar={{ width: 240, breakpoint: "sm", collapsed: { mobile: !navOpen } }}
       padding="md"
     >
+      <a href="#main-content" className="skip-link">
+        {t("common.skipToContent")}
+      </a>
       <AppShell.Header>
         <Group
           h="100%"
@@ -128,7 +131,7 @@ export default function Layout() {
           active={pathname === "/players"}
         />
       </AppShell.Navbar>
-      <AppShell.Main>
+      <AppShell.Main id="main-content" tabIndex={-1}>
         <Outlet />
       </AppShell.Main>
     </AppShell>

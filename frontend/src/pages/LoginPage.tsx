@@ -14,10 +14,13 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { PetlomLogo } from "@/components/PetlomLogo";
 import { useAuth } from "@/auth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { t } = useTranslation();
+  const pageTitle = t("pageTitle.login");
+  useDocumentTitle(pageTitle);
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string })?.from ?? "/competitions";
@@ -43,6 +46,7 @@ export default function LoginPage() {
   return (
     <Center h="100vh">
       <Stack w={360} gap="sm">
+        <h1 className="sr-only">{pageTitle}</h1>
         <Stack align="center" gap={4}>
           <PetlomLogo size={80} />
           <Text c="dimmed" size="sm">

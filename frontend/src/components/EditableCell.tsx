@@ -32,7 +32,11 @@ export default function EditableCell<T = unknown>({
       style={
         isEditing
           ? undefined
-          : { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }
+          : {
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }
       }
     >
       {isEditing
