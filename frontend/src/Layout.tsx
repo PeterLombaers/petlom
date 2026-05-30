@@ -84,7 +84,7 @@ function CompetitionNavLinks() {
 }
 
 export default function Layout() {
-  const [navOpen, { toggle: toggleNavOpen }] = useDisclosure();
+  const [navOpen, { toggle: toggleNavOpen, close: closeNav }] = useDisclosure();
   const { pathname } = useLocation();
   const { t } = useTranslation();
 
@@ -118,7 +118,7 @@ export default function Layout() {
           </Group>
         </Group>
       </AppShell.Header>
-      <AppShell.Navbar p="xs">
+      <AppShell.Navbar p="xs" onClick={closeNav}>
         <CompetitionNavLinks />
         <NavLink
           label={t("nav.players")}
