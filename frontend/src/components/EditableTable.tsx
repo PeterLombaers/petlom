@@ -36,6 +36,7 @@ type EditableTableProps<T extends object> = {
   createConfig?: CreateDialogConfig<any>;
   editConfig?: TableEditConfig<T>;
   deleteConfig?: TableDeleteConfig<T>;
+  scrollMinWidth?: number;
 };
 
 /**
@@ -86,6 +87,7 @@ export default function EditableTable<T extends object>({
   deleteConfig,
   createConfig,
   editConfig,
+  scrollMinWidth = 500,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
   const { t } = useTranslation();
@@ -119,9 +121,14 @@ export default function EditableTable<T extends object>({
   const getRowKey = (row: T) => row[entityIdField] as string | number;
 
   const visibleColumns = columns.filter((c) => !c.hidden);
+  const hideBelowClass = (col: (typeof visibleColumns)[number]) =>
+    col.hideBelow ? `mantine-visible-from-${col.hideBelow}` : undefined;
   const cellConfigs = Object.fromEntries(
     visibleColumns.map((c) => [c.field, c.cell]),
   ) as CellConfigs<T>;
+  const cellClasses = Object.fromEntries(
+    visibleColumns.map((c) => [c.field, hideBelowClass(c)]),
+  ) as Partial<Record<keyof T, string | undefined>>;
 
   const activeEditConfig: EditConfig<T> | undefined =
     isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
@@ -213,18 +220,16 @@ export default function EditableTable<T extends object>({
   const showCreate = isModerator && createConfig !== undefined;
   const tableTitle = title || translateEntity(t, entityType, true);
 
-  return (
-    <Paper withBorder>
-      <Table
-        style={
-          hasColgroup ? { tableLayout: "fixed", width: "100%" } : undefined
-        }
-      >
+  const table = (
+    <Table
+      style={hasColgroup ? { tableLayout: "fixed", width: "100%" } : undefined}
+    >
         {hasColgroup && (
           <colgroup>
             {visibleColumns.map((col, i) => (
               <col
                 key={i}
+                className={hideBelowClass(col)}
                 style={
                   col.width !== undefined ? { width: col.width } : undefined
                 }
@@ -262,6 +267,7 @@ export default function EditableTable<T extends object>({
               return (
                 <Table.Th
                   key={String(col.field)}
+                  className={hideBelowClass(col)}
                   style={
                     col.header ? undefined : { textTransform: "capitalize" }
                   }
@@ -302,6 +308,7 @@ export default function EditableTable<T extends object>({
                     setEditableId(isEditing ? key : null);
                   }}
                   cells={cellConfigs}
+                  cellClasses={cellClasses}
                   entityIdField={entityIdField}
                   editConfig={activeEditConfig}
                   deleteConfig={activeDeleteConfig}
@@ -326,6 +333,17 @@ export default function EditableTable<T extends object>({
           )}
         </Table.Tbody>
       </Table>
+  );
+
+  return (
+    <Paper withBorder>
+      {scrollMinWidth !== undefined ? (
+        <Table.ScrollContainer minWidth={scrollMinWidth} type="native">
+          {table}
+        </Table.ScrollContainer>
+      ) : (
+        table
+      )}
     </Paper>
   );
 }

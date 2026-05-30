@@ -121,6 +121,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
           cell: createNumberCell("board"),
           header: t("match.board"),
           width: 80,
+          hideBelow: "sm",
         },
         {
           field: "player_white",

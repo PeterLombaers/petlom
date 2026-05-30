@@ -13,6 +13,7 @@ interface EditableCellProps<T = unknown> {
     onChange: (newValue: T) => void;
   }) => React.ReactNode;
   error: string;
+  className?: string;
 }
 
 export default function EditableCell<T = unknown>({
@@ -23,9 +24,17 @@ export default function EditableCell<T = unknown>({
   renderValue,
   renderEdit,
   error,
+  className,
 }: EditableCellProps<T>) {
   return (
-    <Table.Td>
+    <Table.Td
+      className={className}
+      style={
+        isEditing
+          ? undefined
+          : { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }
+      }
+    >
       {isEditing
         ? renderEdit({
             editValue,

@@ -1,4 +1,4 @@
-import { Group, Table } from "@mantine/core";
+import { Box, Group, Table } from "@mantine/core";
 import { useState } from "react";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
@@ -10,6 +10,7 @@ interface EditableRowProps<T = unknown> {
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
   cells: CellConfigs<T>;
+  cellClasses?: Partial<Record<keyof T, string | undefined>>;
   entityIdField: keyof T;
   editConfig?: EditConfig<T>;
   deleteConfig?: DeleteConfig<T>;
@@ -25,6 +26,7 @@ export default function EditableRow<T = unknown>({
   isEditing,
   setIsEditing,
   cells,
+  cellClasses,
   entityIdField,
   editConfig,
   deleteConfig,
@@ -81,6 +83,7 @@ export default function EditableRow<T = unknown>({
     <Table.Tr>
       {(Object.keys(cells) as Array<keyof T>).map((key) => {
         const cell = cells[key]!;
+        const className = cellClasses?.[key];
         if (columnEditField === key && cell.renderEdit) {
           return (
             <EditableCell
@@ -92,6 +95,7 @@ export default function EditableRow<T = unknown>({
               renderValue={cell.renderValue}
               renderEdit={cell.renderEdit}
               error={columnEditError ?? ""}
+              className={className}
             />
           );
         }
@@ -106,11 +110,20 @@ export default function EditableRow<T = unknown>({
               renderValue={cell.renderValue}
               renderEdit={cell.renderEdit}
               error={errors[key] || ""}
+              className={className}
             />
           );
         }
         return (
-          <Table.Td key={String(key)}>
+          <Table.Td
+            key={String(key)}
+            className={className}
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             {cell.renderValue({ value: data[key] })}
           </Table.Td>
         );
@@ -127,14 +140,31 @@ export default function EditableRow<T = unknown>({
                 onCancel={() => setIsEditing(false)}
               />
             )}
-            {deleteConfig && !isEditing && !hideRowEditButton && (
-              <DeleteButton
-                entityType={deleteConfig.entityType}
-                entityName={deleteConfig.getEntityName(data)}
-                entityId={entityId}
-                mutation={deleteConfig.deleteMutation}
-                requireTypedConfirmation={deleteConfig.requireTypedConfirmation}
-              />
+            {deleteConfig && !hideRowEditButton && !isEditing && (
+              <Box visibleFrom="sm" component="span">
+                <DeleteButton
+                  entityType={deleteConfig.entityType}
+                  entityName={deleteConfig.getEntityName(data)}
+                  entityId={entityId}
+                  mutation={deleteConfig.deleteMutation}
+                  requireTypedConfirmation={
+                    deleteConfig.requireTypedConfirmation
+                  }
+                />
+              </Box>
+            )}
+            {deleteConfig && !hideRowEditButton && isEditing && (
+              <Box hiddenFrom="sm" component="span">
+                <DeleteButton
+                  entityType={deleteConfig.entityType}
+                  entityName={deleteConfig.getEntityName(data)}
+                  entityId={entityId}
+                  mutation={deleteConfig.deleteMutation}
+                  requireTypedConfirmation={
+                    deleteConfig.requireTypedConfirmation
+                  }
+                />
+              </Box>
             )}
           </Group>
         </Table.Td>

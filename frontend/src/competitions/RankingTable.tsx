@@ -26,6 +26,7 @@ export default function RankingTable({
 
   return (
     <Paper withBorder>
+      <Table.ScrollContainer minWidth={700} type="native">
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -79,6 +80,7 @@ export default function RankingTable({
           )}
         </Table.Tbody>
       </Table>
+      </Table.ScrollContainer>
     </Paper>
   );
 }

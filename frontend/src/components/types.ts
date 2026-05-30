@@ -1,5 +1,6 @@
 import React from "react";
 import { UseMutationResult } from "@tanstack/react-query";
+import type { MantineBreakpoint } from "@mantine/core";
 import type { components } from "@client/schema";
 
 // Wildcard mutation type for components that only use .isPending and .mutate().
@@ -65,6 +66,9 @@ export type CellConfigs<T> = { [K in keyof T]?: CellConfig<T, K> };
  *
  * @property width  - Optional fixed pixel width. When any column has a width,
  *   the table switches to `table-layout: fixed` and a `<colgroup>` is emitted.
+ *
+ * @property hideBelow - When set, the column is hidden on viewports narrower
+ *   than the given Mantine breakpoint (e.g. `"sm"` hides it below 768px).
  */
 export type Column<T> = {
   [K in keyof T]: {
@@ -75,6 +79,7 @@ export type Column<T> = {
     isEditable?: boolean;
     hidden?: boolean;
     width?: string | number;
+    hideBelow?: MantineBreakpoint;
   };
 }[keyof T];
 

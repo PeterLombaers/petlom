@@ -95,8 +95,14 @@ export default function Layout() {
       padding="md"
     >
       <AppShell.Header>
-        <Group h="100%" px="md" justify="space-between">
-          <Group>
+        <Group
+          h="100%"
+          px="md"
+          justify="space-between"
+          wrap="nowrap"
+          style={{ overflow: "hidden" }}
+        >
+          <Group wrap="nowrap">
             <Burger
               opened={navOpen}
               onClick={toggleNavOpen}
@@ -105,7 +111,7 @@ export default function Layout() {
             />
             <PetlomLogo size={50} />
           </Group>
-          <Group>
+          <Group wrap="nowrap">
             <LanguageSwitcher />
             <ThemeToggle />
             <AuthControls />
