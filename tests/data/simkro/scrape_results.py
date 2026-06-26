@@ -90,14 +90,15 @@ def write_csv(path: Path, headers: list[str], rows: list[list[str]]) -> None:
     print(f"    Wrote {len(rows)} rows -> {path}")
 
 
-def scrape_round(url: str, save_dir: Path) -> bool:
+def scrape_round(url: str, save_dir: Path, round_number: int | None = None) -> bool:
     """Scrape a single round page and write CSVs into save_dir. Returns True on success."""
     soup = fetch_soup(url)
     if soup is None:
         print(f"    ERROR: page not found or returned not-found text: {url}")
         return False
 
-    round_number = parse_round(soup)
+    if round_number is None:
+        round_number = parse_round(soup)
     if round_number is None:
         print(f"    WARNING: could not determine round number from {url}, skipping")
         return False
