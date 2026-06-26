@@ -67,6 +67,13 @@ export type CellConfigs<T> = { [K in keyof T]?: CellConfig<T, K> };
  * @property width  - Optional fixed pixel width. When any column has a width,
  *   the table switches to `table-layout: fixed` and a `<colgroup>` is emitted.
  *
+ * @property editWidth - Optional column width used while this column is in
+ *   column-edit mode (the header edit button); may be larger or smaller than
+ *   `width`. Useful when the edit control (e.g. a result toggle) needs a
+ *   different amount of room than the displayed value. Falls back to `width`
+ *   when unset. Make `width` responsive (e.g. via `useMediaQuery`) if the base
+ *   width should differ by screen size.
+ *
  * @property hideBelow - When set, the column is hidden on viewports narrower
  *   than the given Mantine breakpoint (e.g. `"sm"` hides it below 768px).
  */
@@ -79,6 +86,7 @@ export type Column<T> = {
     isEditable?: boolean;
     hidden?: boolean;
     width?: string | number;
+    editWidth?: string | number;
     hideBelow?: MantineBreakpoint;
   };
 }[keyof T];

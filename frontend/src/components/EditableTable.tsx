@@ -215,7 +215,13 @@ export default function EditableTable<T extends object>({
     }
   };
 
-  const hasColgroup = visibleColumns.some((c) => c.width !== undefined);
+  const hasColgroup = visibleColumns.some(
+    (c) => c.width !== undefined || c.editWidth !== undefined,
+  );
+  const colWidth = (col: (typeof visibleColumns)[number]) =>
+    columnEditField === col.field && col.editWidth !== undefined
+      ? col.editWidth
+      : col.width;
   const nCols = visibleColumns.length + (activeEditConfig ? 1 : 0);
   const showCreate = isModerator && createConfig !== undefined;
   const tableTitle = title || translateEntity(t, entityType, true);
@@ -226,13 +232,16 @@ export default function EditableTable<T extends object>({
     >
       {hasColgroup && (
         <colgroup>
-          {visibleColumns.map((col, i) => (
-            <col
-              key={i}
-              className={hideBelowClass(col)}
-              style={col.width !== undefined ? { width: col.width } : undefined}
-            />
-          ))}
+          {visibleColumns.map((col, i) => {
+            const width = colWidth(col);
+            return (
+              <col
+                key={i}
+                className={hideBelowClass(col)}
+                style={width !== undefined ? { width } : undefined}
+              />
+            );
+          })}
           {activeEditConfig && <col style={{ width: 100 }} />}
         </colgroup>
       )}

@@ -1,4 +1,5 @@
-import { NumberInput, Stack } from "@mantine/core";
+import { NumberInput, Stack, useMantineTheme } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { components } from "@client/schema";
 import EditableTable from "@components/EditableTable";
@@ -38,6 +39,12 @@ const getRequestBody = (match: MatchPublic) => ({
 
 export const MatchList = ({ competition_name, round }: MatchListProps) => {
   const { t } = useTranslation();
+  const theme = useMantineTheme();
+  const isSmallScreen = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+  // The result toggle needs ~220px while editing. On large screens we keep the
+  // column at that width so it never jumps; on small screens it stays compact and
+  // only expands (via editWidth) while the result column is being edited.
+  const resultWidth = isSmallScreen ? 90 : 220;
   const queryResult = useMatches(competition_name, round);
   const matchList = queryResult.rows ?? [];
   const maxBoard =
@@ -136,7 +143,8 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
         {
           field: "result",
           cell: createResultToggleCell(),
-          width: 200,
+          width: resultWidth,
+          editWidth: 220,
           isEditable: true,
         },
       ]}
