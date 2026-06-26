@@ -1,4 +1,4 @@
-import { Anchor, NumberInput, TextInput } from "@mantine/core";
+import { Anchor, NumberInput, TextInput, Tooltip } from "@mantine/core";
 import { components } from "@client/schema";
 import PlayerSelect from "@components/PlayerSelect";
 import ResultToggle from "@components/ResultToggle";
@@ -56,7 +56,14 @@ export const createReadOnlyNumberCell = () => ({
 });
 
 export const createPlayerSelectCell = () => ({
-  renderValue: (props: { value: PlayerPublicMinimal }) => props.value.name,
+  renderValue: (props: { value: PlayerPublicMinimal }) => (
+    <Tooltip
+      label={props.value.name}
+      events={{ hover: false, focus: false, touch: true }}
+    >
+      <span>{props.value.name}</span>
+    </Tooltip>
+  ),
   renderEdit: (props: {
     editValue: PlayerPublicMinimal;
     error: string;
