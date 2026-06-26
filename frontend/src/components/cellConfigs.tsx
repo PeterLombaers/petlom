@@ -59,7 +59,7 @@ export const createPlayerSelectCell = () => ({
   renderValue: (props: { value: PlayerPublicMinimal }) => (
     <Tooltip
       label={props.value.name}
-      events={{ hover: false, focus: false, touch: true }}
+      events={{ hover: true, focus: false, touch: true }}
     >
       <span>{props.value.name}</span>
     </Tooltip>
