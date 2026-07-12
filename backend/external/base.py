@@ -51,9 +51,7 @@ class ExternalRatingProvider(Protocol):
         """Return the most recent list date ("YYYY-MM") available at the source."""
         ...
 
-    def search_players(
-        self, query: str, limit: int = 20
-    ) -> list[ExternalPlayerResult]:
+    def search_players(self, query: str, limit: int = 20) -> list[ExternalPlayerResult]:
         """Search players at the source by name, or by external id if the query
         looks like one."""
         ...

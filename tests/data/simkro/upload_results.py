@@ -228,9 +228,7 @@ class PetlomClient:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path, help="Season folder with round_N dirs")
-    parser.add_argument(
-        "--name", help="Competition name (default: folder basename)"
-    )
+    parser.add_argument("--name", help="Competition name (default: folder basename)")
     parser.add_argument(
         "--base-url", default="http://localhost:8000", help="Petlom API base URL"
     )

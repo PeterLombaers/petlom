@@ -68,9 +68,7 @@ class FideProvider:
             raise ExternalApiError("FIDE API history response was not a list")
         return sorted(entries, key=lambda e: e.get("listDate") or "", reverse=True)
 
-    def search_players(
-        self, query: str, limit: int = 20
-    ) -> list[ExternalPlayerResult]:
+    def search_players(self, query: str, limit: int = 20) -> list[ExternalPlayerResult]:
         query = query.strip()
         if query.isdigit():
             entries = self._history(query)
@@ -92,7 +90,8 @@ class FideProvider:
                 (
                     e
                     for e in self._history(external_id)
-                    if e.get("listDate") and e.get("rating") is not None
+                    if e.get("listDate")
+                    and e.get("rating") is not None
                     and e["listDate"] <= list_date
                 ),
                 None,
