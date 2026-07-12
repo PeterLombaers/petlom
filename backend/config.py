@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     allowed_origins: list[str] = []
     database_fp: str = "database.db"
+    fide_api_base_url: str | None = None
+    fide_api_settings_url: str | None = None
 
 
 settings = Settings()  # type: ignore[call-arg]

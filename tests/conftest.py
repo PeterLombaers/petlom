@@ -1,3 +1,4 @@
+import os
 from typing import Any, Callable, Generator
 
 import factory
@@ -22,6 +23,26 @@ from backend.models import (
 )
 
 fake = Faker()
+
+
+def pytest_addoption(parser: pytest.Parser):
+    parser.addoption(
+        "--external",
+        action="store_true",
+        default=False,
+        help="Run tests marked 'external' against the real external rating APIs",
+    )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]):
+    if config.getoption("--external") or os.environ.get(
+        "EXTERNAL_TESTS", ""
+    ).lower() in ("1", "true", "yes"):
+        return
+    skip = pytest.mark.skip(reason="needs --external or EXTERNAL_TESTS=true")
+    for item in items:
+        if "external" in item.keywords:
+            item.add_marker(skip)
 
 
 @pytest.fixture
