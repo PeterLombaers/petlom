@@ -11,10 +11,12 @@ from sqlmodel.pool import StaticPool
 from backend.auth import create_access_token, hash_password
 from backend.competitions import CompetitionType
 from backend.dependencies import get_session
+from backend.enums import ExternalRatingSource
 from backend.main import app
 from backend.models import (
     Competition,
     CompetitionRatingType,
+    ExternalRating,
     Match,
     Moderator,
     Player,
@@ -148,6 +150,27 @@ def player_factory(
     session: Session,
 ) -> Generator[Callable[..., Player], Any, None]:
     yield PlayerFactory(session)
+
+
+def ExternalRatingFactory(session: Session) -> Callable[..., ExternalRating]:
+    class ExternalRatingFactory(factory.alchemy.SQLAlchemyModelFactory):
+        class Meta:
+            model = ExternalRating
+            sqlalchemy_session = session
+            sqlalchemy_session_persistence = "commit"
+
+        player_external_id = factory.SubFactory(PlayerExternalIdFactory(session))
+        rating = 1800.0
+        list_date = "2026-06"
+
+    return ExternalRatingFactory
+
+
+@pytest.fixture
+def external_rating_factory(
+    session: Session,
+) -> Generator[Callable[..., ExternalRating], Any, None]:
+    yield ExternalRatingFactory(session)
 
 
 def MatchFactory(session: Session) -> Callable[..., Match]:

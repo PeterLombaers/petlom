@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
 from backend.db import engine, init_db
-from backend.routers import auth, competitions, matches, players
+from backend.routers import auth, competitions, external_ratings, matches, players
 
 app = FastAPI(root_path="/api")
 app.add_middleware(
@@ -18,6 +18,7 @@ app.include_router(auth.router)
 app.include_router(competitions.router)
 app.include_router(players.router)
 app.include_router(matches.router)
+app.include_router(external_ratings.router)
 
 
 @app.on_event("startup")

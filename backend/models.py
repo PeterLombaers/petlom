@@ -213,12 +213,21 @@ class ExternalRatingImportRequest(SQLModel):
         ),
     )
     list_date: constr(pattern=LIST_DATE_PATTERN) | None = None  # type: ignore
+    update_existing: bool = Field(
+        default=False,
+        description=(
+            "Also fetch ratings for players that already have a snapshot at"
+            " the list date, overwriting it. Defaults to skipping those"
+            " players."
+        ),
+    )
 
 
 class ExternalRatingImportResult(SQLModel):
     list_date: str
     imported: int
     updated: int
+    skipped: int = 0
     not_found: list[str] = []
     players_without_id: list[int] = []
 

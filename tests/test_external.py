@@ -209,7 +209,7 @@ def test_import_endpoint(
 
 
 @respx.mock
-def test_import_endpoint_reimport_updates(
+def test_import_endpoint_reimport_skips_existing(
     auth_client: TestClient,
     session: Session,
     player_external_id_factory: Callable[..., PlayerExternalId],
@@ -226,7 +226,36 @@ def test_import_endpoint_reimport_updates(
     res.raise_for_status()
     result = res.json()
     assert result["imported"] == 0
+    assert result["updated"] == 0
+    assert result["skipped"] == 1
+    # The existing snapshot is not re-requested at the source.
+    assert route.call_count == 1
+
+    ratings = session.exec(select(ExternalRating)).all()
+    assert len(ratings) == 1
+    assert ratings[0].rating == 2100
+
+
+@respx.mock
+def test_import_endpoint_reimport_updates_when_requested(
+    auth_client: TestClient,
+    session: Session,
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    fide_configured,
+    mock_settings_endpoint,
+):
+    player_external_id_factory(external_id="111")
+    route = respx.get(f"{BASE_URL}/history/111")
+    route.respond(json=[history_entry(111, 2100, "2026-06")])
+    auth_client.post("/external/fide/import/", json={}).raise_for_status()
+
+    route.respond(json=[history_entry(111, 2150, "2026-06")])
+    res = auth_client.post("/external/fide/import/", json={"update_existing": True})
+    res.raise_for_status()
+    result = res.json()
+    assert result["imported"] == 0
     assert result["updated"] == 1
+    assert result["skipped"] == 0
 
     ratings = session.exec(select(ExternalRating)).all()
     assert len(ratings) == 1
