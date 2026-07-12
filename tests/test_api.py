@@ -4,10 +4,14 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from backend.competitions import CompetitionType
+from backend.enums import ExternalRatingSource
 from backend.models import (
     Competition,
+    ExternalRating,
     Match,
     Player,
+    PlayerDetailPublic,
+    PlayerExternalId,
     PlayerPublic,
     Result,
     RoundPlayer,
@@ -131,7 +135,114 @@ def test_get_player(player: Player, client: TestClient):
     res = client.get(f"/players/{player.id}/")
     res.raise_for_status()
     res_player = res.json()
-    assert res_player == jsonable_encoder(PlayerPublic.model_validate(player))
+    assert res_player == jsonable_encoder(PlayerDetailPublic.model_validate(player))
+
+
+def test_create_player_with_external_id(session: Session, auth_client: TestClient):
+    res = auth_client.post(
+        "/players/",
+        json={
+            "name": "Peter",
+            "external_ids": [{"source": "fide", "external_id": "1023456"}],
+        },
+    )
+    res.raise_for_status()
+    assert res.json()["external_ids"][0]["external_id"] == "1023456"
+    external_ids = session.scalars(select(PlayerExternalId)).all()
+    assert len(external_ids) == 1
+    assert external_ids[0].source == ExternalRatingSource.FIDE
+    assert external_ids[0].external_id == "1023456"
+
+
+def test_create_player_duplicate_external_id(auth_client: TestClient):
+    body = {
+        "name": "Peter",
+        "external_ids": [{"source": "fide", "external_id": "1023456"}],
+    }
+    auth_client.post("/players/", json=body).raise_for_status()
+    res = auth_client.post("/players/", json={**body, "name": "Petra"})
+    assert res.status_code == 409
+
+
+def test_set_player_external_id(
+    player: Player, session: Session, auth_client: TestClient
+):
+    res = auth_client.put(
+        f"/players/{player.id}/external-ids/fide/", json={"external_id": "1023456"}
+    )
+    res.raise_for_status()
+    session.refresh(player)
+    assert len(player.external_ids) == 1
+    assert player.external_ids[0].external_id == "1023456"
+    # Updating the same source overwrites instead of adding a second id.
+    res = auth_client.put(
+        f"/players/{player.id}/external-ids/fide/", json={"external_id": "2034567"}
+    )
+    res.raise_for_status()
+    session.refresh(player)
+    assert len(player.external_ids) == 1
+    assert player.external_ids[0].external_id == "2034567"
+
+
+def test_set_player_external_id_conflict(
+    player_factory: Callable[..., Player], auth_client: TestClient
+):
+    p0, p1 = player_factory(), player_factory()
+    auth_client.put(
+        f"/players/{p0.id}/external-ids/fide/", json={"external_id": "1023456"}
+    ).raise_for_status()
+    res = auth_client.put(
+        f"/players/{p1.id}/external-ids/fide/", json={"external_id": "1023456"}
+    )
+    assert res.status_code == 409
+
+
+def test_set_player_external_id_requires_auth(player: Player, client: TestClient):
+    res = client.put(
+        f"/players/{player.id}/external-ids/fide/", json={"external_id": "1023456"}
+    )
+    assert res.status_code == 401
+
+
+def test_delete_player_external_id(
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    external_rating_factory: Callable[..., ExternalRating],
+    session: Session,
+    auth_client: TestClient,
+):
+    external_id = player_external_id_factory()
+    external_rating_factory(player_external_id=external_id)
+    res = auth_client.delete(f"/players/{external_id.player_id}/external-ids/fide/")
+    res.raise_for_status()
+    assert len(session.scalars(select(PlayerExternalId)).all()) == 0
+    # Rating snapshots are deleted along with the identifier.
+    assert len(session.scalars(select(ExternalRating)).all()) == 0
+
+
+def test_delete_player_external_id_not_found(player: Player, auth_client: TestClient):
+    res = auth_client.delete(f"/players/{player.id}/external-ids/fide/")
+    assert res.status_code == 404
+
+
+def test_list_player_external_ratings(
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    external_rating_factory: Callable[..., ExternalRating],
+    client: TestClient,
+):
+    external_id = player_external_id_factory()
+    external_rating_factory(
+        player_external_id=external_id, rating=1900.0, list_date="2026-05"
+    )
+    external_rating_factory(
+        player_external_id=external_id, rating=1950.0, list_date="2026-06"
+    )
+    res = client.get(f"/players/{external_id.player_id}/external-ratings/")
+    res.raise_for_status()
+    ratings = res.json()
+    assert [(r["list_date"], r["rating"], r["source"]) for r in ratings] == [
+        ("2026-06", 1950.0, "fide"),
+        ("2026-05", 1900.0, "fide"),
+    ]
 
 
 def test_list_player(player_factory: Callable[..., Player], client):

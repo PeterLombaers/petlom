@@ -20,6 +20,7 @@ from backend.models import (
     Match,
     Moderator,
     Player,
+    PlayerExternalId,
     RatingAlgorithm,
     Result,
 )
@@ -150,6 +151,27 @@ def player_factory(
     session: Session,
 ) -> Generator[Callable[..., Player], Any, None]:
     yield PlayerFactory(session)
+
+
+def PlayerExternalIdFactory(session: Session) -> Callable[..., PlayerExternalId]:
+    class PlayerExternalIdFactory(factory.alchemy.SQLAlchemyModelFactory):
+        class Meta:
+            model = PlayerExternalId
+            sqlalchemy_session = session
+            sqlalchemy_session_persistence = "commit"
+
+        player = factory.SubFactory(PlayerFactory(session))
+        source = ExternalRatingSource.FIDE
+        external_id = factory.Sequence(lambda n: str(1000000 + n))
+
+    return PlayerExternalIdFactory
+
+
+@pytest.fixture
+def player_external_id_factory(
+    session: Session,
+) -> Generator[Callable[..., PlayerExternalId], Any, None]:
+    yield PlayerExternalIdFactory(session)
 
 
 def ExternalRatingFactory(session: Session) -> Callable[..., ExternalRating]:
