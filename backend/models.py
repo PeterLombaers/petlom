@@ -9,7 +9,7 @@ from sqlalchemy.types import JSON
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 from backend.competitions import CompetitionType
-from backend.enums import Result
+from backend.enums import ExternalRatingSource, Result
 from backend.ratings import BaseRating, SimkroRating
 
 
@@ -100,6 +100,14 @@ class CompetitionRating(SQLModel, table=True):
     is_manual: bool = Field(
         default=False, description="Has the initial rating been set manually?"
     )
+    source_external_rating_id: int | None = Field(
+        default=None,
+        foreign_key="externalrating.id",
+        ondelete="SET NULL",
+        description=(
+            "The external rating snapshot the initial rating was based on, if any."
+        ),
+    )
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -117,8 +125,102 @@ class CompetitionRatingPublic(SQLModel):
     initial_rating: float
     current_rating: float
     is_manual: bool
+    source_external_rating_id: int | None
     created_at: datetime
     updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# External identifiers + ratings
+# ---------------------------------------------------------------------------
+
+
+LIST_DATE_PATTERN = r"^\d{4}-\d{2}$"
+
+
+class PlayerExternalId(SQLModel, table=True):
+    """The identifier of a player at an external rating source (e.g. FIDE id)."""
+
+    __table_args__ = (
+        UniqueConstraint("player_id", "source"),
+        UniqueConstraint("source", "external_id"),
+    )
+    id: int | None = Field(default=None, primary_key=True)
+    player_id: int = Field(foreign_key="player.id", ondelete="CASCADE")
+    source: ExternalRatingSource
+    external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    player: "Player" = Relationship(back_populates="external_ids")
+    external_ratings: list["ExternalRating"] = Relationship(
+        back_populates="player_external_id", cascade_delete=True
+    )
+
+
+class ExternalRating(SQLModel, table=True):
+    """A snapshot of a player's rating at an external source at a list date.
+
+    FIDE and KNSB ratings are integers; stored as float for consistency with
+    CompetitionRating."""
+
+    __table_args__ = (UniqueConstraint("player_external_id_id", "list_date"),)
+    id: int | None = Field(default=None, primary_key=True)
+    player_external_id_id: int = Field(
+        foreign_key="playerexternalid.id", ondelete="CASCADE"
+    )
+    rating: float
+    list_date: constr(pattern=LIST_DATE_PATTERN)  # type: ignore
+    imported_at: datetime = Field(default_factory=datetime.now)
+
+    player_external_id: PlayerExternalId = Relationship(
+        back_populates="external_ratings"
+    )
+
+
+class PlayerExternalIdInput(SQLModel):
+    source: ExternalRatingSource
+    external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
+
+
+class PlayerExternalIdPublic(SQLModel):
+    id: int
+    source: ExternalRatingSource
+    external_id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class PlayerExternalIdUpdate(SQLModel):
+    external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
+
+
+class ExternalRatingPublic(SQLModel):
+    id: int
+    player_external_id_id: int
+    source: ExternalRatingSource
+    rating: float
+    list_date: str
+    imported_at: datetime
+
+
+class ExternalRatingImportRequest(SQLModel):
+    player_ids: list[int] | None = Field(
+        default=None,
+        description=(
+            "Players to import ratings for. Defaults to all players with an"
+            " external id for the source."
+        ),
+    )
+    list_date: constr(pattern=LIST_DATE_PATTERN) | None = None  # type: ignore
+
+
+class ExternalRatingImportResult(SQLModel):
+    list_date: str
+    imported: int
+    updated: int
+    not_found: list[str] = []
+    players_without_id: list[int] = []
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +256,9 @@ class Player(PlayerBase, table=True):
     competition_ratings: list[CompetitionRating] = Relationship(
         back_populates="player", cascade_delete=True
     )
+    external_ids: list[PlayerExternalId] = Relationship(
+        back_populates="player", cascade_delete=True
+    )
 
     def __hash__(self):
         return hash(self.id)
@@ -164,12 +269,14 @@ class Player(PlayerBase, table=True):
 
 class PlayerCreate(PlayerBase):
     is_active: bool = True
+    external_ids: list[PlayerExternalIdInput] = []
 
 
 class PlayerPublic(PlayerBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    external_ids: list[PlayerExternalIdPublic] = []
 
 
 class PlayerPublicMinimal(SQLModel):
@@ -181,6 +288,21 @@ class PlayerPublicMinimal(SQLModel):
 class PlayerUpdate(PlayerBase):
     name: constr(strip_whitespace=True, min_length=1) | None = None
     is_active: bool | None = None
+
+
+class PlayerCompetitionRatingPublic(SQLModel):
+    """A competition rating as seen from the player's perspective."""
+
+    id: int
+    initial_rating: float
+    current_rating: float
+    is_manual: bool
+    source_external_rating_id: int | None
+    rating_type: CompetitionRatingTypePublic
+
+
+class PlayerDetailPublic(PlayerPublic):
+    competition_ratings: list[PlayerCompetitionRatingPublic] = []
 
 
 # ---------------------------------------------------------------------------
