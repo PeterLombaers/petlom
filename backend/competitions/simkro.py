@@ -94,9 +94,10 @@ N_GAMES_BETWEEN = 4
 # The weight given to the color and point part of the penalty score.
 PENALTY_COLOR_WEIGHT = 0.5
 PENALTY_POINT_WEIGHT = 0.001
-# Seed for random number generation.
+# Default seed for random number generation. The functions that use randomness take an
+# optional `rng` argument; when it is not given they use a fresh Random(RANDOM_SEED), so
+# that the same input always produces the same pairing.
 RANDOM_SEED = 16843
-RNG = random.Random(RANDOM_SEED)
 # Weight given to the random factor in the penalty score.
 RANDOM_PENALTY_WEIGHT = 0.0001
 # Start finding the optimal pairing for the remaining players if there are only this
@@ -407,7 +408,10 @@ def calculate_base_penalty_score(
 
 
 def calculate_penalty_score(
-    matches: list[Match], players: list[Player], round_nr: int
+    matches: list[Match],
+    players: list[Player],
+    round_nr: int,
+    rng: random.Random | None = None,
 ) -> dict[PlayerPair, float]:
     """Calculate the full penalty score for all pairs from a list of players.
 
@@ -430,6 +434,10 @@ def calculate_penalty_score(
         Players participating in the round to be paired.
     round_nr : int
         The number of the round being paired.
+    rng : random.Random, optional
+        Source of randomness for the random component. Defaults to a fresh
+        `random.Random(RANDOM_SEED)`, so repeated calls with the same input give the
+        same result.
 
     Returns
     -------
@@ -437,11 +445,13 @@ def calculate_penalty_score(
         Dictionary {{pair_of_players} : penalty score} for each pair of players from the
         input list of players.
     """
+    if rng is None:
+        rng = random.Random(RANDOM_SEED)
     penalty_score = {}
     if not matches:
         for player1, player2 in itertools.combinations(players, 2):
             penalty_score[frozenset((player1, player2))] = (
-                RANDOM_PENALTY_WEIGHT * RNG.random()
+                RANDOM_PENALTY_WEIGHT * rng.random()
             )
         return penalty_score
     base_penalty_score = calculate_base_penalty_score(matches, players)
@@ -459,7 +469,7 @@ def calculate_penalty_score(
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY * max(0, N_GAMES_BETWEEN - games_between)
-            + RANDOM_PENALTY_WEIGHT * RNG.random()
+            + RANDOM_PENALTY_WEIGHT * rng.random()
         )
     return penalty_score
 
@@ -470,6 +480,7 @@ def pick_color(
     player2: Player,
     color_score2: int,
     previous_matches: list[Match],
+    rng: random.Random | None = None,
 ) -> dict[Literal["white", "black"], Player]:
     """Pick colors in a matchup.
 
@@ -485,6 +496,9 @@ def pick_color(
         Color score of second player.
     previous_matches : list[Match]
         List of previous matches between the two players.
+    rng : random.Random, optional
+        Source of randomness for the color coin flip. Defaults to a fresh
+        `random.Random(RANDOM_SEED)`.
 
     Returns
     -------
@@ -494,6 +508,8 @@ def pick_color(
         number of previous white games gets white. Otherwise the colors are randomly
         picked.
     """
+    if rng is None:
+        rng = random.Random(RANDOM_SEED)
     if color_score1 > color_score2:
         return {"white": player2, "black": player1}
     elif color_score1 < color_score2:
@@ -505,7 +521,7 @@ def pick_color(
         elif n_games_white_p1 > len(previous_matches) / 2:
             return {"white": player2, "black": player1}
         # Choose randomly
-        elif RNG.random() > 0.5:
+        elif rng.random() > 0.5:
             return {"white": player1, "black": player2}
         else:
             return {"white": player2, "black": player1}
@@ -532,6 +548,14 @@ def _calculate_all_pairings(
     return all_partitions
 
 
+def _player_sort_key(player: Player) -> tuple[bool, int]:
+    """Sort key giving a stable player order across runs.
+
+    Players that are not persisted yet (no id) sort last.
+    """
+    return (player.id is None, player.id or 0)
+
+
 def _total_penalty_score(
     pairing: list[tuple[Player, Player]],
     penalty_score: dict[PlayerPair, float],
@@ -544,6 +568,7 @@ def _pick_color_from_lists(
     player2: Player,
     color_saldo: defaultdict[Player, int],
     matches: list[Match],
+    rng: random.Random,
 ) -> dict[Literal["white", "black"], Player]:
     previous_matchups = [
         m for m in matches if {m.player_white, m.player_black} == {player1, player2}
@@ -554,24 +579,37 @@ def _pick_color_from_lists(
         player2=player2,
         color_score2=color_saldo[player2],
         previous_matches=previous_matchups,
+        rng=rng,
     )
 
 
 def create_matchups(
-    matches: list[Match], players: list[Player], round_nr: int, competition: Competition
+    matches: list[Match],
+    players: list[Player],
+    round_nr: int,
+    competition: Competition,
+    rng: random.Random | None = None,
 ) -> list[Match]:
+    """Create the matchups for a round.
+
+    Pass an `rng` to control the randomness used for tiebreaks. It defaults to a fresh
+    `random.Random(RANDOM_SEED)`, so the same input always produces the same pairing.
+    """
     # Step 1: Set up the data.
     if len(players) % 2 == 1:
         raise ValueError(
             f"Number of players should be even. len(players): {len(players)}"
         )
+    if rng is None:
+        rng = random.Random(RANDOM_SEED)
+    # Sort by id first, so that the result doesn't depend on the order in which the
+    # players were passed in (the database returns them in arbitrary order).
+    players = sorted(players, key=_player_sort_key)
     saldo = calculate_saldo(matches)
     color_saldo = calculate_color_saldo(matches)
-    penalty_score = calculate_penalty_score(matches, players, round_nr)
+    penalty_score = calculate_penalty_score(matches, players, round_nr, rng=rng)
     # Step 2
-    # Make sure we don't mutate the input list:
-    players = players.copy()
-    players.sort(key=lambda p: saldo[p], reverse=True)
+    players.sort(key=lambda p: (-saldo[p], _player_sort_key(p)))
     matchups = []
     # Step 3, 4 and 5: Alternatingly create the best matchup for the highest and lowest
     # saldo player until there are only a few left.
@@ -592,6 +630,7 @@ def create_matchups(
             player2=opponent,
             color_saldo=color_saldo,
             matches=matches,
+            rng=rng,
         )
         matchups.append(
             Match(
@@ -619,6 +658,7 @@ def create_matchups(
             player2=player2,
             color_saldo=color_saldo,
             matches=matches,
+            rng=rng,
         )
         matchups.append(
             Match(

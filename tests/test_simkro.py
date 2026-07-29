@@ -1,4 +1,5 @@
 import csv
+import random
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -369,6 +370,53 @@ def test_create_matchups(
         m.player_black for m in matchups
     ]
     assert set(paired_players) == set(players)
+
+
+def test_create_matchups_is_reproducible(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+):
+    (competition, players, matches) = simkro_setup
+
+    def pairs(matchups: list[Match]) -> set[frozenset[Player]]:
+        return {frozenset((m.player_white, m.player_black)) for m in matchups}
+
+    first = create_matchups(
+        matches=matches, players=players, round_nr=1, competition=competition
+    )
+    # The default rng gives the same pairing on a repeated call, and is unaffected by
+    # calls made in between with a different rng.
+    create_matchups(
+        matches=matches,
+        players=players,
+        round_nr=1,
+        competition=competition,
+        rng=random.Random(1),
+    )
+    second = create_matchups(
+        matches=matches, players=players, round_nr=1, competition=competition
+    )
+    assert pairs(first) == pairs(second)
+
+    # The order the players are passed in doesn't matter.
+    shuffled = players.copy()
+    random.Random(7).shuffle(shuffled)
+    third = create_matchups(
+        matches=matches, players=shuffled, round_nr=1, competition=competition
+    )
+    assert pairs(first) == pairs(third)
+
+    # An explicit seed is reproducible too.
+    seeded = [
+        create_matchups(
+            matches=matches,
+            players=players,
+            round_nr=1,
+            competition=competition,
+            rng=random.Random(99),
+        )
+        for _ in range(2)
+    ]
+    assert pairs(seeded[0]) == pairs(seeded[1])
 
 
 def test_calculate_ranking(simkro_setup: tuple[Competition, list[Player], list[Match]]):
