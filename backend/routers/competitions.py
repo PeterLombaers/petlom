@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -216,6 +217,8 @@ def retrieve_player_ratings(
     name: str, session: SessionDep
 ) -> list[CompetitionRatingPublic]:
     competition = find_competition(name, session)
+    if competition.rating_type is None:
+        return []
     ratings = session.exec(
         select(CompetitionRating).where(
             CompetitionRating.rating_type_id == competition.rating_type.id
@@ -330,23 +333,24 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
 # ---------------------------------------------------------------------------
 
 
-@router.post("/{name}/ranking")
-def create_ranking(
-    name: str, session: SessionDep, round_nr: int | None = None
-) -> list[SimkroRank]:
-    competition = find_competition(name, session)
-    if round_nr is None:
-        round_nr = get_latest_round_nr(competition, session)
-    matches = session.exec(
-        select(Match)
-        .where(Match.round <= round_nr)
-        .where(Match.competition == competition)
-    ).all()
-    ranking = calculate_ranking(matches)
+def update_ratings(
+    competition: Competition,
+    matches: Sequence[Match],
+    ranking: list[SimkroRank],
+    session: SessionDep,
+) -> None:
+    """Recalculate the competition ratings from the matches.
+
+    Updates the stored `CompetitionRating` rows and annotates the ranking with the
+    new ratings. Does nothing if the competition has no rating type configured.
+    """
+    rating_type = competition.rating_type
+    if rating_type is None:
+        return
 
     comp_ratings_list = session.exec(
         select(CompetitionRating).where(
-            CompetitionRating.rating_type_id == competition.rating_type.id
+            CompetitionRating.rating_type_id == rating_type.id
         )
     ).all()
 
@@ -368,7 +372,7 @@ def create_ranking(
     ]
 
     new_ratings = calculate_ratings(
-        initial_ratings, match_tuples, competition.rating_type.get_rating_function()
+        initial_ratings, match_tuples, rating_type.get_rating_function()
     )
 
     for cr in comp_ratings_list:
@@ -383,6 +387,23 @@ def create_ranking(
         current = ratings_by_player.get(rank.player.id)
         if current is not None:
             rank.current_rating = current
+
+
+@router.post("/{name}/ranking")
+def create_ranking(
+    name: str, session: SessionDep, round_nr: int | None = None
+) -> list[SimkroRank]:
+    competition = find_competition(name, session)
+    if round_nr is None:
+        round_nr = get_latest_round_nr(competition, session)
+    matches = session.exec(
+        select(Match)
+        .where(Match.round <= round_nr)
+        .where(Match.competition == competition)
+    ).all()
+    ranking = calculate_ranking(matches)
+
+    update_ratings(competition, matches, ranking, session)
 
     session.commit()
     return ranking
