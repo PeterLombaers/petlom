@@ -330,8 +330,8 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{name}/ranking")
-def retrieve_ranking(
+@router.post("/{name}/ranking")
+def create_ranking(
     name: str, session: SessionDep, round_nr: int | None = None
 ) -> list[SimkroRank]:
     competition = find_competition(name, session)

@@ -138,10 +138,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Retrieve Ranking */
-        get: operations["retrieve_ranking_competitions__name__ranking_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Create Ranking */
+        post: operations["create_ranking_competitions__name__ranking_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -205,6 +205,41 @@ export interface paths {
         patch: operations["update_player_players__id___patch"];
         trace?: never;
     };
+    "/players/{id}/external-ids/{source}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Player External Id */
+        put: operations["set_player_external_id_players__id__external_ids__source___put"];
+        post?: never;
+        /** Delete Player External Id */
+        delete: operations["delete_player_external_id_players__id__external_ids__source___delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/players/{id}/external-ratings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Player External Ratings */
+        get: operations["list_player_external_ratings_players__id__external_ratings__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/matches/": {
         parameters: {
             query?: never;
@@ -240,6 +275,64 @@ export interface paths {
         head?: never;
         /** Update Match */
         patch: operations["update_match_matches__id__patch"];
+        trace?: never;
+    };
+    "/external/{source}/search/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search External Players */
+        get: operations["search_external_players_external__source__search__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/external/{source}/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import External Ratings
+         * @description Import rating snapshots from an external source for a batch of players.
+         *
+         *     Which players: those in request.player_ids, or every player when it is
+         *     None. Only players that have an external id for the source are looked up;
+         *     the rest are reported back as players_without_id. Players that already
+         *     have a snapshot at the list date are skipped (counted in skipped) unless
+         *     request.update_existing is true. Batches of more than
+         *     MAX_IMPORT_BATCH_SIZE looked-up players are rejected with a 400, since
+         *     each player costs one request to the external API.
+         *
+         *     Which rating: the one at request.list_date ("YYYY-MM"), defaulting to the
+         *     source's most recent list. If the source has no entry for a player at that
+         *     exact date, the newest older entry is used instead; players unknown at the
+         *     source (or with no entry at or before the date) are reported in not_found.
+         *
+         *     Each fetched rating is stored as an ExternalRating snapshot under the list
+         *     date it actually came from — inserted if that (player, list date) snapshot
+         *     is new (counted in imported), overwritten otherwise (counted in updated).
+         *
+         *     Returns an ExternalRatingImportResult summarizing all of the above.
+         *     Responds 503 if the source has no configured provider and 502 if the
+         *     external API fails.
+         */
+        post: operations["import_external_ratings_external__source__import__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -321,6 +414,8 @@ export interface components {
             current_rating: number;
             /** Is Manual */
             is_manual: boolean;
+            /** Source External Rating Id */
+            source_external_rating_id: number | null;
             /**
              * Created At
              * Format: date-time
@@ -387,12 +482,96 @@ export interface components {
             name?: string | null;
             type?: components["schemas"]["CompetitionType"] | null;
         };
+        /**
+         * ExternalPlayerResult
+         * @description A player as found at an external rating source.
+         */
+        ExternalPlayerResult: {
+            source: components["schemas"]["ExternalRatingSource"];
+            /** External Id */
+            external_id: string;
+            /** Name */
+            name: string;
+            /** Country */
+            country?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Rating */
+            rating?: number | null;
+            /** List Date */
+            list_date?: string | null;
+        };
+        /** ExternalRatingImportRequest */
+        ExternalRatingImportRequest: {
+            /**
+             * Player Ids
+             * @description Players to import ratings for. Defaults to all players with an external id for the source.
+             */
+            player_ids?: number[] | null;
+            /** List Date */
+            list_date?: string | null;
+            /**
+             * Update Existing
+             * @description Also fetch ratings for players that already have a snapshot at the list date, overwriting it. Defaults to skipping those players.
+             * @default false
+             */
+            update_existing: boolean;
+        };
+        /** ExternalRatingImportResult */
+        ExternalRatingImportResult: {
+            /** List Date */
+            list_date: string;
+            /** Imported */
+            imported: number;
+            /** Updated */
+            updated: number;
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
+            /**
+             * Not Found
+             * @default []
+             */
+            not_found: string[];
+            /**
+             * Players Without Id
+             * @default []
+             */
+            players_without_id: number[];
+        };
+        /** ExternalRatingPublic */
+        ExternalRatingPublic: {
+            /** Id */
+            id: number;
+            /** Player External Id Id */
+            player_external_id_id: number;
+            source: components["schemas"]["ExternalRatingSource"];
+            /** Rating */
+            rating: number;
+            /** List Date */
+            list_date: string;
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+        };
+        /**
+         * ExternalRatingSource
+         * @enum {string}
+         */
+        ExternalRatingSource: "fide" | "knsb";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** MatchBase */
+        /**
+         * MatchBase
+         * @description The API shape of a match, which addresses the competition by name.
+         */
         MatchBase: {
             /** Player White Id */
             player_white_id: number;
@@ -418,7 +597,7 @@ export interface components {
             round: number;
             /** Board */
             board: number;
-            result: components["schemas"]["Result"] | null;
+            result?: components["schemas"]["Result"] | null;
             /** Id */
             id: number;
             /**
@@ -462,6 +641,23 @@ export interface components {
             /** Player Ids */
             player_ids: number[];
         };
+        /**
+         * PlayerCompetitionRatingPublic
+         * @description A competition rating as seen from the player's perspective.
+         */
+        PlayerCompetitionRatingPublic: {
+            /** Id */
+            id: number;
+            /** Initial Rating */
+            initial_rating: number;
+            /** Current Rating */
+            current_rating: number;
+            /** Is Manual */
+            is_manual: boolean;
+            /** Source External Rating Id */
+            source_external_rating_id: number | null;
+            rating_type: components["schemas"]["CompetitionRatingTypePublic"];
+        };
         /** PlayerCreate */
         PlayerCreate: {
             /** Name */
@@ -471,6 +667,72 @@ export interface components {
              * @default true
              */
             is_active: boolean;
+            /**
+             * External Ids
+             * @default []
+             */
+            external_ids: components["schemas"]["PlayerExternalIdInput"][];
+        };
+        /** PlayerDetailPublic */
+        PlayerDetailPublic: {
+            /** Name */
+            name: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Id */
+            id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * External Ids
+             * @default []
+             */
+            external_ids: components["schemas"]["PlayerExternalIdPublic"][];
+            /**
+             * Competition Ratings
+             * @default []
+             */
+            competition_ratings: components["schemas"]["PlayerCompetitionRatingPublic"][];
+        };
+        /** PlayerExternalIdInput */
+        PlayerExternalIdInput: {
+            source: components["schemas"]["ExternalRatingSource"];
+            /** External Id */
+            external_id: string;
+        };
+        /** PlayerExternalIdPublic */
+        PlayerExternalIdPublic: {
+            /** Id */
+            id: number;
+            source: components["schemas"]["ExternalRatingSource"];
+            /** External Id */
+            external_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PlayerExternalIdUpdate */
+        PlayerExternalIdUpdate: {
+            /** External Id */
+            external_id: string;
         };
         /** PlayerPublic */
         PlayerPublic: {
@@ -493,6 +755,11 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * External Ids
+             * @default []
+             */
+            external_ids: components["schemas"]["PlayerExternalIdPublic"][];
         };
         /** PlayerPublicMinimal */
         PlayerPublicMinimal: {
@@ -1064,7 +1331,7 @@ export interface operations {
             };
         };
     };
-    retrieve_ranking_competitions__name__ranking_get: {
+    create_ranking_competitions__name__ranking_post: {
         parameters: {
             query?: {
                 round_nr?: number | null;
@@ -1316,7 +1583,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlayerPublic"];
+                    "application/json": components["schemas"]["PlayerDetailPublic"];
                 };
             };
             /** @description Validation Error */
@@ -1383,6 +1650,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlayerPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_player_external_id_players__id__external_ids__source___put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                source: components["schemas"]["ExternalRatingSource"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerExternalIdUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerExternalIdPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_player_external_id_players__id__external_ids__source___delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                source: components["schemas"]["ExternalRatingSource"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_player_external_ratings_players__id__external_ratings__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalRatingPublic"][];
                 };
             };
             /** @description Validation Error */
@@ -1545,6 +1911,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_external_players_external__source__search__get: {
+        parameters: {
+            query: {
+                query: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                source: components["schemas"]["ExternalRatingSource"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalPlayerResult"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_external_ratings_external__source__import__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: components["schemas"]["ExternalRatingSource"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalRatingImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalRatingImportResult"];
                 };
             };
             /** @description Validation Error */

@@ -552,13 +552,13 @@ def test_competition_ranking(
 ):
     competition, players, _ = simkro_setup
     # Without round_nr defaults to latest round (all players).
-    res = client.get(f"/competitions/{competition.name}/ranking")
+    res = client.post(f"/competitions/{competition.name}/ranking")
     res.raise_for_status()
     ranking = res.json()
     assert len(ranking) == len(players)
 
     # Last two players did not play in the first round.
-    res = client.get(
+    res = client.post(
         f"/competitions/{competition.name}/ranking", params={"round_nr": 1}
     )
     res.raise_for_status()

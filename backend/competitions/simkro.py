@@ -672,19 +672,18 @@ def calculate_ranking(matches: list[Match]) -> list[SimkroRank]:
     games_played = calculate_games_played(matches)
     saldo = calculate_saldo(matches)
     points = calculate_point_total(matches)
+    sorted_points = sorted(points.items(), key=lambda x: (-x[1], x[0].name))
     color_saldo = calculate_color_saldo(matches)
     win_draw_loss = calculate_win_draw_loss(matches)
     ranking = []
-    for idx, (player, points) in enumerate(
-        sorted(points.items(), key=lambda x: (-x[1], x[0].name))
-    ):
+    for idx, (player, player_points) in enumerate(sorted_points):
         ranking.append(
             SimkroRank(
                 position=idx + 1,
                 player=player,
                 games_played=games_played[player],
                 saldo=saldo[player],
-                points=points,
+                points=player_points,
                 color_saldo=color_saldo[player],
                 wins=win_draw_loss[player][0],
                 draws=win_draw_loss[player][1],

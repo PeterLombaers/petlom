@@ -23,7 +23,7 @@ export function useMatches(competitionName: string, round: number) {
       queryKey: ["get", "/competitions/"],
     });
     queryClient.invalidateQueries({
-      queryKey: ["get", "/competitions/{name}/ranking"],
+      queryKey: ["post", "/competitions/{name}/ranking"],
     });
   };
   const onError = (error: HTTPValidationError) => {
