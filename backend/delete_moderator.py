@@ -1,6 +1,6 @@
-"""Bootstrap script to create a moderator account.
+"""Bootstrap script to delete a moderator account.
 
-Usage: uv run python -m backend.create_moderator <username> <password>
+Usage: uv run python -m backend.delete_moderator <username>
 """
 
 import sys
