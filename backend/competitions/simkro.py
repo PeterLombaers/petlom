@@ -103,6 +103,10 @@ RANDOM_PENALTY_WEIGHT = 0.0001
 # many players left.
 OPTIMAL_PAIRING_THRESHOLD = 10
 
+# Two players facing each other. Unordered, because everything keyed on a pair (previous
+# matchups, turnus bookkeeping, penalty scores) treats (p1, p2) and (p2, p1) as the same.
+type PlayerPair = frozenset[Player]
+
 
 def calculate_saldo(matches: list[Match]) -> defaultdict[Player, int]:
     """Calculate the saldo for all players in a list of matches.
@@ -288,9 +292,7 @@ def calculate_point_total(matches: list[Match]) -> defaultdict[Player, int]:
     return point_total
 
 
-def played_in_turnus_pairs(
-    matches: list[Match], round_nr: int
-) -> set[frozenset[Player]]:
+def played_in_turnus_pairs(matches: list[Match], round_nr: int) -> set[PlayerPair]:
     """Get the pairs of players that already played once for each turnus.
 
     Note that multiple matches between two players can happen in the same turnus if they
@@ -305,7 +307,7 @@ def played_in_turnus_pairs(
 
     Returns
     -------
-    set[frozenset[Player]]
+    set[PlayerPair]
         Set of symmetric pairs {player1, player2} of players that have played a match
         for each turnus.
     """
@@ -363,7 +365,7 @@ def calculate_games_since_last_played(
 
 def calculate_base_penalty_score(
     matches: list[Match], players: list[Player]
-) -> defaultdict[frozenset[Player], float]:
+) -> defaultdict[PlayerPair, float]:
     """The base penalty score for pairs from a list of players.
 
     The base penalty score for a pair of players is defined as:
@@ -384,7 +386,7 @@ def calculate_base_penalty_score(
 
     Returns
     -------
-    defaultdict[frozenset[Player], float]
+    defaultdict[PlayerPair, float]
         Dictionary {{pair_of_players} : penalty score} for each pair of players from the
         input list of players.
     """
@@ -406,10 +408,10 @@ def calculate_base_penalty_score(
 
 def calculate_penalty_score(
     matches: list[Match], players: list[Player], round_nr: int
-) -> dict[Player, dict[Player, float]]:
+) -> dict[PlayerPair, float]:
     """Calculate the full penalty score for all pairs from a list of players.
 
-    The penalty score for a directed pair (player1 → player2) is:
+    The penalty score for a pair of players is:
     ```
     penalty_score = (
         base_penalty_score
@@ -431,17 +433,14 @@ def calculate_penalty_score(
 
     Returns
     -------
-    dict[Player, dict[Player, float]]
-        Nested dict `{player: {opponent: penalty}}` for every ordered pair of
-        players.
+    dict[PlayerPair, float]
+        Dictionary {{pair_of_players} : penalty score} for each pair of players from the
+        input list of players.
     """
     penalty_score = {}
     if not matches:
         for player1, player2 in itertools.combinations(players, 2):
-            penalty_score.setdefault(player1, {})[player2] = (
-                RANDOM_PENALTY_WEIGHT * RNG.random()
-            )
-            penalty_score.setdefault(player2, {})[player1] = (
+            penalty_score[frozenset((player1, player2))] = (
                 RANDOM_PENALTY_WEIGHT * RNG.random()
             )
         return penalty_score
@@ -456,13 +455,7 @@ def calculate_penalty_score(
         games_between = min(
             n_games_between[player1][player2], n_games_between[player2][player1]
         )
-        penalty_score.setdefault(player1, {})[player2] = (
-            base_penalty_score[pair]
-            + TURNUS_PENALTY * (pair in turnus_pairs)
-            + GAMES_BETWEEN_PENALTY * max(0, N_GAMES_BETWEEN - games_between)
-            + RANDOM_PENALTY_WEIGHT * RNG.random()
-        )
-        penalty_score.setdefault(player2, {})[player1] = (
+        penalty_score[pair] = (
             base_penalty_score[pair]
             + TURNUS_PENALTY * (pair in turnus_pairs)
             + GAMES_BETWEEN_PENALTY * max(0, N_GAMES_BETWEEN - games_between)
@@ -541,12 +534,9 @@ def _calculate_all_pairings(
 
 def _total_penalty_score(
     pairing: list[tuple[Player, Player]],
-    penalty_score: dict[Player, dict[Player, float]],
+    penalty_score: dict[PlayerPair, float],
 ) -> float:
-    return sum(
-        penalty_score[pair[0]][pair[1]] + penalty_score[pair[1]][pair[0]]
-        for pair in pairing
-    )
+    return sum(penalty_score[frozenset(pair)] for pair in pairing)
 
 
 def _pick_color_from_lists(
@@ -593,7 +583,7 @@ def create_matchups(
         else:
             player = players.pop(-1)
         best_opponent_idx = min(
-            enumerate(players), key=lambda x: penalty_score[player][x[1]]
+            enumerate(players), key=lambda x: penalty_score[frozenset((player, x[1]))]
         )[0]
         opponent = players.pop(best_opponent_idx)
         assert len(players) % 2 == 0

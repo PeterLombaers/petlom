@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from backend.competitions.simkro import (
+    PlayerPair,
     calculate_attendance_score,
     calculate_base_penalty_score,
     calculate_color_saldo,
@@ -396,12 +397,10 @@ def test_calculate_ranking(simkro_setup: tuple[Competition, list[Player], list[M
 
 
 def _total_penalty(
-    matches: list[Match], penalty_score: dict[Player, dict[Player, float]]
+    matches: list[Match], penalty_score: dict[PlayerPair, float]
 ) -> float:
     return sum(
-        penalty_score[m.player_white][m.player_black]
-        + penalty_score[m.player_black][m.player_white]
-        for m in matches
+        penalty_score[frozenset((m.player_white, m.player_black))] for m in matches
     )
 
 
