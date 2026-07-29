@@ -1,4 +1,5 @@
-from typing import Callable
+from collections.abc import Callable
+
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
@@ -7,8 +8,10 @@ from backend.competitions import CompetitionType
 from backend.enums import ExternalRatingSource
 from backend.models import (
     Competition,
+    CompetitionPublic,
     ExternalRating,
     Match,
+    MatchPublic,
     Player,
     PlayerDetailPublic,
     PlayerExternalId,
@@ -55,9 +58,9 @@ def test_get_competition(competition: Competition, client: TestClient):
     res_competition = res.json()
     assert res_competition.pop("n_rounds") == 0
     assert res_competition.pop("rating_type") is not None
-    # The response gives matches as an emtpy list, the serialized object doesn't include
-    # matches in this case.
-    assert res_competition == jsonable_encoder(competition)
+    assert res_competition == jsonable_encoder(
+        CompetitionPublic.model_validate(competition)
+    )
 
 
 def test_get_competition_n_rounds(
@@ -77,10 +80,8 @@ def test_list_competition(competition_factory, client):
     res.raise_for_status()
     competition = res.json()
     assert len(competition) == 2
-    # The response gives matches as an emtpy list, the serialized object doesn't include
-    # matches in this case.
-    assert jsonable_encoder(c0) == competition[0]
-    assert jsonable_encoder(c1) == competition[1]
+    assert jsonable_encoder(CompetitionPublic.model_validate(c0)) == competition[0]
+    assert jsonable_encoder(CompetitionPublic.model_validate(c1)) == competition[1]
 
 
 def test_update_competition(competition, auth_client, session):
@@ -354,7 +355,11 @@ def test_get_match(match_obj: Match, client: TestClient):
     res_match = res.json()
     res_match.pop("player_white")
     res_match.pop("player_black")
-    assert res_match == jsonable_encoder(match_obj)
+    assert res_match == jsonable_encoder(
+        MatchPublic.model_validate(match_obj).model_dump(
+            exclude={"player_white", "player_black"}
+        )
+    )
 
 
 def test_list_matches(
@@ -371,8 +376,22 @@ def test_list_matches(
         match_obj.pop("player_white")
         match_obj.pop("player_black")
     assert len(match_objects) == 2
-    assert jsonable_encoder(m0) == match_objects[0]
-    assert jsonable_encoder(m1) == match_objects[1]
+    assert (
+        jsonable_encoder(
+            MatchPublic.model_validate(m0).model_dump(
+                exclude={"player_white", "player_black"}
+            )
+        )
+        == match_objects[0]
+    )
+    assert (
+        jsonable_encoder(
+            MatchPublic.model_validate(m1).model_dump(
+                exclude={"player_white", "player_black"}
+            )
+        )
+        == match_objects[1]
+    )
 
 
 def test_update_match(match_obj: Match, auth_client: TestClient, session: Session):

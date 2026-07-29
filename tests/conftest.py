@@ -114,7 +114,7 @@ def competition(session: Session) -> Generator[Competition, Any, None]:
         CompetitionRatingType(
             name=f"{comp.name}_rating",
             algorithm=RatingAlgorithm.ELO,
-            competition_name=comp.name,
+            competition_id=comp.id,
             default_initial_rating=1500.0,
         )
     )

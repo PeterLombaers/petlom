@@ -443,7 +443,7 @@ def test_real_competition_pairing_quality(monkeypatch):
                 Match(
                     player_white=players[r.white],
                     player_black=players[r.black],
-                    competition_name=competition.name,
+                    competition_id=competition.id,
                     round=round_nr,
                     board=r.board,
                     result=r.result,
@@ -502,7 +502,7 @@ def test_real_competition_data_ranking(monkeypatch):
                 Match(
                     player_white=players[r.white],
                     player_black=players[r.black],
-                    competition_name=competition.name,
+                    competition_id=competition.id,
                     round=round_nr,
                     board=r.board,
                     result=r.result,

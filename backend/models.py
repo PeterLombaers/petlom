@@ -31,8 +31,8 @@ class CompetitionRatingType(SQLModel, table=True):
     algorithm_config: dict[str, Any] | None = Field(
         default=None, sa_column=Column(JSON)
     )
-    competition_name: str = Field(
-        unique=True, foreign_key="competition.name", ondelete="CASCADE"
+    competition_id: int = Field(
+        unique=True, foreign_key="competition.id", ondelete="CASCADE"
     )
     default_initial_rating: float | None = Field(
         default=None,
@@ -48,6 +48,11 @@ class CompetitionRatingType(SQLModel, table=True):
     competition_ratings: list["CompetitionRating"] = Relationship(
         back_populates="rating_type", cascade_delete=True
     )
+
+    @property
+    def competition_name(self) -> str:
+        """Competitions are addressed by name in the API, by id in the database."""
+        return self.competition.name
 
     def get_rating_function(self) -> BaseRating:
         config = dict(self.algorithm_config or {})
@@ -320,11 +325,14 @@ class PlayerDetailPublic(PlayerPublic):
 
 
 class CompetitionBase(SQLModel):
-    name: str = Field(unique=True, primary_key=True)
+    name: str = Field(unique=True, index=True)
     type: CompetitionType
 
 
 class Competition(CompetitionBase, table=True):
+    # A surrogate key, so that renaming a competition does not have to be
+    # cascaded to every table that references it.
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     matches: list["Match"] = Relationship(
@@ -365,19 +373,31 @@ class CompetitionUpdate(CompetitionBase):
 
 
 class MatchBase(SQLModel):
-    __table_args__ = (UniqueConstraint("round", "board", "competition_name"),)
-    player_white_id: int = Field(foreign_key="player.id")
-    player_black_id: int = Field(foreign_key="player.id")
-    competition_name: str = Field(foreign_key="competition.name", ondelete="CASCADE")
+    """The API shape of a match, which addresses the competition by name."""
+
+    player_white_id: int
+    player_black_id: int
+    competition_name: str
     round: int
     board: int
     result: Result | None = None
 
 
-class Match(MatchBase, table=True):
+class Match(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("round", "board", "competition_id"),)
     id: int | None = Field(default=None, primary_key=True)
+    player_white_id: int = Field(foreign_key="player.id")
+    player_black_id: int = Field(foreign_key="player.id")
+    competition_id: int = Field(foreign_key="competition.id", ondelete="CASCADE")
+    round: int
+    board: int
+    result: Result | None = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+    @property
+    def competition_name(self) -> str:
+        return self.competition.name
 
     player_white: Player = Relationship(
         sa_relationship=RelationshipProperty(
@@ -400,14 +420,8 @@ class MatchPublic(MatchBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    player_white_id: int
-    player_black_id: int
     player_white: PlayerPublicMinimal
     player_black: PlayerPublicMinimal
-    competition_name: str
-    round: int
-    board: int
-    result: Result | None
 
 
 class MatchUpdate(MatchBase):
@@ -430,9 +444,9 @@ class RoundPlayer(SQLModel, table=True):
     Database table for storing the registration of players for a round of a competition.
     They can then be retrieved and used to create a pairing."""
 
-    __table_args__ = (UniqueConstraint("competition_name", "round", "player_id"),)
+    __table_args__ = (UniqueConstraint("competition_id", "round", "player_id"),)
     id: int | None = Field(default=None, primary_key=True)
-    competition_name: str = Field(foreign_key="competition.name", ondelete="CASCADE")
+    competition_id: int = Field(foreign_key="competition.id", ondelete="CASCADE")
     round: int
     player_id: int = Field(foreign_key="player.id")
     is_bye: bool = False

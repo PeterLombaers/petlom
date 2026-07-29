@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from backend.auth import ModeratorDep
 from backend.competitions.simkro import calculate_ranking, create_matchups
-from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
+from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_competition
 from backend.enums import Result
 from backend.models import (
     Competition,
@@ -37,7 +37,7 @@ router = APIRouter(prefix="/competitions", tags=["competitions"])
 
 def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
     n_rounds_stmt = select(func.max(Match.round)).where(
-        Match.competition_name == competition.name
+        Match.competition_id == competition.id
     )
     return session.scalar(n_rounds_stmt) or 0
 
@@ -59,7 +59,9 @@ def to_competition_response(
 def create_competition(
     competition: CompetitionCreate, session: SessionDep, _: ModeratorDep
 ) -> CompetitionPublicWithNRounds:
-    if session.get(Competition, competition.name):
+    if session.exec(
+        select(Competition).where(Competition.name == competition.name)
+    ).first():
         raise HTTPException(
             status_code=409,
             detail=[
@@ -83,7 +85,7 @@ def create_competition(
             algorithm=rt.algorithm,
             algorithm_config=rt.algorithm_config,
             default_initial_rating=rt.default_initial_rating,
-            competition_name=competition.name,
+            competition_id=db_competition.id,
         )
     )
     session.commit()
@@ -105,13 +107,13 @@ def list_competitions(
 def retrieve_competition(
     name: str, session: SessionDep
 ) -> CompetitionPublicWithNRounds:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     return to_competition_response(competition, session)
 
 
 @router.delete("/{name}")
 def delete_competition(name: str, session: SessionDep, _: ModeratorDep):
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     session.delete(competition)
     session.commit()
     return {"ok": True}
@@ -121,11 +123,8 @@ def delete_competition(name: str, session: SessionDep, _: ModeratorDep):
 def update_competition(
     name: str, competition: CompetitionUpdate, session: SessionDep, _: ModeratorDep
 ) -> CompetitionPublicWithNRounds:
-    db_competition = find_object(model=Competition, identifier=name, session=session)
+    db_competition = find_competition(name, session)
     update_data = competition.model_dump(exclude_unset=True)
-    if "name" in update_data and db_competition.rating_type:
-        db_competition.rating_type.competition_name = update_data["name"]
-        session.add(db_competition.rating_type)
     db_competition.sqlmodel_update(update_data)
     db_competition.updated_at = datetime.now()
     session.add(db_competition)
@@ -141,7 +140,7 @@ def update_competition(
 
 @router.get("/{name}/rating")
 def retrieve_rating(name: str, session: SessionDep) -> CompetitionRatingTypePublic:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     if not competition.rating_type:
         raise HTTPException(
             status_code=404, detail="No rating configured for this competition."
@@ -156,7 +155,7 @@ def create_rating(
     session: SessionDep,
     _: ModeratorDep,
 ) -> CompetitionRatingTypePublic:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     if competition.rating_type:
         raise HTTPException(
             status_code=409,
@@ -167,7 +166,7 @@ def create_rating(
         algorithm=rating_type.algorithm,
         algorithm_config=rating_type.algorithm_config,
         default_initial_rating=rating_type.default_initial_rating,
-        competition_name=name,
+        competition_id=competition.id,
     )
     session.add(db_rating_type)
     session.commit()
@@ -182,7 +181,7 @@ def update_rating(
     session: SessionDep,
     _: ModeratorDep,
 ) -> CompetitionRatingTypePublic:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     if not competition.rating_type:
         raise HTTPException(
             status_code=404, detail="No rating configured for this competition."
@@ -197,7 +196,7 @@ def update_rating(
 
 @router.delete("/{name}/rating")
 def delete_rating(name: str, session: SessionDep, _: ModeratorDep):
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     if not competition.rating_type:
         raise HTTPException(
             status_code=404, detail="No rating configured for this competition."
@@ -216,7 +215,7 @@ def delete_rating(name: str, session: SessionDep, _: ModeratorDep):
 def retrieve_player_ratings(
     name: str, session: SessionDep
 ) -> list[CompetitionRatingPublic]:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     ratings = session.exec(
         select(CompetitionRating).where(
             CompetitionRating.rating_type_id == competition.rating_type.id
@@ -234,12 +233,12 @@ def retrieve_player_ratings(
 def retrieve_pairing(
     name: str, session: SessionDep, round_nr: int | None = None
 ) -> list[MatchPublic]:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     if round_nr is None:
         round_nr = get_latest_round_nr(competition, session)
     return session.exec(
         select(Match)
-        .where(Match.competition_name == competition.name)
+        .where(Match.competition_id == competition.id)
         .where(Match.round == round_nr)
     ).all()
 
@@ -248,7 +247,7 @@ def retrieve_pairing(
 def create_pairing(
     name: str, pairing: PairingCreate, session: SessionDep, _: ModeratorDep
 ) -> list[MatchPublic]:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     round_nr = pairing.round_nr
     player_ids = pairing.player_ids
 
@@ -283,7 +282,7 @@ def create_pairing(
 
     # Check if the players all exist.
     db_players = session.exec(select(Player).where(Player.id.in_(player_ids))).all()
-    db_player_ids = set(db_player.id for db_player in db_players)
+    db_player_ids = {db_player.id for db_player in db_players}
     non_existing_player_ids = [
         player_id for player_id in player_ids if player_id not in db_player_ids
     ]
@@ -312,7 +311,7 @@ def create_pairing(
 
 @router.delete("/{name}/pairing")
 def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDep):
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     round_matches = session.exec(
         select(Match)
         .where(Match.round == round_nr)
@@ -335,7 +334,7 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
 def retrieve_ranking(
     name: str, session: SessionDep, round_nr: int | None = None
 ) -> list[SimkroRank]:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     if round_nr is None:
         round_nr = get_latest_round_nr(competition, session)
     matches = session.exec(
@@ -398,11 +397,11 @@ def retrieve_ranking(
 def create_round_players(
     name: str, round_nr: int, session: SessionDep, _: ModeratorDep
 ) -> list[RoundPlayerPublic]:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     # Check that matches don't already exist for this round.
     existing_match = session.exec(
         select(Match).where(
-            Match.competition_name == competition.name,
+            Match.competition_id == competition.id,
             Match.round == round_nr,
         )
     ).first()
@@ -413,7 +412,7 @@ def create_round_players(
         )
     return session.exec(
         select(RoundPlayer).where(
-            RoundPlayer.competition_name == competition.name,
+            RoundPlayer.competition_id == competition.id,
             RoundPlayer.round == round_nr,
         )
     ).all()
@@ -423,10 +422,10 @@ def create_round_players(
 def retrieve_round_players(
     name: str, round_nr: int, session: SessionDep
 ) -> list[RoundPlayerPublic]:
-    find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     round_players = session.exec(
         select(RoundPlayer).where(
-            RoundPlayer.competition_name == name,
+            RoundPlayer.competition_id == competition.id,
             RoundPlayer.round == round_nr,
         )
     ).all()
@@ -441,7 +440,7 @@ def update_round_players(
     session: SessionDep,
     _: ModeratorDep,
 ) -> list[RoundPlayerPublic]:
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     rating_type = competition.rating_type
 
     if update.player_ids_to_add:
@@ -472,7 +471,7 @@ def update_round_players(
             # Skip if already in the list.
             existing = session.exec(
                 select(RoundPlayer).where(
-                    RoundPlayer.competition_name == competition.name,
+                    RoundPlayer.competition_id == competition.id,
                     RoundPlayer.round == round_nr,
                     RoundPlayer.player_id == player_id,
                 )
@@ -514,7 +513,7 @@ def update_round_players(
 
             session.add(
                 RoundPlayer(
-                    competition_name=competition.name,
+                    competition_id=competition.id,
                     round=round_nr,
                     player_id=player_id,
                     initial_rating=comp_rating.current_rating,
@@ -525,7 +524,7 @@ def update_round_players(
         for player_id in update.player_ids_to_remove:
             rp = session.exec(
                 select(RoundPlayer).where(
-                    RoundPlayer.competition_name == competition.name,
+                    RoundPlayer.competition_id == competition.id,
                     RoundPlayer.round == round_nr,
                     RoundPlayer.player_id == player_id,
                 )
@@ -536,7 +535,7 @@ def update_round_players(
     if update.clear_bye or update.bye_player_id is not None:
         all_rps = session.exec(
             select(RoundPlayer).where(
-                RoundPlayer.competition_name == competition.name,
+                RoundPlayer.competition_id == competition.id,
                 RoundPlayer.round == round_nr,
                 RoundPlayer.is_bye,
             )
@@ -547,7 +546,7 @@ def update_round_players(
     if update.bye_player_id is not None:
         rp = session.exec(
             select(RoundPlayer).where(
-                RoundPlayer.competition_name == competition.name,
+                RoundPlayer.competition_id == competition.id,
                 RoundPlayer.round == round_nr,
                 RoundPlayer.player_id == update.bye_player_id,
             )
@@ -564,7 +563,7 @@ def update_round_players(
 
     return session.exec(
         select(RoundPlayer).where(
-            RoundPlayer.competition_name == competition.name,
+            RoundPlayer.competition_id == competition.id,
             RoundPlayer.round == round_nr,
         )
     ).all()
@@ -574,10 +573,10 @@ def update_round_players(
 def delete_round_players(
     name: str, round_nr: int, session: SessionDep, _: ModeratorDep
 ):
-    competition = find_object(model=Competition, identifier=name, session=session)
+    competition = find_competition(name, session)
     round_players = session.exec(
         select(RoundPlayer).where(
-            RoundPlayer.competition_name == competition.name,
+            RoundPlayer.competition_id == competition.id,
             RoundPlayer.round == round_nr,
         )
     ).all()
