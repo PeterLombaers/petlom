@@ -275,11 +275,12 @@ def create_pairing(
         .where(Match.competition == competition)
     ).all()
     if later_round_matches:
+        later_round_nrs = sorted({m.round for m in later_round_matches})
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Unable to create round {round_nr} when matches in rounds"
-                f" {later_round_matches} already exist."
+                f" {later_round_nrs} already exist."
             ),
         )
 
