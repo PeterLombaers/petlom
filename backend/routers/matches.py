@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
 from backend.dependencies import (
@@ -56,7 +56,9 @@ def list_matches(
     offset: int = 0,
     limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
 ) -> list[MatchPublic]:
-    matches = session.exec(select(Match).offset(offset).limit(limit)).all()
+    matches = session.exec(
+        select(Match).order_by(col(Match.id)).offset(offset).limit(limit)
+    ).all()
     return matches
 
 

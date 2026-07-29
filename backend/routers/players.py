@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select
+from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
@@ -58,7 +58,7 @@ def list_players(
     query = select(Player)
     if is_active is not None:
         query = query.where(Player.is_active == is_active)
-    query = query.offset(offset).limit(limit)
+    query = query.order_by(col(Player.id)).offset(offset).limit(limit)
     players = session.exec(query).all()
     return players
 

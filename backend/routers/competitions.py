@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func
-from sqlmodel import select
+from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
 from backend.competitions.simkro import calculate_ranking, create_matchups
@@ -99,7 +99,9 @@ def list_competitions(
     offset: int = 0,
     limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
 ) -> list[CompetitionPublic]:
-    competitions = session.exec(select(Competition).offset(offset).limit(limit)).all()
+    competitions = session.exec(
+        select(Competition).order_by(col(Competition.id)).offset(offset).limit(limit)
+    ).all()
     return competitions
 
 
