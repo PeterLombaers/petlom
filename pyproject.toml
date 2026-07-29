@@ -29,6 +29,7 @@ dev = [
 [tool.pytest.ini_options]
 markers = [
     "external: hits the real external rating API (run with --external or EXTERNAL_TESTS=true)",
+    "slow: takes more than a few seconds (skip with -m 'not slow')",
 ]
 env = [
     "JWT_SECRET_KEY=test-secret-key-not-for-production",

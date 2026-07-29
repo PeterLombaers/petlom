@@ -405,6 +405,7 @@ def _total_penalty(
     )
 
 
+@pytest.mark.slow
 def test_real_competition_pairing_quality(monkeypatch):
     """Predicted pairings should have a total penalty score close to the actual pairings.
 
