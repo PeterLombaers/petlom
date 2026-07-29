@@ -375,7 +375,7 @@ class PairingCreate(SQLModel):
         return player_ids
 
 
-class CompetitionUpdate(CompetitionBase):
+class CompetitionUpdate(SQLModel):
     name: str | None = None
     type: CompetitionType | None = None
 
@@ -437,7 +437,7 @@ class MatchPublic(MatchBase):
     player_black: PlayerPublicMinimal
 
 
-class MatchUpdate(MatchBase):
+class MatchUpdate(SQLModel):
     player_white_id: int | None = None
     player_black_id: int | None = None
     competition_name: str | None = None
