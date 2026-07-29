@@ -2,7 +2,6 @@ from backend.ratings.base import BaseRating
 from backend.ratings.fide import FideRating
 from backend.ratings.simkro import SimkroRating
 
-
 __all__ = ["BaseRating", "FideRating", "SimkroRating", "calculate_ratings"]
 
 

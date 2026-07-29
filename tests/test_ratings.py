@@ -1,4 +1,5 @@
 import pytest
+
 from backend.ratings import calculate_ratings
 from backend.ratings.simkro import SimkroRating
 

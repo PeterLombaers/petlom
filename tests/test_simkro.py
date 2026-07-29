@@ -191,8 +191,8 @@ def test_point_total(
     for round_nr in range(1, 5):
         round_matches = [m for m in matches if m.round <= round_nr]
         calculated_point_totals = calculate_point_total(round_matches)
-        for player, correct_total in zip(players, correct_point_totals[round_nr - 1]):
-            assert calculated_point_totals[player] == correct_total
+        for p, correct_total in zip(players, correct_point_totals[round_nr - 1]):
+            assert calculated_point_totals[p] == correct_total
 
     # Check the defaultdict has default value 500.
     assert calculated_point_totals[other_player] == 500
@@ -347,7 +347,7 @@ def test_create_matchups(
     ]
     assert set(paired_players) == set(players)
     # Check that board numbers are correct.
-    assert set(m.board for m in matchups) == set(range(1, len(matchups) + 1))
+    assert {m.board for m in matchups} == set(range(1, len(matchups) + 1))
 
     # Check that an odd number of players fails.
     players.append(player_factory())

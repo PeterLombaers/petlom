@@ -1,5 +1,6 @@
 import os
-from typing import Any, Callable, Generator
+from collections.abc import Callable, Generator
+from typing import Any
 
 import factory
 import pytest

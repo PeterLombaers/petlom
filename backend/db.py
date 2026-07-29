@@ -32,6 +32,6 @@ engine = init_engine(
 
 
 if __name__ == "__main__":
-    from backend.models import *  # noqa: F403
+    from backend.models import *
 
     init_db(engine)

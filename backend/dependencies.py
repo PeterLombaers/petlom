@@ -1,4 +1,4 @@
-from typing import Annotated, Type, TypeVar
+from typing import Annotated, TypeVar
 
 from fastapi import Depends, HTTPException
 from sqlmodel import Session
@@ -18,7 +18,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 T = TypeVar("SQLModel")
 
 
-def find_object(model: Type[T], identifier: str | int, session: SessionDep) -> T:
+def find_object[T](model: type[T], identifier: str | int, session: SessionDep) -> T:
     obj = session.get(model, identifier)
     if not obj:
         raise HTTPException(status_code=404, detail=f"{model.__name__} not found")

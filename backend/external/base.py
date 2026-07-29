@@ -7,7 +7,8 @@ transient DTOs, never stored in the database (imported snapshots are stored
 as backend.models.ExternalRating).
 """
 
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 from sqlmodel import SQLModel
 

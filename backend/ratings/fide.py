@@ -2,7 +2,6 @@
 
 from backend.ratings.base import BaseRating
 
-
 # Section 8.1.1: Fractional score (p) to rating difference (dp)
 SCORE_TO_RATING_DIFF = {
     1.00: 800,

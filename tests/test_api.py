@@ -34,7 +34,7 @@ def test_create_competition(session: Session, auth_client: TestClient):
     competition = competition[0]
     assert competition.name == competition_name
     assert competition.type == CompetitionType.SIMKRO
-    for key in {"created_at", "updated_at"}:
+    for key in ("created_at", "updated_at"):
         assert key in dict(competition)
 
 
@@ -120,7 +120,7 @@ def test_create_player(session: Session, auth_client: TestClient):
     assert len(players) == 1
     player = players[0]
     assert player.name == player_name
-    for key in {"id", "created_at", "updated_at"}:
+    for key in ("id", "created_at", "updated_at"):
         assert key in dict(player)
 
 
@@ -327,7 +327,7 @@ def test_create_match(
     assert match_obj.player_black == player_black
     assert match_obj.round == 1
     assert match_obj.board == 1
-    for key in {"created_at", "updated_at"}:
+    for key in ("created_at", "updated_at"):
         assert key in dict(match_obj)
 
     player_white = player_factory()
@@ -443,8 +443,8 @@ def test_retrieve_pairing(
     res_matches = res.json()
     for m in res_matches:
         assert m["competition_name"] == competition.name
-    assert set(m["id"] for m in res_matches) == set(m.id for m in r1_matches)
-    assert other_match.id not in set(m["id"] for m in res_matches)
+    assert {m["id"] for m in res_matches} == {m.id for m in r1_matches}
+    assert other_match.id not in {m["id"] for m in res_matches}
 
 
 def test_retrieve_pairing_latest(
@@ -458,7 +458,7 @@ def test_retrieve_pairing_latest(
     res_matches = res.json()
     for m in res_matches:
         assert m["round"] == latest_round_nr
-    assert set(m["id"] for m in res_matches) == set(m.id for m in latest_round_matches)
+    assert {m["id"] for m in res_matches} == {m.id for m in latest_round_matches}
 
 
 def test_create_pairing(
@@ -503,10 +503,10 @@ def test_create_pairing(
         m["player_black_id"] for m in created_matches
     ]
     assert set(created_player_ids) == set(player_ids)
-    assert set(m["board"] for m in created_matches) == set(
+    assert {m["board"] for m in created_matches} == set(
         range(1, len(player_ids) // 2 + 1)
     )
-    assert other_match.id not in set(m["id"] for m in created_matches)
+    assert other_match.id not in {m["id"] for m in created_matches}
 
 
 def test_delete_pairing(
@@ -515,7 +515,7 @@ def test_delete_pairing(
     session: Session,
 ):
     (competition, _, matches) = simkro_setup
-    assert len(list(m for m in matches if m.round == 2)) > 0
+    assert len([m for m in matches if m.round == 2]) > 0
     res = auth_client.delete(
         f"/competitions/{competition.name}/pairing", params={"round_nr": 2}
     )
@@ -605,7 +605,7 @@ def test_round_players_add_remove(
     res.raise_for_status()
     players = res.json()
     assert len(players) == 2
-    assert set(rp["player"]["id"] for rp in players) == {p1.id, p3.id}
+    assert {rp["player"]["id"] for rp in players} == {p1.id, p3.id}
 
     # Adding a non-existent player should fail.
     res = auth_client.patch(
@@ -710,4 +710,4 @@ def test_retrieve_round_players(
     res.raise_for_status()
     players = res.json()
     assert len(players) == 2
-    assert set(rp["player"]["id"] for rp in players) == {p1.id, p2.id}
+    assert {rp["player"]["id"] for rp in players} == {p1.id, p2.id}
