@@ -1,7 +1,18 @@
-from sqlalchemy import Engine
+import sqlite3
+
+from sqlalchemy import Engine, event
 from sqlmodel import SQLModel, create_engine
 
 from backend.config import settings
+
+
+@event.listens_for(Engine, "connect")
+def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+    if not isinstance(dbapi_connection, sqlite3.Connection):
+        return
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 
 def init_engine(fp: str, *args, **kwargs) -> Engine:
