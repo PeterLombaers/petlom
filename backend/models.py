@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import constr
+from pydantic import constr, field_validator
 from sqlalchemy import Column
 from sqlalchemy.orm import RelationshipProperty
 from sqlalchemy.types import JSON
@@ -359,7 +359,20 @@ class CompetitionPublicWithNRounds(CompetitionPublic):
 
 class PairingCreate(SQLModel):
     round_nr: int
-    player_ids: list[int]
+    player_ids: list[int] = Field(min_length=2)
+
+    @field_validator("player_ids")
+    @classmethod
+    def check_player_ids(cls, player_ids: list[int]) -> list[int]:
+        duplicates = sorted({i for i in player_ids if player_ids.count(i) > 1})
+        if duplicates:
+            raise ValueError(f"Player ids should be unique. Duplicates: {duplicates}")
+        if len(player_ids) % 2 == 1:
+            raise ValueError(
+                f"Number of players should be even. Got {len(player_ids)}."
+                " Leave out the player that gets a bye."
+            )
+        return player_ids
 
 
 class CompetitionUpdate(CompetitionBase):

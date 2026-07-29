@@ -545,6 +545,50 @@ def test_create_pairing(
     assert other_match.id not in {m["id"] for m in created_matches}
 
 
+def test_create_pairing_odd_number_of_players(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+):
+    (competition, players, matches) = simkro_setup
+    player_ids = [player.id for player in players][:-1]
+    assert len(player_ids) % 2 == 1
+
+    res = auth_client.post(
+        f"/competitions/{competition.name}/pairing",
+        json={"round_nr": max(m.round for m in matches) + 1, "player_ids": player_ids},
+    )
+    assert res.status_code == 422
+    assert "even" in res.text
+
+
+def test_create_pairing_no_players(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+):
+    (competition, _, matches) = simkro_setup
+
+    res = auth_client.post(
+        f"/competitions/{competition.name}/pairing",
+        json={"round_nr": max(m.round for m in matches) + 1, "player_ids": []},
+    )
+    assert res.status_code == 422
+
+
+def test_create_pairing_duplicate_players(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+):
+    (competition, players, matches) = simkro_setup
+    player_ids = [player.id for player in players] + [players[0].id, players[1].id]
+
+    res = auth_client.post(
+        f"/competitions/{competition.name}/pairing",
+        json={"round_nr": max(m.round for m in matches) + 1, "player_ids": player_ids},
+    )
+    assert res.status_code == 422
+    assert "unique" in res.text
+
+
 def test_delete_pairing(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     auth_client: TestClient,
