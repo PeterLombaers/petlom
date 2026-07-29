@@ -323,7 +323,7 @@ def update_ratings(
     ]
 
     new_ratings = calculate_ratings(
-        initial_ratings, match_tuples, rating_type.get_rating_function()
+        initial_ratings, match_tuples, rating_type.build_rating_algorithm()
     )
 
     for cr in comp_ratings_list:

@@ -54,7 +54,7 @@ class CompetitionRatingType(SQLModel, table=True):
         """Competitions are addressed by name in the API, by id in the database."""
         return self.competition.name
 
-    def get_rating_function(self) -> BaseRating:
+    def build_rating_algorithm(self) -> BaseRating:
         config = dict(self.algorithm_config or {})
         sequential = config.pop("sequential", True)
         if self.algorithm == RatingAlgorithm.ELO:
