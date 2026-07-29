@@ -69,14 +69,3 @@ export function useRoundPlayers(competitionName: string, roundNr: number) {
     createPairingMutation,
   };
 }
-
-export function useCreateRoundPlayers() {
-  const queryClient = useQueryClient();
-  return $api.useMutation("post", "/competitions/{name}/players", {
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["get", "/competitions/{name}/players"],
-      });
-    },
-  });
-}

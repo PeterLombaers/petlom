@@ -415,31 +415,6 @@ def create_ranking(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/{name}/players")
-def create_round_players(
-    name: str, round_nr: int, session: SessionDep, _: ModeratorDep
-) -> list[RoundPlayerPublic]:
-    competition = find_competition(name, session)
-    # Check that matches don't already exist for this round.
-    existing_match = session.exec(
-        select(Match).where(
-            Match.competition_id == competition.id,
-            Match.round == round_nr,
-        )
-    ).first()
-    if existing_match:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Pairing for round {round_nr} already exists.",
-        )
-    return session.exec(
-        select(RoundPlayer).where(
-            RoundPlayer.competition_id == competition.id,
-            RoundPlayer.round == round_nr,
-        )
-    ).all()
-
-
 @router.get("/{name}/players")
 def retrieve_round_players(
     name: str, round_nr: int, session: SessionDep

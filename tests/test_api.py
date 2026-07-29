@@ -627,25 +627,6 @@ def test_competition_ranking(
     assert len(ranking) == len(players) - 2
 
 
-def test_create_round_players(
-    simkro_setup: tuple[Competition, list[Player], list[Match]],
-    auth_client: TestClient,
-):
-    competition, _, _ = simkro_setup
-    # Creating for a round that already has matches should fail.
-    res = auth_client.post(
-        f"/competitions/{competition.name}/players", params={"round_nr": 1}
-    )
-    assert res.status_code == 400
-
-    # Creating for the next round (no matches yet) should succeed.
-    res = auth_client.post(
-        f"/competitions/{competition.name}/players", params={"round_nr": 5}
-    )
-    res.raise_for_status()
-    assert res.json() == []
-
-
 def test_round_players_add_remove(
     competition: Competition,
     player_factory: Callable[..., Player],
@@ -653,11 +634,6 @@ def test_round_players_add_remove(
     session: Session,
 ):
     p1, p2, p3 = player_factory(), player_factory(), player_factory()
-    # Create the round player list.
-    auth_client.post(
-        f"/competitions/{competition.name}/players", params={"round_nr": 1}
-    ).raise_for_status()
-
     # Add players.
     res = auth_client.patch(
         f"/competitions/{competition.name}/players",
@@ -702,9 +678,6 @@ def test_round_players_bye(
     auth_client: TestClient,
 ):
     p1, p2, p3 = player_factory(), player_factory(), player_factory()
-    auth_client.post(
-        f"/competitions/{competition.name}/players", params={"round_nr": 1}
-    ).raise_for_status()
     auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
@@ -753,9 +726,6 @@ def test_delete_round_players(
     session: Session,
 ):
     p1, p2 = player_factory(), player_factory()
-    auth_client.post(
-        f"/competitions/{competition.name}/players", params={"round_nr": 1}
-    ).raise_for_status()
     auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},
@@ -775,9 +745,6 @@ def test_retrieve_round_players(
     auth_client: TestClient,
 ):
     p1, p2 = player_factory(), player_factory()
-    auth_client.post(
-        f"/competitions/{competition.name}/players", params={"round_nr": 1}
-    ).raise_for_status()
     auth_client.patch(
         f"/competitions/{competition.name}/players",
         params={"round_nr": 1},

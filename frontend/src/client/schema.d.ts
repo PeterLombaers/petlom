@@ -158,8 +158,7 @@ export interface paths {
         /** Retrieve Round Players */
         get: operations["retrieve_round_players_competitions__name__players_get"];
         put?: never;
-        /** Create Round Players */
-        post: operations["create_round_players_competitions__name__players_post"];
+        post?: never;
         /** Delete Round Players */
         delete: operations["delete_round_players_competitions__name__players_delete"];
         options?: never;
@@ -197,7 +196,13 @@ export interface paths {
         get: operations["retrieve_player_players__id___get"];
         put?: never;
         post?: never;
-        /** Delete Player */
+        /**
+         * Delete Player
+         * @description Delete a player, or deactivate them if they have competition history.
+         *
+         *     Ratings and external ids are owned by the player and cascade away with
+         *     them, so they don't count as history.
+         */
         delete: operations["delete_player_players__id___delete"];
         options?: never;
         head?: never;
@@ -1365,39 +1370,6 @@ export interface operations {
         };
     };
     retrieve_round_players_competitions__name__players_get: {
-        parameters: {
-            query: {
-                round_nr: number;
-            };
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoundPlayerPublic"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_round_players_competitions__name__players_post: {
         parameters: {
             query: {
                 round_nr: number;
