@@ -438,7 +438,9 @@ def test_real_competition_pairing_quality(monkeypatch):
 
             # Compute a shared penalty matrix so actual and predicted are evaluated
             # on equal footing (avoids RNG state differences).
-            penalty_score = calculate_penalty_score(all_matches, round_players)
+            penalty_score = calculate_penalty_score(
+                all_matches, round_players, round_nr
+            )
 
             actual_round_matches = [
                 Match(

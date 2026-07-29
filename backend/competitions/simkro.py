@@ -405,7 +405,7 @@ def calculate_base_penalty_score(
 
 
 def calculate_penalty_score(
-    matches: list[Match], players: list[Player]
+    matches: list[Match], players: list[Player], round_nr: int
 ) -> dict[Player, dict[Player, float]]:
     """Calculate the full penalty score for all pairs from a list of players.
 
@@ -426,6 +426,8 @@ def calculate_penalty_score(
         Matches played before the round being paired.
     players : list[Player]
         Players participating in the round to be paired.
+    round_nr : int
+        The number of the round being paired.
 
     Returns
     -------
@@ -444,8 +446,7 @@ def calculate_penalty_score(
             )
         return penalty_score
     base_penalty_score = calculate_base_penalty_score(matches, players)
-    current_round = max(m.round for m in matches) + 1
-    turnus_pairs = played_in_turnus_pairs(matches, current_round)
+    turnus_pairs = played_in_turnus_pairs(matches, round_nr)
     n_games_between = calculate_games_since_last_played(matches)
     for player1, player2 in itertools.combinations(players, 2):
         pair = frozenset((player1, player2))
@@ -576,7 +577,7 @@ def create_matchups(
         )
     saldo = calculate_saldo(matches)
     color_saldo = calculate_color_saldo(matches)
-    penalty_score = calculate_penalty_score(matches, players)
+    penalty_score = calculate_penalty_score(matches, players, round_nr)
     # Step 2
     # Make sure we don't mutate the input list:
     players = players.copy()
