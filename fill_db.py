@@ -1,9 +1,18 @@
+from typing import Any
+
 import factory
 from faker import Faker
 from sqlmodel import Session, create_engine
 
 from backend.competitions import CompetitionType
-from backend.models import Competition, Match, Player, Result
+from backend.models import (
+    Competition,
+    CompetitionRatingType,
+    Match,
+    Player,
+    RatingAlgorithm,
+    Result,
+)
 
 fake = Faker()
 engine = create_engine(
@@ -11,6 +20,24 @@ engine = create_engine(
     connect_args={"check_same_thread": False},
 )
 session = Session(engine)
+
+
+def add_rating_type(
+    competition: Competition, create: bool, extracted: Any, **kwargs: Any
+) -> None:
+    if not create:
+        return
+    assert competition.id is not None
+    session.add(
+        CompetitionRatingType(
+            name=f"{competition.name}_rating",
+            algorithm=RatingAlgorithm.ELO,
+            competition_id=competition.id,
+            default_initial_rating=1500.0,
+        )
+    )
+    session.commit()
+    session.refresh(competition)
 
 
 class CompetitionFactory(factory.alchemy.SQLAlchemyModelFactory):
@@ -21,6 +48,7 @@ class CompetitionFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     name = "interne_2024"
     type = CompetitionType.SIMKRO
+    rating_type = factory.post_generation(add_rating_type)
 
 
 class PlayerFactory(factory.alchemy.SQLAlchemyModelFactory):

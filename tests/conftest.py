@@ -103,6 +103,23 @@ def auth_client(client: TestClient, moderator: Moderator) -> TestClient:
 
 
 def CompetitionFactory(session: Session) -> Callable[..., Competition]:
+    def add_rating_type(
+        competition: Competition, create: bool, extracted: Any, **kwargs: Any
+    ) -> None:
+        if not create:
+            return
+        assert competition.id is not None
+        session.add(
+            CompetitionRatingType(
+                name=f"{competition.name}_rating",
+                algorithm=RatingAlgorithm.ELO,
+                competition_id=competition.id,
+                default_initial_rating=1500.0,
+            )
+        )
+        session.commit()
+        session.refresh(competition)
+
     class CompetitionFactory(factory.alchemy.SQLAlchemyModelFactory):
         class Meta:
             model = Competition
@@ -111,24 +128,14 @@ def CompetitionFactory(session: Session) -> Callable[..., Competition]:
 
         name = "interne_2024"
         type = CompetitionType.SIMKRO
+        rating_type = factory.post_generation(add_rating_type)
 
     return CompetitionFactory
 
 
 @pytest.fixture
 def competition(session: Session) -> Generator[Competition, Any, None]:
-    comp = CompetitionFactory(session)()
-    session.add(
-        CompetitionRatingType(
-            name=f"{comp.name}_rating",
-            algorithm=RatingAlgorithm.ELO,
-            competition_id=comp.id,
-            default_initial_rating=1500.0,
-        )
-    )
-    session.commit()
-    session.refresh(comp)
-    yield comp
+    yield CompetitionFactory(session)()
 
 
 @pytest.fixture

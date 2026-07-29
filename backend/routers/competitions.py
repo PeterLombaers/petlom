@@ -18,7 +18,6 @@ from backend.models import (
     CompetitionRating,
     CompetitionRatingPublic,
     CompetitionRatingType,
-    CompetitionRatingTypeCreate,
     CompetitionRatingTypePublic,
     CompetitionRatingTypeUpdate,
     CompetitionUpdate,
@@ -41,20 +40,6 @@ def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
         Match.competition_id == competition.id
     )
     return session.scalar(n_rounds_stmt) or 0
-
-
-def build_rating_type(
-    rating_type: CompetitionRatingTypeCreate,
-    competition_name: str,
-    competition_id: int,
-) -> CompetitionRatingType:
-    return CompetitionRatingType(
-        name=rating_type.name or f"{competition_name}_rating",
-        algorithm=rating_type.algorithm,
-        algorithm_config=rating_type.algorithm_config,
-        default_initial_rating=rating_type.default_initial_rating,
-        competition_id=competition_id,
-    )
 
 
 def to_competition_response(
@@ -93,8 +78,15 @@ def create_competition(
     session.add(db_competition)
     session.flush()
 
+    rating_type = competition.rating_type
     session.add(
-        build_rating_type(competition.rating_type, competition.name, db_competition.id)
+        CompetitionRatingType(
+            name=rating_type.name or f"{competition.name}_rating",
+            algorithm=rating_type.algorithm,
+            algorithm_config=rating_type.algorithm_config,
+            default_initial_rating=rating_type.default_initial_rating,
+            competition_id=db_competition.id,
+        )
     )
     session.commit()
     session.refresh(db_competition)
@@ -149,31 +141,7 @@ def update_competition(
 @router.get("/{name}/rating")
 def retrieve_rating(name: str, session: SessionDep) -> CompetitionRatingTypePublic:
     competition = find_competition(name, session)
-    if not competition.rating_type:
-        raise HTTPException(
-            status_code=404, detail="No rating configured for this competition."
-        )
     return competition.rating_type
-
-
-@router.post("/{name}/rating")
-def create_rating(
-    name: str,
-    rating_type: CompetitionRatingTypeCreate,
-    session: SessionDep,
-    _: ModeratorDep,
-) -> CompetitionRatingTypePublic:
-    competition = find_competition(name, session)
-    if competition.rating_type:
-        raise HTTPException(
-            status_code=409,
-            detail="A rating is already configured for this competition.",
-        )
-    db_rating_type = build_rating_type(rating_type, name, competition.id)
-    session.add(db_rating_type)
-    session.commit()
-    session.refresh(db_rating_type)
-    return db_rating_type
 
 
 @router.patch("/{name}/rating")
@@ -184,28 +152,12 @@ def update_rating(
     _: ModeratorDep,
 ) -> CompetitionRatingTypePublic:
     competition = find_competition(name, session)
-    if not competition.rating_type:
-        raise HTTPException(
-            status_code=404, detail="No rating configured for this competition."
-        )
     competition.rating_type.sqlmodel_update(update.model_dump(exclude_unset=True))
     competition.rating_type.updated_at = datetime.now(UTC)
     session.add(competition.rating_type)
     session.commit()
     session.refresh(competition.rating_type)
     return competition.rating_type
-
-
-@router.delete("/{name}/rating")
-def delete_rating(name: str, session: SessionDep, _: ModeratorDep):
-    competition = find_competition(name, session)
-    if not competition.rating_type:
-        raise HTTPException(
-            status_code=404, detail="No rating configured for this competition."
-        )
-    session.delete(competition.rating_type)
-    session.commit()
-    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
@@ -218,8 +170,6 @@ def retrieve_player_ratings(
     name: str, session: SessionDep
 ) -> list[CompetitionRatingPublic]:
     competition = find_competition(name, session)
-    if competition.rating_type is None:
-        return []
     ratings = session.exec(
         select(CompetitionRating).where(
             CompetitionRating.rating_type_id == competition.rating_type.id
@@ -344,12 +294,9 @@ def update_ratings(
     """Recalculate the competition ratings from the matches.
 
     Updates the stored `CompetitionRating` rows and annotates the ranking with the
-    new ratings. Does nothing if the competition has no rating type configured.
+    new ratings.
     """
     rating_type = competition.rating_type
-    if rating_type is None:
-        return
-
     comp_ratings_list = session.exec(
         select(CompetitionRating).where(
             CompetitionRating.rating_type_id == rating_type.id

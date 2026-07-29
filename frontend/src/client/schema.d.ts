@@ -85,10 +85,8 @@ export interface paths {
         /** Retrieve Rating */
         get: operations["retrieve_rating_competitions__name__rating_get"];
         put?: never;
-        /** Create Rating */
-        post: operations["create_rating_competitions__name__rating_post"];
-        /** Delete Rating */
-        delete: operations["delete_rating_competitions__name__rating_delete"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         /** Update Rating */
@@ -1090,72 +1088,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompetitionRatingTypePublic"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_rating_competitions__name__rating_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CompetitionRatingTypeCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompetitionRatingTypePublic"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_rating_competitions__name__rating_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
