@@ -17,6 +17,12 @@ from backend.models import Competition, Match, MatchBase, MatchPublic, MatchUpda
 router = APIRouter(prefix="/matches", tags=["matches"])
 
 
+MATCH_CONFLICT_DETAIL = (
+    "This competition already has a match on this round and board, "
+    "or the match refers to a player that doesn't exist."
+)
+
+
 def touch_competition(session: SessionDep, competition_id: int):
     competition = session.get(Competition, competition_id)
     if competition:
@@ -38,9 +44,9 @@ def create_match(
         touch_competition(session, db_match.competition_id)
         session.commit()
         session.refresh(db_match)
-    except IntegrityError as e:
-        error_message = f"IntegrityError: {e.orig}"
-        raise HTTPException(400, detail=error_message)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=MATCH_CONFLICT_DETAIL)
     return db_match
 
 
@@ -85,7 +91,7 @@ def update_match(
         touch_competition(session, db_match.competition_id)
         session.commit()
         session.refresh(db_match)
-    except IntegrityError as e:
-        error_message = f"IntegrityError: {e.orig}"
-        raise HTTPException(400, detail=error_message)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=MATCH_CONFLICT_DETAIL)
     return db_match

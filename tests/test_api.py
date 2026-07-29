@@ -446,7 +446,7 @@ def test_create_match_unique_constraint(
         "player_black_id": match_obj.player_black_id,
     }
     res = auth_client.post("/matches/", json=data)
-    assert res.status_code == 400
+    assert res.status_code == 409
 
 
 def test_update_match_unique_constraint(
@@ -459,7 +459,7 @@ def test_update_match_unique_constraint(
         "board": match_obj_1.board,
     }
     res = auth_client.patch(f"/matches/{match_obj_2.id}/", json=update_data)
-    assert res.status_code == 400
+    assert res.status_code == 409
 
 
 def test_retrieve_pairing(
