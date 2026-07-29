@@ -363,18 +363,148 @@ def create_ranking(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{name}/players")
-def retrieve_round_players(
-    name: str, round_nr: int, session: SessionDep
-) -> list[RoundPlayerPublic]:
-    competition = find_competition(name, session)
-    round_players = session.exec(
+def get_round_players(
+    competition: Competition, round_nr: int, session: SessionDep
+) -> Sequence[RoundPlayer]:
+    return session.exec(
         select(RoundPlayer).where(
             RoundPlayer.competition_id == competition.id,
             RoundPlayer.round == round_nr,
         )
     ).all()
-    return round_players
+
+
+def get_or_create_competition_rating(
+    player: Player,
+    rating_type: CompetitionRatingType,
+    manual_rating: float | None,
+    existing_ratings: dict[int, CompetitionRating],
+    session: SessionDep,
+) -> CompetitionRating:
+    """Return the player's rating for this competition, creating it if needed.
+
+    A manually provided rating takes precedence over the rating type default."""
+    comp_rating = existing_ratings.get(player.id)
+    if comp_rating is not None:
+        return comp_rating
+
+    if manual_rating is not None:
+        rating, is_manual = manual_rating, True
+    elif rating_type.default_initial_rating is not None:
+        rating, is_manual = rating_type.default_initial_rating, False
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Player '{player.name}' has no rating for this competition."
+                " Provide an initial rating or configure a default."
+            ),
+        )
+
+    comp_rating = CompetitionRating(
+        player_id=player.id,
+        rating_type_id=rating_type.id,
+        initial_rating=rating,
+        current_rating=rating,
+        is_manual=is_manual,
+    )
+    session.add(comp_rating)
+    existing_ratings[player.id] = comp_rating
+    return comp_rating
+
+
+def add_round_players(
+    competition: Competition,
+    round_nr: int,
+    player_ids: list[int],
+    initial_ratings: dict[int, float],
+    session: SessionDep,
+) -> None:
+    db_players = session.exec(select(Player).where(Player.id.in_(player_ids))).all()
+    players_by_id = {p.id: p for p in db_players}
+    missing = [pid for pid in player_ids if pid not in players_by_id]
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Player ids not found: {missing}")
+
+    rating_type = competition.rating_type
+    existing_ratings: dict[int, CompetitionRating] = {
+        cr.player_id: cr
+        for cr in session.exec(
+            select(CompetitionRating).where(
+                CompetitionRating.rating_type_id == rating_type.id,
+                CompetitionRating.player_id.in_(player_ids),
+            )
+        ).all()
+    }
+    already_added = {
+        rp.player_id for rp in get_round_players(competition, round_nr, session)
+    }
+
+    for player_id in player_ids:
+        if player_id in already_added:
+            continue
+        comp_rating = get_or_create_competition_rating(
+            players_by_id[player_id],
+            rating_type,
+            initial_ratings.get(player_id),
+            existing_ratings,
+            session,
+        )
+        session.add(
+            RoundPlayer(
+                competition_id=competition.id,
+                round=round_nr,
+                player_id=player_id,
+                initial_rating=comp_rating.current_rating,
+            )
+        )
+        already_added.add(player_id)
+
+
+def remove_round_players(
+    competition: Competition,
+    round_nr: int,
+    player_ids: list[int],
+    session: SessionDep,
+) -> None:
+    to_remove = set(player_ids)
+    for rp in get_round_players(competition, round_nr, session):
+        if rp.player_id in to_remove:
+            session.delete(rp)
+
+
+def update_bye(
+    competition: Competition,
+    round_nr: int,
+    bye_player_id: int | None,
+    session: SessionDep,
+) -> None:
+    """Clear any existing bye and, if given, assign the bye to `bye_player_id`."""
+    new_bye_player = None
+    for rp in get_round_players(competition, round_nr, session):
+        if rp.is_bye:
+            rp.is_bye = False
+            session.add(rp)
+        if rp.player_id == bye_player_id:
+            new_bye_player = rp
+
+    if bye_player_id is None:
+        return
+    if new_bye_player is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Player id for bye is not found: {bye_player_id}",
+        )
+    new_bye_player.is_bye = True
+    session.add(new_bye_player)
+
+
+@router.get("/{name}/players")
+def retrieve_round_players(
+    name: str, round_nr: int, session: SessionDep
+) -> list[RoundPlayerPublic]:
+    competition = find_competition(name, session)
+    return get_round_players(competition, round_nr, session)
 
 
 @router.patch("/{name}/players")
@@ -386,132 +516,25 @@ def update_round_players(
     _: ModeratorDep,
 ) -> list[RoundPlayerPublic]:
     competition = find_competition(name, session)
-    rating_type = competition.rating_type
 
     if update.player_ids_to_add:
-        # Validate players exist.
-        db_players = session.exec(
-            select(Player).where(Player.id.in_(update.player_ids_to_add))
-        ).all()
-        db_player_ids = {p.id for p in db_players}
-        missing = [pid for pid in update.player_ids_to_add if pid not in db_player_ids]
-        if missing:
-            raise HTTPException(
-                status_code=404, detail=f"Player ids not found: {missing}"
-            )
-
-        existing_comp_ratings: dict[int, CompetitionRating] = {
-            cr.player_id: cr
-            for cr in session.exec(
-                select(CompetitionRating).where(
-                    CompetitionRating.rating_type_id == rating_type.id,
-                    CompetitionRating.player_id.in_(update.player_ids_to_add),
-                )
-            ).all()
-        }
-
-        for player in db_players:
-            player_id = player.id
-
-            # Skip if already in the list.
-            existing = session.exec(
-                select(RoundPlayer).where(
-                    RoundPlayer.competition_id == competition.id,
-                    RoundPlayer.round == round_nr,
-                    RoundPlayer.player_id == player_id,
-                )
-            ).first()
-            if existing:
-                continue
-
-            comp_rating = existing_comp_ratings.get(player_id)
-            if comp_rating is None:
-                manual_rating = (update.initial_ratings or {}).get(player_id)
-                if manual_rating is not None:
-                    comp_rating = CompetitionRating(
-                        player_id=player_id,
-                        rating_type_id=rating_type.id,
-                        initial_rating=manual_rating,
-                        current_rating=manual_rating,
-                        is_manual=True,
-                    )
-                    session.add(comp_rating)
-                    session.flush()
-                elif rating_type.default_initial_rating is not None:
-                    comp_rating = CompetitionRating(
-                        player_id=player_id,
-                        rating_type_id=rating_type.id,
-                        initial_rating=rating_type.default_initial_rating,
-                        current_rating=rating_type.default_initial_rating,
-                        is_manual=False,
-                    )
-                    session.add(comp_rating)
-                    session.flush()
-                else:
-                    raise HTTPException(
-                        status_code=422,
-                        detail=(
-                            f"Player '{player.name}' has no rating for this competition."
-                            " Provide an initial rating or configure a default."
-                        ),
-                    )
-
-            session.add(
-                RoundPlayer(
-                    competition_id=competition.id,
-                    round=round_nr,
-                    player_id=player_id,
-                    initial_rating=comp_rating.current_rating,
-                )
-            )
-
+        add_round_players(
+            competition,
+            round_nr,
+            update.player_ids_to_add,
+            update.initial_ratings or {},
+            session,
+        )
     if update.player_ids_to_remove:
-        for player_id in update.player_ids_to_remove:
-            rp = session.exec(
-                select(RoundPlayer).where(
-                    RoundPlayer.competition_id == competition.id,
-                    RoundPlayer.round == round_nr,
-                    RoundPlayer.player_id == player_id,
-                )
-            ).first()
-            if rp:
-                session.delete(rp)
-
+        remove_round_players(
+            competition, round_nr, update.player_ids_to_remove, session
+        )
     if update.clear_bye or update.bye_player_id is not None:
-        all_rps = session.exec(
-            select(RoundPlayer).where(
-                RoundPlayer.competition_id == competition.id,
-                RoundPlayer.round == round_nr,
-                RoundPlayer.is_bye,
-            )
-        ).all()
-        for rp in all_rps:
-            rp.is_bye = False
-            session.add(rp)
-    if update.bye_player_id is not None:
-        rp = session.exec(
-            select(RoundPlayer).where(
-                RoundPlayer.competition_id == competition.id,
-                RoundPlayer.round == round_nr,
-                RoundPlayer.player_id == update.bye_player_id,
-            )
-        ).first()
-        if not rp:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Player id for bye is not found: {update.bye_player_id}",
-            )
-        rp.is_bye = True
-        session.add(rp)
+        update_bye(competition, round_nr, update.bye_player_id, session)
 
     session.commit()
 
-    return session.exec(
-        select(RoundPlayer).where(
-            RoundPlayer.competition_id == competition.id,
-            RoundPlayer.round == round_nr,
-        )
-    ).all()
+    return get_round_players(competition, round_nr, session)
 
 
 @router.delete("/{name}/players")
@@ -519,13 +542,7 @@ def delete_round_players(
     name: str, round_nr: int, session: SessionDep, _: ModeratorDep
 ):
     competition = find_competition(name, session)
-    round_players = session.exec(
-        select(RoundPlayer).where(
-            RoundPlayer.competition_id == competition.id,
-            RoundPlayer.round == round_nr,
-        )
-    ).all()
-    for rp in round_players:
+    for rp in get_round_players(competition, round_nr, session):
         session.delete(rp)
     session.commit()
     return {"ok": True}
