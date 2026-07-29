@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
@@ -86,7 +86,7 @@ def update_player(
 ) -> PlayerPublic:
     db_player = find_object(model=Player, identifier=id, session=session)
     db_player.sqlmodel_update(player.model_dump(exclude_unset=True))
-    db_player.updated_at = datetime.now()
+    db_player.updated_at = datetime.now(UTC)
     session.add(db_player)
     session.commit()
     session.refresh(db_player)
@@ -105,7 +105,7 @@ def set_player_external_id(
     db_external_id = _find_external_id(player, source)
     if db_external_id:
         db_external_id.external_id = external_id.external_id
-        db_external_id.updated_at = datetime.now()
+        db_external_id.updated_at = datetime.now(UTC)
     else:
         db_external_id = PlayerExternalId(
             player_id=player.id, source=source, external_id=external_id.external_id

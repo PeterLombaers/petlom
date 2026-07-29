@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
@@ -126,7 +126,7 @@ def update_competition(
     db_competition = find_competition(name, session)
     update_data = competition.model_dump(exclude_unset=True)
     db_competition.sqlmodel_update(update_data)
-    db_competition.updated_at = datetime.now()
+    db_competition.updated_at = datetime.now(UTC)
     session.add(db_competition)
     session.commit()
     session.refresh(db_competition)
@@ -187,7 +187,7 @@ def update_rating(
             status_code=404, detail="No rating configured for this competition."
         )
     competition.rating_type.sqlmodel_update(update.model_dump(exclude_unset=True))
-    competition.rating_type.updated_at = datetime.now()
+    competition.rating_type.updated_at = datetime.now(UTC)
     session.add(competition.rating_type)
     session.commit()
     session.refresh(competition.rating_type)
@@ -303,7 +303,7 @@ def create_pairing(
         competition=competition,
     )
     session.add_all(matches)
-    competition.updated_at = datetime.now()
+    competition.updated_at = datetime.now(UTC)
     session.add(competition)
     session.commit()
     return matches
@@ -319,7 +319,7 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
     )
     for m in round_matches:
         session.delete(m)
-    competition.updated_at = datetime.now()
+    competition.updated_at = datetime.now(UTC)
     session.add(competition)
     session.commit()
     return {"ok": True}
@@ -375,7 +375,7 @@ def retrieve_ranking(
         new_rating = new_ratings.get(cr.player_id)
         if new_rating is not None:
             cr.current_rating = new_rating
-            cr.updated_at = datetime.now()
+            cr.updated_at = datetime.now(UTC)
             session.add(cr)
 
     ratings_by_player = {cr.player_id: cr.current_rating for cr in comp_ratings_list}

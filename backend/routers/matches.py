@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/matches", tags=["matches"])
 def touch_competition(session: SessionDep, competition_id: int):
     competition = session.get(Competition, competition_id)
     if competition:
-        competition.updated_at = datetime.now()
+        competition.updated_at = datetime.now(UTC)
         session.add(competition)
 
 
@@ -79,7 +79,7 @@ def update_match(
     if new_name is not None:
         update_data["competition_id"] = find_competition(new_name, session).id
     db_match.sqlmodel_update(update_data)
-    db_match.updated_at = datetime.now()
+    db_match.updated_at = datetime.now(UTC)
     try:
         session.add(db_match)
         touch_competition(session, db_match.competition_id)

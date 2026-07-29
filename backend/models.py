@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -41,8 +41,8 @@ class CompetitionRatingType(SQLModel, table=True):
             " is provided."
         ),
     )
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     competition: "Competition" = Relationship(back_populates="rating_type")
     competition_ratings: list["CompetitionRating"] = Relationship(
@@ -113,8 +113,8 @@ class CompetitionRating(SQLModel, table=True):
             "The external rating snapshot the initial rating was based on, if any."
         ),
     )
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     player: "Player" = Relationship(back_populates="competition_ratings")
     rating_type: CompetitionRatingType = Relationship(
@@ -154,8 +154,8 @@ class PlayerExternalId(SQLModel, table=True):
     player_id: int = Field(foreign_key="player.id", ondelete="CASCADE")
     source: ExternalRatingSource
     external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     player: "Player" = Relationship(back_populates="external_ids")
     external_ratings: list["ExternalRating"] = Relationship(
@@ -176,7 +176,7 @@ class ExternalRating(SQLModel, table=True):
     )
     rating: float
     list_date: constr(pattern=LIST_DATE_PATTERN)  # type: ignore
-    imported_at: datetime = Field(default_factory=datetime.now)
+    imported_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     player_external_id: PlayerExternalId = Relationship(
         back_populates="external_ratings"
@@ -249,8 +249,8 @@ class PlayerBase(SQLModel):
 
 class Player(PlayerBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     matches_white: list["Match"] = Relationship(
         # sqlmodel has trouble with two relationships to the same table.
         # This solution is from: https://github.com/fastapi/sqlmodel/issues/10
@@ -333,8 +333,8 @@ class Competition(CompetitionBase, table=True):
     # A surrogate key, so that renaming a competition does not have to be
     # cascaded to every table that references it.
     id: int | None = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     matches: list["Match"] = Relationship(
         back_populates="competition", cascade_delete=True
     )
@@ -392,8 +392,8 @@ class Match(SQLModel, table=True):
     round: int
     board: int
     result: Result | None = None
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def competition_name(self) -> str:
@@ -451,7 +451,7 @@ class RoundPlayer(SQLModel, table=True):
     player_id: int = Field(foreign_key="player.id")
     is_bye: bool = False
     initial_rating: float | None = None
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     player: Player = Relationship()
 
 
@@ -497,7 +497,7 @@ class Moderator(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     hashed_password: str
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ModeratorPublic(SQLModel):

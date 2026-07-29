@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
@@ -158,7 +158,7 @@ def import_external_ratings(
         ).first()
         if existing:
             existing.rating = record.rating
-            existing.imported_at = datetime.now()
+            existing.imported_at = datetime.now(UTC)
             session.add(existing)
             updated += 1
         else:
