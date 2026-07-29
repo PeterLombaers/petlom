@@ -43,6 +43,20 @@ def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
     return session.scalar(n_rounds_stmt) or 0
 
 
+def build_rating_type(
+    rating_type: CompetitionRatingTypeCreate,
+    competition_name: str,
+    competition_id: int,
+) -> CompetitionRatingType:
+    return CompetitionRatingType(
+        name=rating_type.name or f"{competition_name}_rating",
+        algorithm=rating_type.algorithm,
+        algorithm_config=rating_type.algorithm_config,
+        default_initial_rating=rating_type.default_initial_rating,
+        competition_id=competition_id,
+    )
+
+
 def to_competition_response(
     competition: Competition, session: SessionDep
 ) -> CompetitionPublicWithNRounds:
@@ -79,15 +93,8 @@ def create_competition(
     session.add(db_competition)
     session.flush()
 
-    rt = competition.rating_type
     session.add(
-        CompetitionRatingType(
-            name=rt.name or f"{competition.name}_rating",
-            algorithm=rt.algorithm,
-            algorithm_config=rt.algorithm_config,
-            default_initial_rating=rt.default_initial_rating,
-            competition_id=db_competition.id,
-        )
+        build_rating_type(competition.rating_type, competition.name, db_competition.id)
     )
     session.commit()
     session.refresh(db_competition)
@@ -162,13 +169,7 @@ def create_rating(
             status_code=409,
             detail="A rating is already configured for this competition.",
         )
-    db_rating_type = CompetitionRatingType(
-        name=rating_type.name or f"{name}_rating",
-        algorithm=rating_type.algorithm,
-        algorithm_config=rating_type.algorithm_config,
-        default_initial_rating=rating_type.default_initial_rating,
-        competition_id=competition.id,
-    )
+    db_rating_type = build_rating_type(rating_type, name, competition.id)
     session.add(db_rating_type)
     session.commit()
     session.refresh(db_rating_type)
