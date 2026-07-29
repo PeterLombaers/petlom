@@ -300,6 +300,23 @@ def test_delete_player_is_active_false(
     assert not player.is_active
 
 
+def test_delete_player_registered_for_round(
+    player: Player,
+    competition: Competition,
+    auth_client: TestClient,
+    session: Session,
+):
+    session.add(
+        RoundPlayer(competition_id=competition.id, round=1, player_id=player.id)
+    )
+    session.commit()
+    res = auth_client.delete(f"/players/{player.id}/")
+    res.raise_for_status()
+    session.refresh(player)
+    assert not player.is_active
+    assert len(session.scalars(select(RoundPlayer)).all()) == 1
+
+
 def test_create_match(
     competition: Competition,
     player_factory: Callable[..., Player],

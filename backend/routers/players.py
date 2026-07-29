@@ -11,6 +11,7 @@ from backend.enums import ExternalRatingSource
 from backend.models import (
     ExternalRating,
     ExternalRatingPublic,
+    Match,
     Player,
     PlayerCreate,
     PlayerDetailPublic,
@@ -19,6 +20,7 @@ from backend.models import (
     PlayerExternalIdUpdate,
     PlayerPublic,
     PlayerUpdate,
+    RoundPlayer,
 )
 
 router = APIRouter(prefix="/players", tags=["players"])
@@ -68,16 +70,34 @@ def retrieve_player(id: int, session: SessionDep) -> PlayerDetailPublic:
 
 @router.delete("/{id}/")
 def delete_player(id: int, session: SessionDep, _: ModeratorDep):
+    """Delete a player, or deactivate them if they have competition history.
+
+    Ratings and external ids are owned by the player and cascade away with
+    them, so they don't count as history.
+    """
     player = find_object(model=Player, identifier=id, session=session)
-    try:
-        session.delete(player)
-        session.commit()
-    except IntegrityError:
-        session.rollback()
+    if _has_competition_history(player, session):
         player.is_active = False
         session.add(player)
-        session.commit()
+    else:
+        session.delete(player)
+    session.commit()
     return {"ok": True}
+
+
+def _has_competition_history(player: Player, session: SessionDep) -> bool:
+    """Whether any match or round registration still references the player."""
+    played = session.exec(
+        select(Match.id)
+        .where(
+            (Match.player_white_id == player.id) | (Match.player_black_id == player.id)
+        )
+        .limit(1)
+    ).first()
+    registered = session.exec(
+        select(RoundPlayer.id).where(RoundPlayer.player_id == player.id).limit(1)
+    ).first()
+    return played is not None or registered is not None
 
 
 @router.patch("/{id}/")
