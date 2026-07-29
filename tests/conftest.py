@@ -71,16 +71,24 @@ def client(session: Session) -> Generator[TestClient, Any, None]:
     app.dependency_overrides.clear()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def moderator_password() -> str:
     return "testpass"
 
 
+@pytest.fixture(scope="session")
+def moderator_password_hash(moderator_password: str) -> str:
+    """Hash the moderator password once for the whole run.
+
+    bcrypt deliberately costs ~200ms per hash, and every test needing auth
+    would otherwise recompute the same value.
+    """
+    return hash_password(moderator_password)
+
+
 @pytest.fixture
-def moderator(session: Session, moderator_password: str) -> Moderator:
-    mod = Moderator(
-        username="testmod", hashed_password=hash_password(moderator_password)
-    )
+def moderator(session: Session, moderator_password_hash: str) -> Moderator:
+    mod = Moderator(username="testmod", hashed_password=moderator_password_hash)
     session.add(mod)
     session.commit()
     session.refresh(mod)
