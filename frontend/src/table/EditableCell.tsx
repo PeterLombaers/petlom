@@ -1,5 +1,6 @@
 import { Table } from "@mantine/core";
 import React from "react";
+import type { EditProps } from "./types";
 
 interface EditableCellProps<T = unknown> {
   isEditing: boolean;
@@ -7,11 +8,7 @@ interface EditableCellProps<T = unknown> {
   editValue: T;
   setEditValue: (editValue: T) => void;
   renderValue: (props: { value: T }) => React.ReactNode;
-  renderEdit: (props: {
-    editValue: T;
-    error: string;
-    onChange: (newValue: T) => void;
-  }) => React.ReactNode;
+  renderEdit: (props: EditProps<T>) => React.ReactNode;
   error: string;
   className?: string;
 }

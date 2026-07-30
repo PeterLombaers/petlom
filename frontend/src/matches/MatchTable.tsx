@@ -6,7 +6,7 @@ import EditableTable from "@/table/EditableTable";
 import { createNumberCell } from "@/table/cells";
 import { CreateDialogConfig } from "@/table/CreateButton";
 import PlayerSelect from "@/players/PlayerSelect";
-import { createPlayerSelectCell, createResultToggleCell } from "./cells";
+import { playerSelectCell, resultToggleCell } from "./cells";
 import { useMatches } from "./useMatches";
 
 type MatchPublic = components["schemas"]["MatchPublic"];
@@ -122,24 +122,24 @@ export const MatchTable = ({ competitionName, round }: MatchTableProps) => {
         { field: "id", isId: true, hidden: true },
         {
           field: "board",
-          cell: createNumberCell("board"),
+          cell: createNumberCell("board", t("match.board")),
           header: t("match.board"),
           width: 80,
           hideBelow: "sm",
         },
         {
           field: "player_white",
-          cell: createPlayerSelectCell(),
+          cell: playerSelectCell,
           header: t("match.white"),
         },
         {
           field: "player_black",
-          cell: createPlayerSelectCell(),
+          cell: playerSelectCell,
           header: t("match.black"),
         },
         {
           field: "result",
-          cell: createResultToggleCell(),
+          cell: resultToggleCell,
           width: resultWidth,
           editWidth: 220,
           isEditable: true,

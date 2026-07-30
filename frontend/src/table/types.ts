@@ -23,13 +23,16 @@ export interface EditConfig<T = unknown> {
   getRequestBody: (editData: T) => unknown;
 }
 
+/** Props an editable cell's `renderEdit` receives for a value of type `V`. */
+export type EditProps<V> = {
+  editValue: V;
+  error: string;
+  onChange: (newValue: V) => void;
+};
+
 export type CellConfig<T, K extends keyof T> = {
   renderValue: (props: { value: T[K] }) => React.ReactNode;
-  renderEdit?: (props: {
-    editValue: T[K];
-    error: string;
-    onChange: (newValue: T[K]) => void;
-  }) => React.ReactNode;
+  renderEdit?: (props: EditProps<T[K]>) => React.ReactNode;
 };
 
 export type CellConfigs<T> = { [K in keyof T]?: CellConfig<T, K> };

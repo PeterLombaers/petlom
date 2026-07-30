@@ -3,7 +3,7 @@ import EditableTable from "@/table/EditableTable";
 import { TextInput } from "@mantine/core";
 import { components } from "@/client/schema";
 import {
-  createReadOnlyNumberCell,
+  readOnlyNumberCell,
   createTextCell,
   createNonEmptyStringValidator,
 } from "@/table/cells";
@@ -63,7 +63,7 @@ export default function PlayerTable() {
       columns={[
         {
           field: "id",
-          cell: createReadOnlyNumberCell(),
+          cell: readOnlyNumberCell,
           isId: true,
           hidden: true,
         },

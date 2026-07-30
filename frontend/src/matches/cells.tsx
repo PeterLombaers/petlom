@@ -1,12 +1,13 @@
 import { Tooltip } from "@mantine/core";
 import { components } from "@client/schema";
 import PlayerSelect from "@/players/PlayerSelect";
+import type { EditProps } from "@/table/types";
 import ResultToggle from "./ResultToggle";
 
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 type Result = components["schemas"]["Result"];
 
-export const createPlayerSelectCell = () => ({
+export const playerSelectCell = {
   renderValue: (props: { value: PlayerPublicMinimal }) => (
     <Tooltip
       label={props.value.name}
@@ -15,11 +16,7 @@ export const createPlayerSelectCell = () => ({
       <span>{props.value.name}</span>
     </Tooltip>
   ),
-  renderEdit: (props: {
-    editValue: PlayerPublicMinimal;
-    error: string;
-    onChange: (newValue: PlayerPublicMinimal) => void;
-  }) => (
+  renderEdit: (props: EditProps<PlayerPublicMinimal>) => (
     <PlayerSelect
       player={props.editValue}
       setPlayer={props.onChange}
@@ -27,16 +24,12 @@ export const createPlayerSelectCell = () => ({
       helperText={props.error}
     />
   ),
-});
+};
 
-export const createResultToggleCell = () => ({
+export const resultToggleCell = {
   renderValue: (props: { value: Result | null | undefined }) =>
     props.value ?? "—",
-  renderEdit: (props: {
-    editValue: Result | null | undefined;
-    error: string;
-    onChange: (newValue: Result | null) => void;
-  }) => (
+  renderEdit: (props: EditProps<Result | null | undefined>) => (
     <ResultToggle result={props.editValue ?? null} setResult={props.onChange} />
   ),
-});
+};

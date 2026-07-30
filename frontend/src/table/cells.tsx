@@ -1,52 +1,26 @@
 import { Anchor, NumberInput, TextInput } from "@mantine/core";
+import type { EditProps } from "./types";
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString();
 };
 
-export const createTextCell = (fieldName: string, label: string) => ({
-  renderValue: (props: { value: string }) => props.value,
-  renderEdit: (props: {
-    editValue: string;
-    error: string;
-    onChange: (newValue: string) => void;
-  }) => (
+// The column header already names the field, so the input is labelled with
+// `aria-label` rather than a visible `label` that would render inside the cell.
+const textEditor =
+  (fieldName: string, label: string) => (props: EditProps<string>) => (
     <TextInput
       name={fieldName}
-      label={label}
+      aria-label={label}
       value={props.editValue}
       error={props.error || undefined}
       onChange={(e) => props.onChange(e.target.value)}
     />
-  ),
-});
+  );
 
-export const createReadOnlyTextCell = () => ({
+export const createTextCell = (fieldName: string, label: string) => ({
   renderValue: (props: { value: string }) => props.value,
-});
-
-export const createReadOnlyDateCell = () => ({
-  renderValue: (props: { value: string }) => formatDate(props.value),
-});
-
-export const createNumberCell = (fieldName: string) => ({
-  renderValue: (props: { value: number }) => props.value.toString(),
-  renderEdit: (props: {
-    editValue: number;
-    error: string;
-    onChange: (newValue: number) => void;
-  }) => (
-    <NumberInput
-      name={fieldName}
-      value={props.editValue}
-      error={props.error || undefined}
-      onChange={(val) => props.onChange(Number(val))}
-    />
-  ),
-});
-
-export const createReadOnlyNumberCell = () => ({
-  renderValue: (props: { value: number }) => props.value.toString(),
+  renderEdit: textEditor(fieldName, label),
 });
 
 export const createLinkTextCell = (
@@ -57,20 +31,29 @@ export const createLinkTextCell = (
   renderValue: (props: { value: string }) => (
     <Anchor href={getHref(props.value)}>{props.value}</Anchor>
   ),
-  renderEdit: (props: {
-    editValue: string;
-    error: string;
-    onChange: (newValue: string) => void;
-  }) => (
-    <TextInput
+  renderEdit: textEditor(fieldName, label),
+});
+
+export const createNumberCell = (fieldName: string, label: string) => ({
+  renderValue: (props: { value: number }) => props.value.toString(),
+  renderEdit: (props: EditProps<number>) => (
+    <NumberInput
       name={fieldName}
-      label={label}
+      aria-label={label}
       value={props.editValue}
       error={props.error || undefined}
-      onChange={(e) => props.onChange(e.target.value)}
+      onChange={(val) => props.onChange(Number(val))}
     />
   ),
 });
+
+export const readOnlyDateCell = {
+  renderValue: (props: { value: string }) => formatDate(props.value),
+};
+
+export const readOnlyNumberCell = {
+  renderValue: (props: { value: number }) => props.value.toString(),
+};
 
 export const createNonEmptyStringValidator =
   (field: string, message = "Value should not be empty") =>

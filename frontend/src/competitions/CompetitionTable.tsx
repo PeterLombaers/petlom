@@ -4,7 +4,7 @@ import { NumberInput, Select, Stack, Textarea, TextInput } from "@mantine/core";
 import { components } from "@/client/schema";
 import {
   createLinkTextCell,
-  createReadOnlyDateCell,
+  readOnlyDateCell,
   createNonEmptyStringValidator,
 } from "@/table/cells";
 import { useTranslation } from "react-i18next";
@@ -143,12 +143,12 @@ export default function CompetitionTable() {
         },
         {
           field: "created_at",
-          cell: createReadOnlyDateCell(),
+          cell: readOnlyDateCell,
           header: t("competition.createdDate"),
         },
         {
           field: "updated_at",
-          cell: createReadOnlyDateCell(),
+          cell: readOnlyDateCell,
           header: t("competition.updatedDate"),
         },
       ]}
