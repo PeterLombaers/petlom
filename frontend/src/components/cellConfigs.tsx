@@ -79,12 +79,15 @@ export const createPlayerSelectCell = () => ({
 });
 
 export const createResultToggleCell = () => ({
-  renderValue: (props: { value: Result | null }) => props.value ?? "—",
+  renderValue: (props: { value: Result | null | undefined }) =>
+    props.value ?? "—",
   renderEdit: (props: {
-    editValue: Result | null;
+    editValue: Result | null | undefined;
     error: string;
     onChange: (newValue: Result | null) => void;
-  }) => <ResultToggle result={props.editValue} setResult={props.onChange} />,
+  }) => (
+    <ResultToggle result={props.editValue ?? null} setResult={props.onChange} />
+  ),
 });
 
 export const createLinkTextCell = (
