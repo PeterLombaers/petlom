@@ -17,7 +17,7 @@ import RankingTable from "@/competitions/RankingTable";
 import RoundPlayerList from "@/competitions/RoundPlayerList";
 import NotFoundPage from "./NotFoundPage";
 import { useAuth } from "@/auth";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useDocumentTitle } from "@/pages/useDocumentTitle";
 
 export default function CompetitionDetailPage() {
   const { name, round } = useParams();

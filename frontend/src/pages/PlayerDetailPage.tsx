@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useDocumentTitle } from "@/pages/useDocumentTitle";
 
 export default function PlayerDetailPage() {
   const { playerId } = useParams();

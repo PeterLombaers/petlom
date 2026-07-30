@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import PlayerTable from "@/players/PlayerTable";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useDocumentTitle } from "@/pages/useDocumentTitle";
 
 export default function PlayerListPage() {
   const { t } = useTranslation();

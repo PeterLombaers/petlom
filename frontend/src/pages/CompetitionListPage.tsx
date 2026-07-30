@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import CompetitionTable from "@/competitions/CompetitionTable";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useDocumentTitle } from "@/pages/useDocumentTitle";
 
 export default function CompetitionListPage() {
   const { t } = useTranslation();

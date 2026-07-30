@@ -14,7 +14,7 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { PetlomLogo } from "@/layout/PetlomLogo";
 import { useAuth } from "@/auth";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useDocumentTitle } from "@/pages/useDocumentTitle";
 
 export default function LoginPage() {
   const { login } = useAuth();
