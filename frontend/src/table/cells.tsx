@@ -56,7 +56,7 @@ export const readOnlyNumberCell = {
 };
 
 export const createNonEmptyStringValidator =
-  (field: string, message = "Value should not be empty") =>
+  (field: string, message: string) =>
   (value: string, errors: Record<string, string>) => {
     if (!value) {
       errors[field] = message;
