@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Group, Paper, Table, Text } from "@mantine/core";
 import EditableRow from "./EditableRow";
 import { EditButton } from "./EditButton";
@@ -14,17 +13,9 @@ import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
 import { useAuth } from "@/auth";
 import { formatHTTPValidationError } from "@/client/api";
-import type { components } from "@/client/schema";
 import { translateEntity } from "@/i18n/translateEntity";
 import { useTranslation } from "react-i18next";
-
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
-
-function formatRejection(reason: unknown): string {
-  const detail = (reason as HTTPValidationError | null)?.detail;
-  if (detail === undefined) return "";
-  return formatHTTPValidationError(reason as HTTPValidationError);
-}
+import { useTableEditState } from "./useTableEditState";
 
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 type TableDeleteConfig<T> = Omit<
@@ -100,15 +91,6 @@ export default function EditableTable<T extends object>({
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
   const { t } = useTranslation();
-  const [editableId, setEditableId] = useState<string | number | null>(null);
-  const [columnEditField, setColumnEditField] = useState<keyof T | null>(null);
-  const [columnEditValues, setColumnEditValues] = useState<
-    Map<string | number, unknown>
-  >(new Map());
-  const [columnEditErrors, setColumnEditErrors] = useState<
-    Map<string | number, string>
-  >(new Map());
-  const isColumnEditing = columnEditField !== null;
 
   const {
     rows: rawRows,
@@ -122,22 +104,9 @@ export default function EditableTable<T extends object>({
 
   const rows = sort ? [...(rawRows ?? [])].sort(sort) : (rawRows ?? []);
 
-  if (isPending) return <LoadingState />;
-  if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
-
   const idColumn = columns.find((c) => c.isId)!;
   const entityIdField = idColumn.field;
   const getRowKey = (row: T) => row[entityIdField] as string | number;
-
-  const visibleColumns = columns.filter((c) => !c.hidden);
-  const hideBelowClass = (col: (typeof visibleColumns)[number]) =>
-    col.hideBelow ? `mantine-visible-from-${col.hideBelow}` : undefined;
-  const cellConfigs = Object.fromEntries(
-    visibleColumns.map((c) => [c.field, c.cell]),
-  ) as CellConfigs<T>;
-  const cellClasses = Object.fromEntries(
-    visibleColumns.map((c) => [c.field, hideBelowClass(c)]),
-  ) as Partial<Record<keyof T, string | undefined>>;
 
   const activeEditConfig: EditConfig<T> | undefined =
     isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
@@ -151,94 +120,31 @@ export default function EditableTable<T extends object>({
         }
       : undefined;
 
-  const handleStartColumnEdit = (field: keyof T) => {
-    setEditableId(null);
-    setColumnEditField(field);
-    setColumnEditValues(
-      new Map(rows.map((row) => [getRowKey(row), row[field]])),
-    );
-    setColumnEditErrors(new Map());
-  };
+  const edit = useTableEditState<T>({
+    rows,
+    getRowKey,
+    entityIdField,
+    editConfig: activeEditConfig,
+  });
 
-  const handleColumnEditChange = (
-    rowKey: string | number,
-    newValue: unknown,
-  ) => {
-    setColumnEditValues((prev) => new Map(prev).set(rowKey, newValue));
-    setColumnEditErrors((prev) => {
-      const n = new Map(prev);
-      n.delete(rowKey);
-      return n;
-    });
-  };
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
 
-  const exitColumnEdit = () => {
-    setColumnEditField(null);
-    setColumnEditValues(new Map());
-    setColumnEditErrors(new Map());
-  };
-
-  const handleSaveColumnEdit = async () => {
-    if (!columnEditField || !activeEditConfig) return;
-    const { editMutation, validateData, sanitizeData, getRequestBody } =
-      activeEditConfig;
-
-    const newErrors = new Map<string | number, string>();
-    rows.forEach((row) => {
-      const key = getRowKey(row);
-      const merged = {
-        ...row,
-        [columnEditField]: columnEditValues.get(key),
-      } as T;
-      const err = validateData(sanitizeData(merged))[columnEditField];
-      if (err) newErrors.set(key, err);
-    });
-    if (newErrors.size > 0) {
-      setColumnEditErrors(newErrors);
-      return;
-    }
-
-    const changedRows = rows.filter(
-      (row) => columnEditValues.get(getRowKey(row)) !== row[columnEditField],
-    );
-
-    const results = await Promise.allSettled(
-      changedRows.map((row) => {
-        const key = getRowKey(row);
-        const sanitized = sanitizeData({
-          ...row,
-          [columnEditField]: columnEditValues.get(key),
-        } as T);
-        return editMutation.mutateAsync({
-          body: getRequestBody(sanitized),
-          params: { path: { [String(entityIdField)]: key } },
-        });
-      }),
-    );
-
-    const saveErrors = new Map<string | number, string>();
-    results.forEach((result, i) => {
-      if (result.status === "rejected") {
-        saveErrors.set(
-          getRowKey(changedRows[i]),
-          formatRejection(result.reason) || t("table.saveFailed"),
-        );
-      }
-    });
-    // Stay in column edit mode when any row failed, so the failed values are not
-    // lost and the errors stay visible next to them.
-    if (saveErrors.size > 0) {
-      setColumnEditErrors(saveErrors);
-      return;
-    }
-    exitColumnEdit();
-  };
+  const visibleColumns = columns.filter((c) => !c.hidden);
+  const hideBelowClass = (col: (typeof visibleColumns)[number]) =>
+    col.hideBelow ? `mantine-visible-from-${col.hideBelow}` : undefined;
+  const cellConfigs = Object.fromEntries(
+    visibleColumns.map((c) => [c.field, c.cell]),
+  ) as CellConfigs<T>;
+  const cellClasses = Object.fromEntries(
+    visibleColumns.map((c) => [c.field, hideBelowClass(c)]),
+  ) as Partial<Record<keyof T, string | undefined>>;
 
   const hasColgroup = visibleColumns.some(
     (c) => c.width !== undefined || c.editWidth !== undefined,
   );
   const colWidth = (col: (typeof visibleColumns)[number]) =>
-    columnEditField === col.field && col.editWidth !== undefined
+    edit.columnEditField === col.field && col.editWidth !== undefined
       ? col.editWidth
       : col.width;
   const nCols = visibleColumns.length + (activeEditConfig ? 1 : 0);
@@ -283,11 +189,11 @@ export default function EditableTable<T extends object>({
         </Table.Tr>
         <Table.Tr>
           {visibleColumns.map((col) => {
-            const isThisColumnEditing = columnEditField === col.field;
+            const isThisColumnEditing = edit.columnEditField === col.field;
             const showColumnEditButton =
               activeEditConfig &&
               col.isEditable &&
-              (!isColumnEditing || isThisColumnEditing);
+              (!edit.isColumnEditing || isThisColumnEditing);
             return (
               <Table.Th
                 key={String(col.field)}
@@ -301,9 +207,9 @@ export default function EditableTable<T extends object>({
                     <EditButton
                       isEditing={isThisColumnEditing}
                       isPending={activeEditConfig!.editMutation.isPending}
-                      onEdit={() => handleStartColumnEdit(col.field)}
-                      onSave={handleSaveColumnEdit}
-                      onCancel={exitColumnEdit}
+                      onEdit={() => edit.startColumnEdit(col.field)}
+                      onSave={edit.saveColumnEdit}
+                      onCancel={edit.cancelColumnEdit}
                     />
                   )}
                 </Group>
@@ -323,23 +229,22 @@ export default function EditableTable<T extends object>({
               <EditableRow<T>
                 key={key}
                 data={row}
-                isEditing={editableId === key}
-                setIsEditing={(isEditing) => {
-                  if (isEditing) exitColumnEdit();
-                  setEditableId(isEditing ? key : null);
-                }}
+                isEditing={edit.editableRowKey === key}
+                setIsEditing={(isEditing) =>
+                  isEditing ? edit.startRowEdit(key) : edit.stopRowEdit()
+                }
                 cells={cellConfigs}
                 cellClasses={cellClasses}
                 entityIdField={entityIdField}
                 editConfig={activeEditConfig}
                 deleteConfig={activeDeleteConfig}
-                columnEditField={columnEditField}
-                columnEditValue={columnEditValues.get(key)}
-                columnEditError={columnEditErrors.get(key) ?? ""}
+                columnEditField={edit.columnEditField}
+                columnEditValue={edit.columnEditValues.get(key)}
+                columnEditError={edit.columnEditErrors.get(key) ?? ""}
                 onColumnEditChange={(newValue) =>
-                  handleColumnEditChange(key, newValue)
+                  edit.changeColumnEditValue(key, newValue)
                 }
-                hideRowEditButton={isColumnEditing}
+                hideRowEditButton={edit.isColumnEditing}
               />
             );
           })
