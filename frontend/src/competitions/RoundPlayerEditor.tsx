@@ -5,35 +5,34 @@ import {
   Group,
   Modal,
   MultiSelect,
-  NumberInput,
   Radio,
   Stack,
   Table,
   Text,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconCheck, IconTrash } from "@tabler/icons-react";
+import { IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { $api } from "@client/api";
 import { components } from "@/client/schema";
 import { useRoundPlayers } from "./useRoundPlayers";
+import InitialRatingsModal, {
+  PlayerNeedingRating,
+} from "./InitialRatingsModal";
 import { useState } from "react";
 
-type RoundPlayerPublic = components["schemas"]["RoundPlayerPublic"];
 type CompetitionRatingTypePublic =
   components["schemas"]["CompetitionRatingTypePublic"];
 
-export default function RoundPlayerList({
+export default function RoundPlayerEditor({
   competitionName,
   roundNr,
-  readOnly = false,
   ratingType,
   onPairingCreated,
   onDraftCleared,
 }: {
   competitionName: string;
   roundNr: number;
-  readOnly?: boolean;
   ratingType: CompetitionRatingTypePublic;
   onPairingCreated?: () => void;
   onDraftCleared?: () => void;
@@ -52,26 +51,16 @@ export default function RoundPlayerList({
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [clearModalOpened, { open: openClearModal, close: closeClearModal }] =
     useDisclosure(false);
-  const [
-    ratingsModalOpened,
-    { open: openRatingsModal, close: closeRatingsModal },
-  ] = useDisclosure(false);
-  const [pendingRatings, setPendingRatings] = useState<
-    Record<number, number | string>
-  >({});
   const [playersNeedingRatings, setPlayersNeedingRatings] = useState<
-    { id: number; name: string }[]
+    PlayerNeedingRating[]
   >([]);
 
-  const { data: allPlayers } = $api.useQuery("get", "/players/", undefined, {
-    enabled: !readOnly,
-  });
+  const { data: allPlayers } = $api.useQuery("get", "/players/");
 
   const { data: existingRatings } = $api.useQuery(
     "get",
     "/competitions/{name}/player-ratings",
     { params: { path: { name: competitionName } } },
-    { enabled: !readOnly },
   );
 
   if (isPending) return <Text>{t("roundPlayers.loadingList")}</Text>;
@@ -80,44 +69,10 @@ export default function RoundPlayerList({
 
   const playerCount = roundPlayers.length;
   const isOdd = playerCount % 2 !== 0;
-  const byePlayer = roundPlayers.find((rp: RoundPlayerPublic) => rp.is_bye);
-  const hasBye = roundPlayers.some((rp: RoundPlayerPublic) => rp.is_bye);
-
-  if (readOnly) {
-    return (
-      <Stack>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t("roundPlayers.player")}</Table.Th>
-              <Table.Th>{t("rating.ratingHeader")}</Table.Th>
-              {hasBye && <Table.Th>{t("roundPlayers.bye")}</Table.Th>}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {roundPlayers.map((rp: RoundPlayerPublic) => (
-              <Table.Tr key={rp.id}>
-                <Table.Td>{rp.player.name}</Table.Td>
-                <Table.Td>
-                  {rp.initial_rating != null
-                    ? Math.round(rp.initial_rating)
-                    : "—"}
-                </Table.Td>
-                {hasBye && (
-                  <Table.Td>{rp.is_bye && <IconCheck size={16} />}</Table.Td>
-                )}
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Stack>
-    );
-  }
+  const byePlayer = roundPlayers.find((rp) => rp.is_bye);
 
   const canGenerate = playerCount >= 2 && (!isOdd || byePlayer);
-  const enrolledPlayerIds = new Set(
-    roundPlayers.map((rp: RoundPlayerPublic) => rp.player.id),
-  );
+  const enrolledPlayerIds = new Set(roundPlayers.map((rp) => rp.player.id));
   const playerOptions = (allPlayers ?? [])
     .filter((p) => !enrolledPlayerIds.has(p.id))
     .map((p) => ({ value: String(p.id), label: p.name }));
@@ -142,7 +97,7 @@ export default function RoundPlayerList({
       {
         onSuccess: () => {
           setSelectedPlayerIds([]);
-          closeRatingsModal();
+          setPlayersNeedingRatings([]);
         },
       },
     );
@@ -166,7 +121,7 @@ export default function RoundPlayerList({
         const player = (allPlayers ?? []).find((p) => p.id === num);
         return player ? { id: num, name: player.name } : null;
       })
-      .filter((p): p is { id: number; name: string } => p != null);
+      .filter((p): p is PlayerNeedingRating => p != null);
 
     if (unrated.length === 0) {
       doAddPlayers();
@@ -174,23 +129,7 @@ export default function RoundPlayerList({
     }
 
     setPlayersNeedingRatings(unrated);
-    setPendingRatings(Object.fromEntries(unrated.map((p) => [p.id, ""])));
-    openRatingsModal();
   };
-
-  const handleConfirmRatings = () => {
-    const initialRatings: Record<number, number> = {};
-    for (const p of playersNeedingRatings) {
-      const val = pendingRatings[p.id];
-      if (val === "" || val == null) return;
-      initialRatings[p.id] = Number(val);
-    }
-    doAddPlayers(initialRatings);
-  };
-
-  const allRatingsFilled = playersNeedingRatings.every(
-    (p) => pendingRatings[p.id] !== "" && pendingRatings[p.id] != null,
-  );
 
   const handleRemovePlayer = (playerId: number) => {
     updateMutation.mutate({
@@ -212,8 +151,8 @@ export default function RoundPlayerList({
 
   const handleGeneratePairing = () => {
     const playerIds = roundPlayers
-      .filter((rp: RoundPlayerPublic) => !rp.is_bye)
-      .map((rp: RoundPlayerPublic) => rp.player.id);
+      .filter((rp) => !rp.is_bye)
+      .map((rp) => rp.player.id);
     createPairingMutation.mutate(
       {
         params: { path: { name: competitionName } },
@@ -254,7 +193,7 @@ export default function RoundPlayerList({
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {roundPlayers.map((rp: RoundPlayerPublic) => (
+          {roundPlayers.map((rp) => (
             <Table.Tr key={rp.id}>
               <Table.Td>{rp.player.name}</Table.Td>
               <Table.Td>
@@ -360,40 +299,14 @@ export default function RoundPlayerList({
         </Group>
       </Modal>
 
-      <Modal
-        opened={ratingsModalOpened}
-        onClose={closeRatingsModal}
-        title={t("rating.setRatingsTitle")}
-      >
-        <Stack>
-          <Text size="sm">{t("rating.setRatingsDescription")}</Text>
-          {playersNeedingRatings.map((p) => (
-            <NumberInput
-              key={p.id}
-              label={t("rating.initialRatingLabel", { playerName: p.name })}
-              value={pendingRatings[p.id]}
-              onChange={(v) =>
-                setPendingRatings((prev) => ({ ...prev, [p.id]: v }))
-              }
-              min={0}
-              allowDecimal={false}
-              required
-            />
-          ))}
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeRatingsModal}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={handleConfirmRatings}
-              disabled={!allRatingsFilled || updateMutation.isPending}
-              loading={updateMutation.isPending}
-            >
-              {t("rating.confirm")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      {playersNeedingRatings.length > 0 && (
+        <InitialRatingsModal
+          players={playersNeedingRatings}
+          onClose={() => setPlayersNeedingRatings([])}
+          onConfirm={doAddPlayers}
+          isPending={updateMutation.isPending}
+        />
+      )}
     </Stack>
   );
 }

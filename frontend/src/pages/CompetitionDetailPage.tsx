@@ -14,7 +14,8 @@ import { useTranslation } from "react-i18next";
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchTable } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
-import RoundPlayerList from "@/competitions/RoundPlayerList";
+import RoundPlayerEditor from "@/competitions/RoundPlayerEditor";
+import RoundPlayerTable from "@/competitions/RoundPlayerTable";
 import NotFoundPage from "./NotFoundPage";
 import { useAuth } from "@/auth";
 import { useDocumentTitle } from "@/pages/useDocumentTitle";
@@ -67,7 +68,7 @@ function CompetitionDetail({
           currentRound={currentRound}
           nRounds={nRounds}
         />
-        <RoundPlayerList
+        <RoundPlayerEditor
           competitionName={name}
           roundNr={currentRound}
           ratingType={competition.rating_type}
@@ -140,12 +141,7 @@ function CompetitionDetail({
       </Group>
 
       <Collapse expanded={playersVisible}>
-        <RoundPlayerList
-          competitionName={name}
-          roundNr={currentRound}
-          readOnly
-          ratingType={competition.rating_type}
-        />
+        <RoundPlayerTable competitionName={name} roundNr={currentRound} />
       </Collapse>
       <MatchTable competitionName={name} round={currentRound} />
       <RankingTable competitionName={name} roundNr={currentRound} />

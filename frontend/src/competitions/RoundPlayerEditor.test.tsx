@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render, makeMockMutation } from "@/test-utils";
-import RoundPlayerList from "./RoundPlayerList";
+import RoundPlayerEditor from "./RoundPlayerEditor";
 import * as useRoundPlayersModule from "./useRoundPlayers";
 import * as apiModule from "@client/api";
 
@@ -71,7 +71,7 @@ function renderList(roundPlayers = [] as ReturnType<typeof makeRoundPlayer>[]) {
   const onPairingCreated = vi.fn();
   const onDraftCleared = vi.fn();
   render(
-    <RoundPlayerList
+    <RoundPlayerEditor
       competitionName="TestComp"
       roundNr={2}
       ratingType={MOCK_RATING_TYPE}
@@ -82,7 +82,7 @@ function renderList(roundPlayers = [] as ReturnType<typeof makeRoundPlayer>[]) {
   return { updateMutation, deleteMutation, onPairingCreated, onDraftCleared };
 }
 
-describe("RoundPlayerList", () => {
+describe("RoundPlayerEditor", () => {
   describe("player select", () => {
     it("renders a combobox input for player selection", () => {
       renderList();
@@ -230,7 +230,7 @@ describe("RoundPlayerList", () => {
       } as ReturnType<typeof useRoundPlayersModule.useRoundPlayers>);
 
       render(
-        <RoundPlayerList
+        <RoundPlayerEditor
           competitionName="TestComp"
           roundNr={2}
           ratingType={MOCK_RATING_TYPE}
