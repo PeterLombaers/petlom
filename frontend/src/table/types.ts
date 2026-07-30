@@ -35,8 +35,6 @@ export type CellConfig<T, K extends keyof T> = {
   renderEdit?: (props: EditProps<T[K]>) => React.ReactNode;
 };
 
-export type CellConfigs<T> = { [K in keyof T]?: CellConfig<T, K> };
-
 /**
  * Defines a single column in an EditableTable.
  *

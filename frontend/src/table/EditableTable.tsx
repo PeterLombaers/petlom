@@ -2,13 +2,7 @@ import { Group, Paper, Table, Text } from "@mantine/core";
 import EditableRow from "./EditableRow";
 import { EditButton } from "./EditButton";
 import { CreateButton, CreateDialogConfig } from "./CreateButton";
-import {
-  CellConfigs,
-  Column,
-  DeleteConfig,
-  EditConfig,
-  TableQueryResult,
-} from "./types";
+import { Column, DeleteConfig, EditConfig, TableQueryResult } from "./types";
 import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
 import { useAuth } from "@/auth";
@@ -16,6 +10,7 @@ import { formatHTTPValidationError } from "@/client/api";
 import { translateEntity } from "@/i18n/translateEntity";
 import { useTranslation } from "react-i18next";
 import { useTableEditState } from "./useTableEditState";
+import { visibleFromClass } from "./responsive";
 
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 type TableDeleteConfig<T> = Omit<
@@ -131,14 +126,6 @@ export default function EditableTable<T extends object>({
   if (isError) return <ErrorState message={formatHTTPValidationError(error)} />;
 
   const visibleColumns = columns.filter((c) => !c.hidden);
-  const hideBelowClass = (col: (typeof visibleColumns)[number]) =>
-    col.hideBelow ? `mantine-visible-from-${col.hideBelow}` : undefined;
-  const cellConfigs = Object.fromEntries(
-    visibleColumns.map((c) => [c.field, c.cell]),
-  ) as CellConfigs<T>;
-  const cellClasses = Object.fromEntries(
-    visibleColumns.map((c) => [c.field, hideBelowClass(c)]),
-  ) as Partial<Record<keyof T, string | undefined>>;
 
   const hasColgroup = visibleColumns.some(
     (c) => c.width !== undefined || c.editWidth !== undefined,
@@ -162,7 +149,7 @@ export default function EditableTable<T extends object>({
             return (
               <col
                 key={i}
-                className={hideBelowClass(col)}
+                className={visibleFromClass(col.hideBelow)}
                 style={width !== undefined ? { width } : undefined}
               />
             );
@@ -198,7 +185,7 @@ export default function EditableTable<T extends object>({
               <Table.Th
                 key={String(col.field)}
                 scope="col"
-                className={hideBelowClass(col)}
+                className={visibleFromClass(col.hideBelow)}
                 style={col.header ? undefined : { textTransform: "capitalize" }}
               >
                 <Group gap="xs" wrap="nowrap">
@@ -233,8 +220,7 @@ export default function EditableTable<T extends object>({
                 setIsEditing={(isEditing) =>
                   isEditing ? edit.startRowEdit(key) : edit.stopRowEdit()
                 }
-                cells={cellConfigs}
-                cellClasses={cellClasses}
+                columns={visibleColumns}
                 entityIdField={entityIdField}
                 editConfig={activeEditConfig}
                 deleteConfig={activeDeleteConfig}

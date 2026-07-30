@@ -3,42 +3,38 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import EditableRow from "@/table/EditableRow";
+import type { Column } from "@/table/types";
 import { renderInTable, makeMockMutation } from "@/test-utils";
 
 type TestEntity = { id: number; name: string };
 
 const testData: TestEntity = { id: 1, name: "Alice" };
 
-const testCells = {
-  id: {
-    renderValue: ({ value }: { value: number }) => (
-      <span data-testid="id-value">{value}</span>
-    ),
+const testColumns: Column<TestEntity>[] = [
+  {
+    field: "id",
+    isId: true,
+    cell: {
+      renderValue: ({ value }) => <span data-testid="id-value">{value}</span>,
+    },
   },
-  name: {
-    renderValue: ({ value }: { value: string }) => (
-      <span data-testid="name-value">{value}</span>
-    ),
-    renderEdit: ({
-      editValue,
-      error,
-      onChange,
-    }: {
-      editValue: string;
-      error: string;
-      onChange: (v: string) => void;
-    }) => (
-      <>
-        <input
-          aria-label="name-edit"
-          value={editValue}
-          onChange={(e) => onChange(e.target.value)}
-        />
-        {error && <span data-testid="name-error">{error}</span>}
-      </>
-    ),
+  {
+    field: "name",
+    cell: {
+      renderValue: ({ value }) => <span data-testid="name-value">{value}</span>,
+      renderEdit: ({ editValue, error, onChange }) => (
+        <>
+          <input
+            aria-label="name-edit"
+            value={editValue}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          {error && <span data-testid="name-error">{error}</span>}
+        </>
+      ),
+    },
   },
-};
+];
 
 function makeEditConfig(
   editMutation: UseMutationResult<unknown, unknown, unknown, unknown>,
@@ -71,7 +67,7 @@ function StatefulEditableRow({
       data={data}
       isEditing={isEditing}
       setIsEditing={setIsEditing}
-      cells={testCells}
+      columns={testColumns}
       entityIdField="id"
       editConfig={editConfig}
     />
@@ -86,7 +82,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
         />,
       );
@@ -100,7 +96,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
         />,
@@ -117,7 +113,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
         />,
       );
@@ -132,7 +128,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={true}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
         />,
@@ -148,7 +144,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={true}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
         />,
@@ -169,7 +165,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={true}
           setIsEditing={setIsEditing}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
         />,
@@ -209,7 +205,7 @@ describe("EditableRow", () => {
           data={{ id: 1, name: "" }}
           isEditing={true}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(editMutation)}
         />,
@@ -225,7 +221,7 @@ describe("EditableRow", () => {
           data={{ id: 1, name: "" }}
           isEditing={true}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
         />,
@@ -243,7 +239,7 @@ describe("EditableRow", () => {
           data={{ id: 1, name: "" }}
           isEditing={true}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
         />,
@@ -265,7 +261,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={true}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(editMutation)}
         />,
@@ -298,7 +294,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={true}
           setIsEditing={setIsEditing}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(editMutation)}
         />,
@@ -315,7 +311,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           columnEditField="name"
           columnEditValue="Edited"
@@ -336,7 +332,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           columnEditField="name"
           columnEditValue="Alice"
@@ -356,7 +352,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           columnEditField="name"
           columnEditValue=""
@@ -375,7 +371,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
           hideRowEditButton={true}
@@ -395,7 +391,7 @@ describe("EditableRow", () => {
           data={testData}
           isEditing={false}
           setIsEditing={vi.fn()}
-          cells={testCells}
+          columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(editMutation)}
         />,

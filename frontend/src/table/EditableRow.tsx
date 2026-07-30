@@ -3,14 +3,15 @@ import { useState } from "react";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
 import DeleteButton from "./DeleteButton";
-import { CellConfigs, DeleteConfig, EditConfig } from "./types";
+import { Column, DeleteConfig, EditConfig } from "./types";
+import { visibleFromClass } from "./responsive";
 
 interface EditableRowProps<T = unknown> {
   data: T;
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
-  cells: CellConfigs<T>;
-  cellClasses?: Partial<Record<keyof T, string | undefined>>;
+  /** Visible columns in display order; each one must carry a `cell` config. */
+  columns: Column<T>[];
   entityIdField: keyof T;
   editConfig?: EditConfig<T>;
   deleteConfig?: DeleteConfig<T>;
@@ -25,8 +26,7 @@ export default function EditableRow<T = unknown>({
   data,
   isEditing,
   setIsEditing,
-  cells,
-  cellClasses,
+  columns,
   entityIdField,
   editConfig,
   deleteConfig,
@@ -93,9 +93,10 @@ export default function EditableRow<T = unknown>({
 
   return (
     <Table.Tr>
-      {(Object.keys(cells) as Array<keyof T>).map((key) => {
-        const cell = cells[key]!;
-        const className = cellClasses?.[key];
+      {columns.map((col) => {
+        const key: keyof T = col.field;
+        const cell = col.cell!;
+        const className = visibleFromClass(col.hideBelow);
         if (columnEditField === key && cell.renderEdit) {
           return (
             <EditableCell
