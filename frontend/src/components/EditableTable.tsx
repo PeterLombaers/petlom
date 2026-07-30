@@ -59,7 +59,7 @@ type EditableTableProps<T extends object> = {
  *   database surrogate key with no display value).
  *
  * @param title - Overrides the default title shown in the table header. The default is
- *   `pluralize(entityType)` rendered with CSS `text-transform: capitalize`.
+ *   the plural of entityType rendered with CSS `text-transform: capitalize`.
  *
  * @param sort - Optional comparator passed to `Array.sort` on the raw rows before
  *   rendering. Omit to preserve the API order.
