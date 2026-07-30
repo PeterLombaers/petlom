@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { PetlomLogo } from "@/components/PetlomLogo";
+import { PetlomLogo } from "@/layout/PetlomLogo";
 import { useAuth } from "@/auth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 

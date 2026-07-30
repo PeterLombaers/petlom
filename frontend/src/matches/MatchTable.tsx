@@ -2,14 +2,11 @@ import { NumberInput, Stack, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { components } from "@client/schema";
-import EditableTable from "@components/EditableTable";
-import {
-  createNumberCell,
-  createPlayerSelectCell,
-  createResultToggleCell,
-} from "@components/cellConfigs";
-import { CreateDialogConfig } from "@components/CreateButton";
-import PlayerSelect from "@components/PlayerSelect";
+import EditableTable from "@/table/EditableTable";
+import { createNumberCell } from "@/table/cells";
+import { CreateDialogConfig } from "@/table/CreateButton";
+import PlayerSelect from "@/players/PlayerSelect";
+import { createPlayerSelectCell, createResultToggleCell } from "./cells";
 import { useMatches } from "./useMatches";
 
 type MatchPublic = components["schemas"]["MatchPublic"];

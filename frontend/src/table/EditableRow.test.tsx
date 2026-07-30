@@ -2,8 +2,8 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
-import EditableRow from "@components/EditableRow";
-import { renderInTable, makeMockMutation } from "./test-utils";
+import EditableRow from "@/table/EditableRow";
+import { renderInTable, makeMockMutation } from "@/test-utils";
 
 type TestEntity = { id: number; name: string };
 

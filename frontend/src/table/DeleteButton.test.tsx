@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import DeleteButton from "@components/DeleteButton";
-import { makeMockMutation, render } from "./test-utils";
+import DeleteButton from "@/table/DeleteButton";
+import { makeMockMutation, render } from "@/test-utils";
 
 describe("DeleteButton", () => {
   it("renders the delete icon button", () => {

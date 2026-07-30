@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { render, makeMockMutation } from "@components/test-utils";
+import { render, makeMockMutation } from "@/test-utils";
 import RoundPlayerList from "./RoundPlayerList";
 import * as useRoundPlayersModule from "./useRoundPlayers";
 import * as apiModule from "@client/api";

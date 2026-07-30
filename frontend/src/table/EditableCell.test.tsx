@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import EditableCell from "@components/EditableCell";
-import { renderInTableRow } from "./test-utils";
+import EditableCell from "@/table/EditableCell";
+import { renderInTableRow } from "@/test-utils";
 
 const renderValue = ({ value }: { value: string }) => (
   <span data-testid="display-value">{value}</span>

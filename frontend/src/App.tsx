@@ -10,7 +10,7 @@ import {
   LoginPage,
   NotFoundPage,
 } from "./pages";
-import Layout from "./Layout";
+import Layout from "./layout/Layout";
 import { AuthProvider } from "./auth";
 
 const queryClient = new QueryClient();

@@ -22,7 +22,6 @@
     "types": ["@testing-library/jest-dom", "vitest/globals"],
     "paths": {
       "@/*": ["./src/*"],
-      "@components/*": ["./src/components/*"],
       "@client/*": ["./src/client/*"]
     }
   },

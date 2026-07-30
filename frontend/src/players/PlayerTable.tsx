@@ -1,12 +1,12 @@
-import { CreateDialogConfig } from "@/components/CreateButton";
-import EditableTable from "@/components/EditableTable";
+import { CreateDialogConfig } from "@/table/CreateButton";
+import EditableTable from "@/table/EditableTable";
 import { TextInput } from "@mantine/core";
 import { components } from "@/client/schema";
 import {
   createReadOnlyNumberCell,
   createTextCell,
   createNonEmptyStringValidator,
-} from "@/components/cellConfigs";
+} from "@/table/cells";
 import { useTranslation } from "react-i18next";
 import { usePlayers } from "./usePlayers";
 

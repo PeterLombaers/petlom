@@ -1,8 +1,8 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TextInput } from "@mantine/core";
-import { CreateButton, CreateDialogConfig } from "@components/CreateButton";
-import { makeMockMutation, render } from "./test-utils";
+import { CreateButton, CreateDialogConfig } from "@/table/CreateButton";
+import { makeMockMutation, render } from "@/test-utils";
 
 const dialogConfig: CreateDialogConfig<{ name: string }> = {
   getInitialFormData: () => ({ name: "" }),

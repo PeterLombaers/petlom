@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { render } from "./test-utils";
-import ResultToggle from "@components/ResultToggle";
+import { render } from "@/test-utils";
+import ResultToggle from "@/matches/ResultToggle";
 
 describe("ResultToggle", () => {
   it("renders all four options", () => {

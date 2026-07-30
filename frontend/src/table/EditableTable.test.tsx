@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import EditableTable from "@components/EditableTable";
-import { render, makeMockMutation } from "./test-utils";
+import EditableTable from "@/table/EditableTable";
+import { render, makeMockMutation } from "@/test-utils";
 import type { Column } from "./types";
 
 vi.mock("@/auth", () => ({ useAuth: () => ({ isModerator: true }) }));

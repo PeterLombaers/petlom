@@ -10,8 +10,8 @@ import {
   EditConfig,
   TableQueryResult,
 } from "./types";
-import { LoadingState } from "./LoadingState";
-import { ErrorState } from "./ErrorState";
+import { LoadingState } from "@/ui/LoadingState";
+import { ErrorState } from "@/ui/ErrorState";
 import { useAuth } from "@/auth";
 import { formatHTTPValidationError } from "@/client/api";
 import { translateEntity } from "@/i18n/translateEntity";

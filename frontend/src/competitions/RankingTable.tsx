@@ -1,8 +1,8 @@
 import { Paper, Table, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { formatHTTPValidationError } from "@/client/api";
-import { ErrorState } from "@/components/ErrorState";
-import { LoadingState } from "@/components/LoadingState";
+import { ErrorState } from "@/ui/ErrorState";
+import { LoadingState } from "@/ui/LoadingState";
 import { useRanking } from "./useRanking";
 export default function RankingTable({
   competitionName,
