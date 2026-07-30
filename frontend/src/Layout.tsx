@@ -62,7 +62,7 @@ function CompetitionNavLinks() {
           style={{
             borderLeft:
               pathname === "/competitions"
-                ? `2px solid var(--mantine-color-red-${borderColor})`
+                ? `2px solid ${borderColor}`
                 : undefined,
           }}
         >
