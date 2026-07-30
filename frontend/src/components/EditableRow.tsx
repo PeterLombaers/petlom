@@ -157,6 +157,7 @@ export default function EditableRow<T = unknown>({
                 <DeleteButton
                   entityType={deleteConfig.entityType}
                   entityName={deleteConfig.getEntityName(data)}
+                  entityIdField={String(entityIdField)}
                   entityId={entityId}
                   mutation={deleteConfig.deleteMutation}
                   requireTypedConfirmation={
@@ -170,6 +171,7 @@ export default function EditableRow<T = unknown>({
                 <DeleteButton
                   entityType={deleteConfig.entityType}
                   entityName={deleteConfig.getEntityName(data)}
+                  entityIdField={String(entityIdField)}
                   entityId={entityId}
                   mutation={deleteConfig.deleteMutation}
                   requireTypedConfirmation={

@@ -17,6 +17,7 @@ import { AnyMutation } from "./types";
 interface DeleteButtonProps {
   entityType: string;
   entityId: number | string;
+  entityIdField: string;
   entityName: string;
   mutation: AnyMutation;
   requireTypedConfirmation?: boolean;
@@ -25,6 +26,7 @@ interface DeleteButtonProps {
 export default function DeleteButton({
   entityType,
   entityId,
+  entityIdField,
   entityName,
   mutation,
   requireTypedConfirmation = true,
@@ -42,12 +44,10 @@ export default function DeleteButton({
     setDialogOpen(true);
   };
 
-  const pathKey = typeof entityId === "number" ? "id" : "name";
-
   const handleDelete = () => {
     mutation.mutate(
       {
-        params: { path: { [pathKey]: entityId } },
+        params: { path: { [entityIdField]: entityId } },
       },
       {
         onSuccess: () => {

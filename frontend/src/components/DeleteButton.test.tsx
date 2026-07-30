@@ -8,6 +8,7 @@ describe("DeleteButton", () => {
     render(
       <DeleteButton
         entityType="player"
+        entityIdField="id"
         entityId={1}
         entityName="Alice"
         mutation={makeMockMutation()}
@@ -21,6 +22,7 @@ describe("DeleteButton", () => {
     render(
       <DeleteButton
         entityType="player"
+        entityIdField="id"
         entityId={1}
         entityName="Alice"
         mutation={makeMockMutation()}
@@ -38,6 +40,7 @@ describe("DeleteButton", () => {
     render(
       <DeleteButton
         entityType="player"
+        entityIdField="id"
         entityId={1}
         entityName="Alice"
         mutation={makeMockMutation()}
@@ -59,6 +62,7 @@ describe("DeleteButton", () => {
     render(
       <DeleteButton
         entityType="player"
+        entityIdField="id"
         entityId={1}
         entityName="Alice"
         mutation={mutation}
@@ -81,6 +85,7 @@ describe("DeleteButton", () => {
     render(
       <DeleteButton
         entityType="match"
+        entityIdField="id"
         entityId={42}
         entityName="Board 1"
         mutation={mutation}
@@ -101,12 +106,37 @@ describe("DeleteButton", () => {
     );
   });
 
+  it("uses entityIdField as the path key instead of guessing from the id type", async () => {
+    const user = userEvent.setup();
+    const mutation = makeMockMutation();
+    render(
+      <DeleteButton
+        entityType="competition"
+        entityIdField="slug"
+        entityId="spring-open"
+        entityName="Spring Open"
+        mutation={mutation}
+        requireTypedConfirmation={false}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(
+      screen.getByRole("button", { name: "Delete Spring Open" }),
+    );
+
+    expect(mutation.mutate).toHaveBeenCalledWith(
+      { params: { path: { slug: "spring-open" } } },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
   it("does not call mutate when the dialog is opened but not confirmed", async () => {
     const user = userEvent.setup();
     const mutation = makeMockMutation();
     render(
       <DeleteButton
         entityType="player"
+        entityIdField="id"
         entityId={1}
         entityName="Alice"
         mutation={mutation}
