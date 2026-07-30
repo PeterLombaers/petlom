@@ -84,6 +84,7 @@ const en = {
     algorithm: "Algorithm",
     defaultInitialRating: "Default initial rating",
     algorithmConfig: "Algorithm config (JSON)",
+    invalidAlgorithmConfig: "Must be valid JSON",
     ratingHeader: "Rating",
     setRatingsTitle: "Set initial ratings",
     setRatingsDescription:

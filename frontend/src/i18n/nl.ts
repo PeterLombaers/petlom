@@ -86,6 +86,7 @@ const nl: TranslationSchema = {
     algorithm: "Algoritme",
     defaultInitialRating: "Standaard beginrating",
     algorithmConfig: "Algoritme-configuratie (JSON)",
+    invalidAlgorithmConfig: "Moet geldige JSON zijn",
     ratingHeader: "Rating",
     setRatingsTitle: "Beginratings instellen",
     setRatingsDescription:

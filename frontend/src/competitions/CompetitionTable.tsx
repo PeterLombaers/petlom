@@ -48,6 +48,14 @@ export default function CompetitionTable() {
     validateForm: (formData) => {
       const errors: Record<string, string> = {};
       validateCompetitionName(formData.name, errors);
+      const config = formData.rating_type.algorithm_config.trim();
+      if (config) {
+        try {
+          JSON.parse(config);
+        } catch {
+          errors.algorithm_config = t("rating.invalidAlgorithmConfig");
+        }
+      }
       return errors;
     },
     sanitizeForm: (formData) => ({ ...formData, name: formData.name.trim() }),
@@ -59,14 +67,9 @@ export default function CompetitionTable() {
         rating_type: {
           algorithm: rt.algorithm,
           default_initial_rating: rt.default_initial_rating,
+          // Validated as parseable JSON in validateForm.
           algorithm_config: rt.algorithm_config.trim()
-            ? (() => {
-                try {
-                  return JSON.parse(rt.algorithm_config);
-                } catch {
-                  return null;
-                }
-              })()
+            ? JSON.parse(rt.algorithm_config)
             : null,
         },
       };
@@ -107,6 +110,7 @@ export default function CompetitionTable() {
           <Textarea
             label={t("rating.algorithmConfig")}
             value={rt.algorithm_config}
+            error={errors.algorithm_config || undefined}
             onChange={(e) => setRating({ algorithm_config: e.target.value })}
             placeholder='{"k_factor": 30}'
             rows={2}
