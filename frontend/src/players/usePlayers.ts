@@ -1,8 +1,10 @@
 import { $api, formatHTTPValidationError } from "@/client/api";
 import { components } from "@/client/schema";
+import { TableQueryResult } from "@/table/types";
 import { useQueryClient } from "@tanstack/react-query";
 
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+type PlayerPublic = components["schemas"]["PlayerPublic"];
 
 export function usePlayers() {
   const {
@@ -43,5 +45,5 @@ export function usePlayers() {
     createMutation,
     editMutation,
     deleteMutation,
-  };
+  } satisfies TableQueryResult<PlayerPublic>;
 }

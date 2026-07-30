@@ -1,8 +1,10 @@
 import { $api, formatHTTPValidationError } from "@/client/api";
 import { components } from "@/client/schema";
+import { TableQueryResult } from "@/table/types";
 import { useQueryClient } from "@tanstack/react-query";
 
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
 export function useCompetition(name: string) {
   return $api.useQuery("get", "/competitions/{name}", {
@@ -49,5 +51,5 @@ export function useCompetitions() {
     createMutation,
     editMutation,
     deleteMutation,
-  };
+  } satisfies TableQueryResult<CompetitionPublic>;
 }
