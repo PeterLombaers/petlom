@@ -36,10 +36,15 @@ export default function EditableRow<T = unknown>({
   onColumnEditChange,
   hideRowEditButton,
 }: EditableRowProps<T>) {
-  const [editData, setEditData] = useState<T>({ ...data });
+  // Only the fields the user actually touched are buffered; everything else is
+  // read from the latest `data`, so a background refetch during an edit does
+  // not get written back with stale values on save.
+  const [edits, setEdits] = useState<Partial<T>>({});
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
+  const editData = { ...data, ...edits };
+
   const setCellEditData = <K extends keyof T>(field: K, value: T[K]) => {
-    setEditData({ ...editData, [field]: value });
+    setEdits((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       const newErrors = { ...errors };
       delete newErrors[field];
@@ -48,9 +53,15 @@ export default function EditableRow<T = unknown>({
   };
 
   const handleStartEdit = () => {
-    setEditData({ ...data });
+    setEdits({});
     setErrors({});
     setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEdits({});
+    setErrors({});
+    setIsEditing(false);
   };
 
   const entityId = data[entityIdField] as string | number;
@@ -73,6 +84,7 @@ export default function EditableRow<T = unknown>({
       },
       {
         onSuccess: () => {
+          setEdits({});
           setIsEditing(false);
         },
       },
@@ -137,7 +149,7 @@ export default function EditableRow<T = unknown>({
                 isPending={editConfig.editMutation.isPending}
                 onEdit={handleStartEdit}
                 onSave={handleSave}
-                onCancel={() => setIsEditing(false)}
+                onCancel={handleCancelEdit}
               />
             )}
             {deleteConfig && !hideRowEditButton && !isEditing && (
