@@ -15,8 +15,8 @@ import { useMatches } from "./useMatches";
 type MatchPublic = components["schemas"]["MatchPublic"];
 type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
 
-type MatchListProps = {
-  competition_name: string;
+type MatchTableProps = {
+  competitionName: string;
   round: number;
 };
 
@@ -37,7 +37,7 @@ const getRequestBody = (match: MatchPublic) => ({
   result: match.result,
 });
 
-export const MatchList = ({ competition_name, round }: MatchListProps) => {
+export const MatchTable = ({ competitionName, round }: MatchTableProps) => {
   const { t } = useTranslation();
   const theme = useMantineTheme();
   const isSmallScreen = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
@@ -45,7 +45,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
   // column at that width so it never jumps; on small screens it stays compact and
   // only expands (via editWidth) while the result column is being edited.
   const resultWidth = isSmallScreen ? 90 : 220;
-  const queryResult = useMatches(competition_name, round);
+  const queryResult = useMatches(competitionName, round);
   const matchList = queryResult.rows ?? [];
   const maxBoard =
     matchList.length > 0 ? Math.max(...matchList.map((m) => m.board)) : 0;
@@ -88,7 +88,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
     getRequestBody: (formData) => ({
       player_white_id: formData.player_white!.id,
       player_black_id: formData.player_black!.id,
-      competition_name,
+      competition_name: competitionName,
       round,
       board: formData.board!,
     }),
@@ -148,10 +148,7 @@ export const MatchList = ({ competition_name, round }: MatchListProps) => {
           isEditable: true,
         },
       ]}
-      title={t("match.roundTitle", {
-        competitionName: competition_name,
-        round,
-      })}
+      title={t("match.roundTitle", { competitionName, round })}
       createConfig={createDialogConfig}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{

@@ -14,7 +14,7 @@ import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
 import { useAuth } from "@/auth";
 import { formatHTTPValidationError } from "@/client/api";
-import { translateEntity } from "@/i18n/pluralizeEntity";
+import { translateEntity } from "@/i18n/translateEntity";
 import { useTranslation } from "react-i18next";
 
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;

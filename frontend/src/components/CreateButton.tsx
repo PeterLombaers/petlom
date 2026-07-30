@@ -6,7 +6,7 @@ import {
   formatHTTPValidationError,
   parseHTTPValidationErrors,
 } from "@/client/api";
-import { translateEntity } from "@/i18n/pluralizeEntity";
+import { translateEntity } from "@/i18n/translateEntity";
 import { AnyMutation } from "./types";
 
 export interface CreateDialogConfig<T = unknown> {

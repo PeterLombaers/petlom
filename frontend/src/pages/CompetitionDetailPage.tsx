@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { useCompetition } from "@/competitions/useCompetitions";
-import { MatchList } from "@/matches/MatchTable";
+import { MatchTable } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
 import RoundPlayerList from "@/competitions/RoundPlayerList";
 import NotFoundPage from "./NotFoundPage";
@@ -147,7 +147,7 @@ function CompetitionDetail({
           ratingType={competition.rating_type}
         />
       </Collapse>
-      <MatchList competition_name={name} round={currentRound} />
+      <MatchTable competitionName={name} round={currentRound} />
       <RankingTable competitionName={name} roundNr={currentRound} />
     </Stack>
   );

@@ -11,7 +11,7 @@ import { useState } from "react";
 import { IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { formatHTTPValidationError } from "@/client/api";
-import { translateEntity } from "@/i18n/pluralizeEntity";
+import { translateEntity } from "@/i18n/translateEntity";
 import { AnyMutation } from "./types";
 
 interface DeleteButtonProps {
