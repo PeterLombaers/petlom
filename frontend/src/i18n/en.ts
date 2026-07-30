@@ -20,7 +20,6 @@ const en = {
     cancel: "Cancel",
     edit: "Edit",
     save: "Save",
-    add: "Add",
     delete: "Delete",
     toggleColorScheme: "Toggle color scheme",
     valueRequired: "Value should not be empty",
@@ -28,7 +27,6 @@ const en = {
     players: "Players",
   },
   a11y: {
-    navigatedTo: "Navigated to {{page}}",
     titleSuffix: "Petlom",
   },
   pageTitle: {
@@ -82,7 +80,6 @@ const en = {
     noData: "No ranking data yet.",
   },
   rating: {
-    configureRating: "Rating (optional)",
     algorithm: "Algorithm",
     defaultInitialRating: "Default initial rating",
     algorithmConfig: "Algorithm config (JSON)",
@@ -94,8 +91,6 @@ const en = {
     confirm: "Confirm",
   },
   roundPlayers: {
-    titleReadOnly: "Players ({{playerCount}})",
-    titleEdit: "Player list for round {{roundNr}} ({{playerCount}} players)",
     loadingList: "Loading player list...",
     errorLoading: "Error loading player list.",
     player: "Player",

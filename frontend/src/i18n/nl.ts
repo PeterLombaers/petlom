@@ -22,7 +22,6 @@ const nl: TranslationSchema = {
     cancel: "Annuleren",
     edit: "Bewerken",
     save: "Opslaan",
-    add: "Toevoegen",
     delete: "Verwijderen",
     toggleColorScheme: "Kleurschema wisselen",
     valueRequired: "Waarde mag niet leeg zijn",
@@ -30,7 +29,6 @@ const nl: TranslationSchema = {
     players: "Spelers",
   },
   a11y: {
-    navigatedTo: "Genavigeerd naar {{page}}",
     titleSuffix: "Petlom",
   },
   pageTitle: {
@@ -84,7 +82,6 @@ const nl: TranslationSchema = {
     noData: "Nog geen klassementsgegevens.",
   },
   rating: {
-    configureRating: "Rating (optioneel)",
     algorithm: "Algoritme",
     defaultInitialRating: "Standaard beginrating",
     algorithmConfig: "Algoritme-configuratie (JSON)",
@@ -96,8 +93,6 @@ const nl: TranslationSchema = {
     confirm: "Bevestigen",
   },
   roundPlayers: {
-    titleReadOnly: "Spelers ({{playerCount}})",
-    titleEdit: "Spelerslijst voor ronde {{roundNr}} ({{playerCount}} spelers)",
     loadingList: "Spelerslijst laden...",
     errorLoading: "Fout bij laden spelerslijst.",
     player: "Speler",
