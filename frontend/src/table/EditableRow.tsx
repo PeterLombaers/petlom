@@ -152,22 +152,14 @@ export default function EditableRow<T = unknown>({
                 onCancel={handleCancelEdit}
               />
             )}
-            {deleteConfig && !hideRowEditButton && !isEditing && (
-              <Box visibleFrom="sm" component="span">
-                <DeleteButton
-                  entityType={deleteConfig.entityType}
-                  entityName={deleteConfig.getEntityName(data)}
-                  entityIdField={String(entityIdField)}
-                  entityId={entityId}
-                  mutation={deleteConfig.deleteMutation}
-                  requireTypedConfirmation={
-                    deleteConfig.requireTypedConfirmation
-                  }
-                />
-              </Box>
-            )}
-            {deleteConfig && !hideRowEditButton && isEditing && (
-              <Box hiddenFrom="sm" component="span">
+            {deleteConfig && !hideRowEditButton && (
+              // Desktop shows delete on the resting row; mobile only has room
+              // for it once the row is expanded into edit mode.
+              <Box
+                component="span"
+                visibleFrom={isEditing ? undefined : "sm"}
+                hiddenFrom={isEditing ? "sm" : undefined}
+              >
                 <DeleteButton
                   entityType={deleteConfig.entityType}
                   entityName={deleteConfig.getEntityName(data)}
