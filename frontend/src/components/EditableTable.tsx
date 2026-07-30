@@ -348,13 +348,9 @@ export default function EditableTable<T extends object>({
 
   return (
     <Paper withBorder aria-busy={isBusy}>
-      {scrollMinWidth !== undefined ? (
-        <Table.ScrollContainer minWidth={scrollMinWidth} type="native">
-          {table}
-        </Table.ScrollContainer>
-      ) : (
-        table
-      )}
+      <Table.ScrollContainer minWidth={scrollMinWidth} type="native">
+        {table}
+      </Table.ScrollContainer>
     </Paper>
   );
 }
