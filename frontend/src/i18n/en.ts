@@ -53,6 +53,7 @@ const en = {
   },
   table: {
     noEntitiesYet: "No {{entityType}} yet.",
+    saveFailed: "Save failed.",
   },
   competition: {
     noRoundsYet: "No rounds yet.",

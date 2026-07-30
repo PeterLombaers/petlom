@@ -14,8 +14,17 @@ import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
 import { useAuth } from "@/auth";
 import { formatHTTPValidationError } from "@/client/api";
+import type { components } from "@/client/schema";
 import { translateEntity } from "@/i18n/translateEntity";
 import { useTranslation } from "react-i18next";
+
+type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+
+function formatRejection(reason: unknown): string {
+  const detail = (reason as HTTPValidationError | null)?.detail;
+  if (detail === undefined) return "";
+  return formatHTTPValidationError(reason as HTTPValidationError);
+}
 
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 type TableDeleteConfig<T> = Omit<
@@ -163,7 +172,7 @@ export default function EditableTable<T extends object>({
     });
   };
 
-  const handleCancelColumnEdit = () => {
+  const exitColumnEdit = () => {
     setColumnEditField(null);
     setColumnEditValues(new Map());
     setColumnEditErrors(new Map());
@@ -193,26 +202,36 @@ export default function EditableTable<T extends object>({
       (row) => columnEditValues.get(getRowKey(row)) !== row[columnEditField],
     );
 
-    try {
-      await Promise.all(
-        changedRows.map((row) => {
-          const key = getRowKey(row);
-          const sanitized = sanitizeData({
-            ...row,
-            [columnEditField]: columnEditValues.get(key),
-          } as T);
-          return editMutation.mutateAsync({
-            body: getRequestBody(sanitized),
-            params: { path: { [String(entityIdField)]: key } },
-          });
-        }),
-      );
-      setColumnEditField(null);
-      setColumnEditValues(new Map());
-      setColumnEditErrors(new Map());
-    } catch {
-      // stay in column edit mode on failure
+    const results = await Promise.allSettled(
+      changedRows.map((row) => {
+        const key = getRowKey(row);
+        const sanitized = sanitizeData({
+          ...row,
+          [columnEditField]: columnEditValues.get(key),
+        } as T);
+        return editMutation.mutateAsync({
+          body: getRequestBody(sanitized),
+          params: { path: { [String(entityIdField)]: key } },
+        });
+      }),
+    );
+
+    const saveErrors = new Map<string | number, string>();
+    results.forEach((result, i) => {
+      if (result.status === "rejected") {
+        saveErrors.set(
+          getRowKey(changedRows[i]),
+          formatRejection(result.reason) || t("table.saveFailed"),
+        );
+      }
+    });
+    // Stay in column edit mode when any row failed, so the failed values are not
+    // lost and the errors stay visible next to them.
+    if (saveErrors.size > 0) {
+      setColumnEditErrors(saveErrors);
+      return;
     }
+    exitColumnEdit();
   };
 
   const hasColgroup = visibleColumns.some(
@@ -284,7 +303,7 @@ export default function EditableTable<T extends object>({
                       isPending={activeEditConfig!.editMutation.isPending}
                       onEdit={() => handleStartColumnEdit(col.field)}
                       onSave={handleSaveColumnEdit}
-                      onCancel={handleCancelColumnEdit}
+                      onCancel={exitColumnEdit}
                     />
                   )}
                 </Group>
@@ -306,11 +325,7 @@ export default function EditableTable<T extends object>({
                 data={row}
                 isEditing={editableId === key}
                 setIsEditing={(isEditing) => {
-                  if (isEditing) {
-                    setColumnEditField(null);
-                    setColumnEditValues(new Map());
-                    setColumnEditErrors(new Map());
-                  }
+                  if (isEditing) exitColumnEdit();
                   setEditableId(isEditing ? key : null);
                 }}
                 cells={cellConfigs}

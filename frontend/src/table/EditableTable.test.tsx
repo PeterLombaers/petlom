@@ -347,6 +347,108 @@ describe("EditableTable", () => {
       expect(mutateAsync).not.toHaveBeenCalled();
       expect(screen.getAllByTestId("name-error")).toHaveLength(1);
     });
+
+    it("a partially failed Save stays in column edit mode and marks only the failed row", async () => {
+      const user = userEvent.setup();
+      // Alice (id 1) fails, Bob (id 2) succeeds.
+      const mutateAsync = vi.fn(({ params }) =>
+        params.path.id === 1
+          ? Promise.reject({
+              detail: [
+                { loc: ["body", "name"], msg: "already taken", type: "value" },
+              ],
+            })
+          : Promise.resolve({}),
+      );
+      renderColumnTable({
+        queryResult: {
+          ...baseQueryResult,
+          editMutation: makeMockMutation({ mutateAsync }),
+        },
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+
+      const inputs = screen.getAllByRole("textbox", { name: "name-edit" });
+      await user.clear(inputs[0]);
+      await user.type(inputs[0], "Charlie");
+      await user.clear(inputs[1]);
+      await user.type(inputs[1], "Dave");
+
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      );
+
+      expect(mutateAsync).toHaveBeenCalledTimes(2);
+      // Still in column edit mode, with the typed values preserved.
+      expect(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getAllByRole("textbox", { name: "name-edit" }),
+      ).toHaveLength(2);
+      // Exactly one row is flagged, and it carries the backend's message.
+      const errors = screen.getAllByTestId("name-error");
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toHaveTextContent("already taken");
+    });
+
+    it("falls back to a generic message when a rejection carries no detail", async () => {
+      const user = userEvent.setup();
+      const mutateAsync = vi.fn().mockRejectedValue(new Error("network down"));
+      renderColumnTable({
+        queryResult: {
+          ...baseQueryResult,
+          editMutation: makeMockMutation({ mutateAsync }),
+        },
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+
+      const inputs = screen.getAllByRole("textbox", { name: "name-edit" });
+      await user.clear(inputs[0]);
+      await user.type(inputs[0], "Charlie");
+
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      );
+
+      expect(screen.getByTestId("name-error")).toHaveTextContent(
+        "Save failed.",
+      );
+    });
+
+    it("a fully successful Save exits column edit mode", async () => {
+      const user = userEvent.setup();
+      const mutateAsync = vi.fn().mockResolvedValue({});
+      renderColumnTable({
+        queryResult: {
+          ...baseQueryResult,
+          editMutation: makeMockMutation({ mutateAsync }),
+        },
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+
+      const inputs = screen.getAllByRole("textbox", { name: "name-edit" });
+      await user.clear(inputs[0]);
+      await user.type(inputs[0], "Charlie");
+
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      );
+
+      expect(
+        screen.queryByRole("textbox", { name: "name-edit" }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("name-error")).not.toBeInTheDocument();
+    });
   });
 
   describe("one-at-a-time editing", () => {

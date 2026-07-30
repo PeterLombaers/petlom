@@ -55,6 +55,7 @@ const nl: TranslationSchema = {
   },
   table: {
     noEntitiesYet: "Nog geen {{entityType}}.",
+    saveFailed: "Opslaan mislukt.",
   },
   competition: {
     noRoundsYet: "Nog geen rondes.",
