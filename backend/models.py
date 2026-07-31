@@ -523,11 +523,11 @@ class MatchUpdate(SQLModel):
 
 
 # ---------------------------------------------------------------------------
-# RoundPlayer models
+# RoundRegistration models
 # ---------------------------------------------------------------------------
 
 
-class RoundPlayer(SQLModel, table=True):
+class RoundRegistration(SQLModel, table=True):
     """The registration of a player for a round of a competition.
 
     Database table for storing the registration of players for a round of a competition.
@@ -544,8 +544,8 @@ class RoundPlayer(SQLModel, table=True):
     player: Player = Relationship()
 
 
-class RoundPlayerPublic(SQLModel):
-    """A registered player as returned by GET /competitions/{name}/players."""
+class RoundRegistrationPublic(SQLModel):
+    """A round registration as returned by GET /competitions/{name}/players."""
 
     id: int
     player: PlayerRef
@@ -553,7 +553,7 @@ class RoundPlayerPublic(SQLModel):
     initial_rating: float | None
 
 
-class RoundPlayerUpdate(SQLModel):
+class RoundRegistrationUpdate(SQLModel):
     """Request body of PATCH /competitions/{name}/players."""
 
     player_ids_to_add: list[int] | None = None

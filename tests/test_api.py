@@ -17,7 +17,7 @@ from backend.models import (
     PlayerExternalId,
     PlayerPublic,
     Result,
-    RoundPlayer,
+    RoundRegistration,
 )
 
 
@@ -307,14 +307,14 @@ def test_delete_player_registered_for_round(
     session: Session,
 ):
     session.add(
-        RoundPlayer(competition_id=competition.id, round=1, player_id=player.id)
+        RoundRegistration(competition_id=competition.id, round=1, player_id=player.id)
     )
     session.commit()
     res = auth_client.delete(f"/players/{player.id}/")
     res.raise_for_status()
     session.refresh(player)
     assert not player.is_active
-    assert len(session.scalars(select(RoundPlayer)).all()) == 1
+    assert len(session.scalars(select(RoundRegistration)).all()) == 1
 
 
 def test_create_match(
@@ -627,7 +627,7 @@ def test_competition_ranking(
     assert len(ranking) == len(players) - 2
 
 
-def test_round_players_add_remove(
+def test_round_registrations_add_remove(
     competition: Competition,
     player_factory: Callable[..., Player],
     auth_client: TestClient,
@@ -672,7 +672,7 @@ def test_round_players_add_remove(
     assert res.status_code == 404
 
 
-def test_round_players_bye(
+def test_round_registrations_bye(
     competition: Competition,
     player_factory: Callable[..., Player],
     auth_client: TestClient,
@@ -719,7 +719,7 @@ def test_round_players_bye(
     assert all(not rp["is_bye"] for rp in players)
 
 
-def test_delete_round_players(
+def test_delete_round_registrations(
     competition: Competition,
     player_factory: Callable[..., Player],
     auth_client: TestClient,
@@ -736,10 +736,10 @@ def test_delete_round_players(
         f"/competitions/{competition.name}/players", params={"round_nr": 1}
     )
     res.raise_for_status()
-    assert len(session.exec(select(RoundPlayer)).all()) == 0
+    assert len(session.exec(select(RoundRegistration)).all()) == 0
 
 
-def test_retrieve_round_players(
+def test_retrieve_round_registrations(
     competition: Competition,
     player_factory: Callable[..., Player],
     auth_client: TestClient,

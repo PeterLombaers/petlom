@@ -25,9 +25,9 @@ from backend.models import (
     MatchPublic,
     PairingCreate,
     Player,
-    RoundPlayer,
-    RoundPlayerPublic,
-    RoundPlayerUpdate,
+    RoundRegistration,
+    RoundRegistrationPublic,
+    RoundRegistrationUpdate,
     SimkroRank,
 )
 from backend.ratings import calculate_ratings
@@ -359,17 +359,17 @@ def create_ranking(
 
 
 # ---------------------------------------------------------------------------
-# Round player endpoints
+# Round registration endpoints
 # ---------------------------------------------------------------------------
 
 
-def get_round_players(
+def get_round_registrations(
     competition: Competition, round_nr: int, session: SessionDep
-) -> Sequence[RoundPlayer]:
+) -> Sequence[RoundRegistration]:
     return session.exec(
-        select(RoundPlayer).where(
-            RoundPlayer.competition_id == competition.id,
-            RoundPlayer.round == round_nr,
+        select(RoundRegistration).where(
+            RoundRegistration.competition_id == competition.id,
+            RoundRegistration.round == round_nr,
         )
     ).all()
 
@@ -413,7 +413,7 @@ def get_or_create_competition_rating(
     return comp_rating
 
 
-def add_round_players(
+def add_round_registrations(
     competition: Competition,
     round_nr: int,
     player_ids: list[int],
@@ -437,7 +437,7 @@ def add_round_players(
         ).all()
     }
     already_added = {
-        rp.player_id for rp in get_round_players(competition, round_nr, session)
+        reg.player_id for reg in get_round_registrations(competition, round_nr, session)
     }
 
     for player_id in player_ids:
@@ -451,7 +451,7 @@ def add_round_players(
             session,
         )
         session.add(
-            RoundPlayer(
+            RoundRegistration(
                 competition_id=competition.id,
                 round=round_nr,
                 player_id=player_id,
@@ -461,16 +461,16 @@ def add_round_players(
         already_added.add(player_id)
 
 
-def remove_round_players(
+def remove_round_registrations(
     competition: Competition,
     round_nr: int,
     player_ids: list[int],
     session: SessionDep,
 ) -> None:
     to_remove = set(player_ids)
-    for rp in get_round_players(competition, round_nr, session):
-        if rp.player_id in to_remove:
-            session.delete(rp)
+    for reg in get_round_registrations(competition, round_nr, session):
+        if reg.player_id in to_remove:
+            session.delete(reg)
 
 
 def update_bye(
@@ -481,12 +481,12 @@ def update_bye(
 ) -> None:
     """Clear any existing bye and, if given, assign the bye to `bye_player_id`."""
     new_bye_player = None
-    for rp in get_round_players(competition, round_nr, session):
-        if rp.is_bye:
-            rp.is_bye = False
-            session.add(rp)
-        if rp.player_id == bye_player_id:
-            new_bye_player = rp
+    for reg in get_round_registrations(competition, round_nr, session):
+        if reg.is_bye:
+            reg.is_bye = False
+            session.add(reg)
+        if reg.player_id == bye_player_id:
+            new_bye_player = reg
 
     if bye_player_id is None:
         return
@@ -500,25 +500,25 @@ def update_bye(
 
 
 @router.get("/{name}/players")
-def retrieve_round_players(
+def retrieve_round_registrations(
     name: str, round_nr: int, session: SessionDep
-) -> list[RoundPlayerPublic]:
+) -> list[RoundRegistrationPublic]:
     competition = find_competition(name, session)
-    return get_round_players(competition, round_nr, session)
+    return get_round_registrations(competition, round_nr, session)
 
 
 @router.patch("/{name}/players")
-def update_round_players(
+def update_round_registrations(
     name: str,
     round_nr: int,
-    update: RoundPlayerUpdate,
+    update: RoundRegistrationUpdate,
     session: SessionDep,
     _: ModeratorDep,
-) -> list[RoundPlayerPublic]:
+) -> list[RoundRegistrationPublic]:
     competition = find_competition(name, session)
 
     if update.player_ids_to_add:
-        add_round_players(
+        add_round_registrations(
             competition,
             round_nr,
             update.player_ids_to_add,
@@ -526,7 +526,7 @@ def update_round_players(
             session,
         )
     if update.player_ids_to_remove:
-        remove_round_players(
+        remove_round_registrations(
             competition, round_nr, update.player_ids_to_remove, session
         )
     if update.clear_bye or update.bye_player_id is not None:
@@ -534,15 +534,15 @@ def update_round_players(
 
     session.commit()
 
-    return get_round_players(competition, round_nr, session)
+    return get_round_registrations(competition, round_nr, session)
 
 
 @router.delete("/{name}/players")
-def delete_round_players(
+def delete_round_registrations(
     name: str, round_nr: int, session: SessionDep, _: ModeratorDep
 ):
     competition = find_competition(name, session)
-    for rp in get_round_players(competition, round_nr, session):
-        session.delete(rp)
+    for reg in get_round_registrations(competition, round_nr, session):
+        session.delete(reg)
     session.commit()
     return {"ok": True}

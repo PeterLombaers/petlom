@@ -20,7 +20,7 @@ from backend.models import (
     PlayerExternalIdUpdate,
     PlayerPublic,
     PlayerUpdate,
-    RoundPlayer,
+    RoundRegistration,
 )
 
 router = APIRouter(prefix="/players", tags=["players"])
@@ -95,7 +95,9 @@ def _has_competition_history(player: Player, session: SessionDep) -> bool:
         .limit(1)
     ).first()
     registered = session.exec(
-        select(RoundPlayer.id).where(RoundPlayer.player_id == player.id).limit(1)
+        select(RoundRegistration.id)
+        .where(RoundRegistration.player_id == player.id)
+        .limit(1)
     ).first()
     return played is not None or registered is not None
 

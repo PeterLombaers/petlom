@@ -190,7 +190,7 @@ class PetlomClient:
             ),
             "set initial ratings",
         )
-        # Drop the throwaway RoundPlayer registrations; the CompetitionRating
+        # Drop the throwaway RoundRegistration rows; the CompetitionRating
         # rows (and thus the initial ratings) persist independently.
         self._check(
             self.session.delete(
