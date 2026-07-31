@@ -778,6 +778,10 @@ export interface components {
         /**
          * PlayerExternalIdPublic
          * @description A player's id at an external source, as returned inside a player response.
+         *
+         *     `rating` is the snapshot selected by the request's `list_date`: the newest
+         *     snapshot at or before that date, or the newest one overall when no date is
+         *     given. It is None when no snapshot has been imported yet.
          */
         PlayerExternalIdPublic: {
             /** Id */
@@ -795,6 +799,7 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            rating?: components["schemas"]["ExternalRatingPublic"] | null;
         };
         /**
          * PlayerExternalIdUpdate
@@ -1495,6 +1500,8 @@ export interface operations {
                 offset?: number;
                 limit?: number;
                 is_active?: boolean | null;
+                /** @description Rating list to report external ratings for, as YYYY-MM. Defaults to the newest snapshot of each player. */
+                list_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -1557,7 +1564,10 @@ export interface operations {
     };
     retrieve_player_players__id___get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Rating list to report external ratings for, as YYYY-MM. Defaults to the newest snapshot of each player. */
+                list_date?: string | null;
+            };
             header?: never;
             path: {
                 id: number;

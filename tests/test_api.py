@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+import pytest
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
@@ -244,6 +245,82 @@ def test_list_player_external_ratings(
         ("2026-06", 1950.0, "fide"),
         ("2026-05", 1900.0, "fide"),
     ]
+
+
+@pytest.fixture
+def rated_external_id(
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    external_rating_factory: Callable[..., ExternalRating],
+) -> PlayerExternalId:
+    """An external id with a rating snapshot in three consecutive months."""
+    external_id = player_external_id_factory()
+    for list_date, rating in [
+        ("2026-04", 1850.0),
+        ("2026-05", 1900.0),
+        ("2026-06", 1950.0),
+    ]:
+        external_rating_factory(
+            player_external_id=external_id, rating=rating, list_date=list_date
+        )
+    return external_id
+
+
+@pytest.mark.parametrize("endpoint", ["list", "retrieve"])
+def test_player_rating_defaults_to_newest_snapshot(
+    rated_external_id: PlayerExternalId, endpoint: str, client: TestClient
+):
+    url = (
+        "/players/"
+        if endpoint == "list"
+        else f"/players/{rated_external_id.player_id}/"
+    )
+    res = client.get(url)
+    res.raise_for_status()
+    player = res.json()[0] if endpoint == "list" else res.json()
+    rating = player["external_ids"][0]["rating"]
+    assert (rating["list_date"], rating["rating"], rating["source"]) == (
+        "2026-06",
+        1950.0,
+        "fide",
+    )
+
+
+@pytest.mark.parametrize("endpoint", ["list", "retrieve"])
+def test_player_rating_at_list_date(
+    rated_external_id: PlayerExternalId, endpoint: str, client: TestClient
+):
+    url = (
+        "/players/"
+        if endpoint == "list"
+        else f"/players/{rated_external_id.player_id}/"
+    )
+    # The newest snapshot at or before the requested date, even when there is
+    # no snapshot for that month itself.
+    for list_date, expected in [("2026-05", 1900.0), ("2026-12", 1950.0)]:
+        res = client.get(url, params={"list_date": list_date})
+        res.raise_for_status()
+        player = res.json()[0] if endpoint == "list" else res.json()
+        assert player["external_ids"][0]["rating"]["rating"] == expected
+
+    # Nothing has been published yet at that date.
+    res = client.get(url, params={"list_date": "2026-01"})
+    res.raise_for_status()
+    player = res.json()[0] if endpoint == "list" else res.json()
+    assert player["external_ids"][0]["rating"] is None
+
+
+def test_player_rating_without_snapshots(
+    player_external_id_factory: Callable[..., PlayerExternalId], client: TestClient
+):
+    external_id = player_external_id_factory()
+    res = client.get(f"/players/{external_id.player_id}/")
+    res.raise_for_status()
+    assert res.json()["external_ids"][0]["rating"] is None
+
+
+@pytest.mark.parametrize("list_date", ["2026", "2026-5", "june"])
+def test_player_invalid_list_date(list_date: str, client: TestClient):
+    assert client.get("/players/", params={"list_date": list_date}).status_code == 422
 
 
 def test_list_player(player_factory: Callable[..., Player], client):

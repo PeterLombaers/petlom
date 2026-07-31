@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -9,6 +10,7 @@ from backend.auth import ModeratorDep
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
 from backend.enums import ExternalRatingSource
 from backend.models import (
+    LIST_DATE_PATTERN,
     ExternalRating,
     ExternalRatingPublic,
     Match,
@@ -48,24 +50,105 @@ def create_player(
     return db_player
 
 
+ListDateQuery = Annotated[
+    str | None,
+    Query(
+        pattern=LIST_DATE_PATTERN,
+        description=(
+            "Rating list to report external ratings for, as YYYY-MM. Defaults to"
+            " the newest snapshot of each player."
+        ),
+    ),
+]
+
+
 @router.get("/")
 def list_players(
     session: SessionDep,
     offset: int = 0,
     limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
     is_active: bool | None = None,
+    list_date: ListDateQuery = None,
 ) -> list[PlayerPublic]:
     query = select(Player)
     if is_active is not None:
         query = query.where(Player.is_active == is_active)
     query = query.order_by(col(Player.id)).offset(offset).limit(limit)
     players = session.exec(query).all()
-    return players
+    ratings = selected_ratings([player.id for player in players], list_date, session)
+    return [
+        PlayerPublic.model_validate(
+            player, update={"external_ids": _external_ids_public(player, ratings)}
+        )
+        for player in players
+    ]
 
 
 @router.get("/{id}/")
-def retrieve_player(id: int, session: SessionDep) -> PlayerDetail:
-    return find_object(model=Player, identifier=id, session=session)
+def retrieve_player(
+    id: int, session: SessionDep, list_date: ListDateQuery = None
+) -> PlayerDetail:
+    player = find_object(model=Player, identifier=id, session=session)
+    ratings = selected_ratings([player.id], list_date, session)
+    return PlayerDetail.model_validate(
+        player, update={"external_ids": _external_ids_public(player, ratings)}
+    )
+
+
+def selected_ratings(
+    player_ids: Sequence[int], list_date: str | None, session: SessionDep
+) -> dict[int, ExternalRating]:
+    """The rating snapshot to report for each external id of the given players.
+
+    Keyed by PlayerExternalId.id. The selected snapshot is the newest one at or
+    before `list_date`, or the newest one overall when no date is given — the
+    same rule the external providers use, so "the rating as of month X" means
+    the same thing everywhere. External ids without a snapshot are absent.
+    """
+    if not player_ids:
+        return {}
+    query = (
+        select(ExternalRating)
+        .join(PlayerExternalId)
+        .where(col(PlayerExternalId.player_id).in_(player_ids))
+    )
+    if list_date is not None:
+        query = query.where(ExternalRating.list_date <= list_date)
+    # Ascending, so the last row written per external id is the newest one.
+    query = query.order_by(col(ExternalRating.list_date))
+    return {rating.player_external_id_id: rating for rating in session.exec(query)}
+
+
+def external_rating_public(rating: ExternalRating) -> ExternalRatingPublic:
+    """Build the response model; `source` lives on the identifier, not the snapshot."""
+    return ExternalRatingPublic(
+        id=rating.id,
+        player_external_id_id=rating.player_external_id_id,
+        source=rating.player_external_id.source,
+        rating=rating.rating,
+        list_date=rating.list_date,
+        imported_at=rating.imported_at,
+    )
+
+
+def _external_ids_public(
+    player: Player, ratings: dict[int, ExternalRating]
+) -> list[PlayerExternalIdPublic]:
+    return [
+        PlayerExternalIdPublic(
+            id=external_id.id,
+            source=external_id.source,
+            external_id=external_id.external_id,
+            created_at=external_id.created_at,
+            updated_at=external_id.updated_at,
+            rating=(
+                external_rating_public(ratings[external_id.id])
+                if external_id.id in ratings
+                else None
+            ),
+        )
+        for external_id in player.external_ids
+    ]
 
 
 @router.delete("/{id}/")
@@ -169,17 +252,7 @@ def list_player_external_ratings(
         .where(PlayerExternalId.player_id == player.id)
         .order_by(ExternalRating.list_date.desc())  # type: ignore[union-attr]
     ).all()
-    return [
-        ExternalRatingPublic(
-            id=rating.id,
-            player_external_id_id=rating.player_external_id_id,
-            source=rating.player_external_id.source,
-            rating=rating.rating,
-            list_date=rating.list_date,
-            imported_at=rating.imported_at,
-        )
-        for rating in ratings
-    ]
+    return [external_rating_public(rating) for rating in ratings]
 
 
 def _find_external_id(

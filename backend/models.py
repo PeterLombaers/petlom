@@ -238,22 +238,6 @@ class PlayerExternalIdCreate(SQLModel):
     external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
 
 
-class PlayerExternalIdPublic(SQLModel):
-    """A player's id at an external source, as returned inside a player response."""
-
-    id: int
-    source: ExternalRatingSource
-    external_id: str
-    created_at: datetime
-    updated_at: datetime
-
-
-class PlayerExternalIdUpdate(SQLModel):
-    """Request body of PUT /players/{id}/external-ids/{source}/."""
-
-    external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
-
-
 class ExternalRatingPublic(SQLModel):
     """A rating snapshot as returned by GET /players/{id}/external-ratings/."""
 
@@ -263,6 +247,28 @@ class ExternalRatingPublic(SQLModel):
     rating: float
     list_date: str
     imported_at: datetime
+
+
+class PlayerExternalIdPublic(SQLModel):
+    """A player's id at an external source, as returned inside a player response.
+
+    `rating` is the snapshot selected by the request's `list_date`: the newest
+    snapshot at or before that date, or the newest one overall when no date is
+    given. It is None when no snapshot has been imported yet.
+    """
+
+    id: int
+    source: ExternalRatingSource
+    external_id: str
+    created_at: datetime
+    updated_at: datetime
+    rating: ExternalRatingPublic | None = None
+
+
+class PlayerExternalIdUpdate(SQLModel):
+    """Request body of PUT /players/{id}/external-ids/{source}/."""
+
+    external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
 
 
 class ExternalRatingImportRequest(SQLModel):
