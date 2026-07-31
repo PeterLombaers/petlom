@@ -1,4 +1,4 @@
-import { Anchor, NumberInput, TextInput } from "@mantine/core";
+import { NumberInput, TextInput } from "@mantine/core";
 import type { EditProps } from "./types";
 
 const formatDate = (dateString: string) => {
@@ -20,17 +20,6 @@ const textEditor =
 
 export const createTextCell = (fieldName: string, label: string) => ({
   renderValue: (props: { value: string }) => props.value,
-  renderEdit: textEditor(fieldName, label),
-});
-
-export const createLinkTextCell = (
-  fieldName: string,
-  label: string,
-  getHref: (value: string) => string,
-) => ({
-  renderValue: (props: { value: string }) => (
-    <Anchor href={getHref(props.value)}>{props.value}</Anchor>
-  ),
   renderEdit: textEditor(fieldName, label),
 });
 

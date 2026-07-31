@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import EditableRow from "@/table/EditableRow";
 import type { Column } from "@/table/types";
 import { renderInTable, makeMockMutation } from "@/test-utils";
@@ -301,6 +302,57 @@ describe("EditableRow", () => {
       );
       await user.click(screen.getByRole("button", { name: "Save" }));
       expect(setIsEditing).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe("linked columns (href)", () => {
+    const linkedColumns: Column<TestEntity>[] = [
+      {
+        ...testColumns[1],
+        href: (row) => `/players/${row.id}`,
+      },
+    ];
+
+    const renderLinked = (columns: Column<TestEntity>[], isEditing = false) =>
+      renderInTable(
+        <MemoryRouter>
+          <EditableRow
+            data={testData}
+            isEditing={isEditing}
+            setIsEditing={vi.fn()}
+            columns={columns}
+            entityIdField="id"
+            editConfig={makeEditConfig(makeMockMutation())}
+          />
+        </MemoryRouter>,
+      );
+
+    it("wraps the displayed value in a link built from the whole row", () => {
+      renderLinked(linkedColumns);
+      const link = screen.getByRole("link", { name: "Alice" });
+      expect(link).toHaveAttribute("href", "/players/1");
+      expect(screen.getByTestId("name-value")).toBeInTheDocument();
+    });
+
+    it("renders an external link in a new tab", () => {
+      renderLinked([
+        {
+          ...testColumns[1],
+          href: (row) => `https://example.com/${row.id}`,
+          external: true,
+        },
+      ]);
+      const link = screen.getByRole("link", { name: "Alice" });
+      expect(link).toHaveAttribute("href", "https://example.com/1");
+      expect(link).toHaveAttribute("target", "_blank");
+    });
+
+    it("renders a plain input, without a link, in edit mode", () => {
+      renderLinked(linkedColumns, true);
+      expect(screen.getByRole("textbox", { name: "name-edit" })).toHaveValue(
+        "Alice",
+      );
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
     });
   });
 

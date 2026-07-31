@@ -3,7 +3,7 @@ import EditableTable from "@/table/EditableTable";
 import { NumberInput, Select, Stack, Textarea, TextInput } from "@mantine/core";
 import { components } from "@/client/schema";
 import {
-  createLinkTextCell,
+  createTextCell,
   readOnlyDateCell,
   createNonEmptyStringValidator,
 } from "@/table/cells";
@@ -138,11 +138,8 @@ export default function CompetitionTable() {
       columns={[
         {
           field: "name",
-          cell: createLinkTextCell(
-            "competition-name",
-            t("common.name"),
-            (name) => `/competitions/${name}`,
-          ),
+          cell: createTextCell("competition-name", t("common.name")),
+          href: (row) => `/competitions/${row.name}`,
           isId: true,
         },
         {

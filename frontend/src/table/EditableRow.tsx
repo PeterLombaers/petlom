@@ -1,5 +1,6 @@
-import { Box, Group, Table } from "@mantine/core";
+import { Anchor, Box, Group, Table } from "@mantine/core";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
 import DeleteButton from "./DeleteButton";
@@ -97,6 +98,20 @@ export default function EditableRow<T = unknown>({
         const key: keyof T = col.field;
         const cell = col.cell!;
         const className = visibleFromClass(col.hideBelow);
+        // Only the display path is linked; edit controls stay plain.
+        const href = col.href;
+        const renderValue = href
+          ? (props: { value: T[typeof key] }) =>
+              col.external ? (
+                <Anchor href={href(data)} target="_blank" rel="noreferrer">
+                  {cell.renderValue(props)}
+                </Anchor>
+              ) : (
+                <Anchor component={Link} to={href(data)}>
+                  {cell.renderValue(props)}
+                </Anchor>
+              )
+          : cell.renderValue;
         if (columnEditField === key && cell.renderEdit) {
           return (
             <EditableCell
@@ -105,7 +120,7 @@ export default function EditableRow<T = unknown>({
               value={data[key]}
               editValue={columnEditValue as T[typeof key]}
               setEditValue={(newValue) => onColumnEditChange?.(newValue)}
-              renderValue={cell.renderValue}
+              renderValue={renderValue}
               renderEdit={cell.renderEdit}
               error={columnEditError ?? ""}
               className={className}
@@ -120,7 +135,7 @@ export default function EditableRow<T = unknown>({
               value={data[key]}
               editValue={editData[key]}
               setEditValue={(newValue) => setCellEditData(key, newValue)}
-              renderValue={cell.renderValue}
+              renderValue={renderValue}
               renderEdit={cell.renderEdit}
               error={errors[key] || ""}
               className={className}
@@ -137,7 +152,7 @@ export default function EditableRow<T = unknown>({
               whiteSpace: "nowrap",
             }}
           >
-            {cell.renderValue({ value: data[key] })}
+            {renderValue({ value: data[key] })}
           </Table.Td>
         );
       })}

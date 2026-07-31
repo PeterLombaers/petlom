@@ -77,6 +77,16 @@ export type CellConfig<T, K extends keyof T> = {
  *
  * @property hideBelow - When set, the column is hidden on viewports narrower
  *   than the given Mantine breakpoint (e.g. `"sm"` hides it below 768px).
+ *
+ * @property href - When set, the displayed value is wrapped in an `Anchor`
+ *   pointing at the returned target. It receives the whole row, so the link may
+ *   use a different field than the one displayed (e.g. a name cell linking to
+ *   `/players/{id}`). Edit mode is unaffected: the cell still renders its plain
+ *   edit control.
+ *
+ * @property external - Marks the `href` as leading outside the app. External
+ *   links render as a plain anchor opening in a new tab; internal ones (the
+ *   default) navigate through the router without a full page reload.
  */
 export type Column<T> = {
   [K in keyof T]: {
@@ -89,6 +99,8 @@ export type Column<T> = {
     width?: string | number;
     editWidth?: string | number;
     hideBelow?: MantineBreakpoint;
+    href?: (row: T) => string;
+    external?: boolean;
   };
 }[keyof T];
 
