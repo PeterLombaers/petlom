@@ -94,9 +94,7 @@ const nl: TranslationSchema = {
     initialRatingLabel: "Beginrating voor {{playerName}}",
     confirm: "Bevestigen",
   },
-  roundPlayers: {
-    loadingList: "Spelerslijst laden...",
-    errorLoading: "Fout bij laden spelerslijst.",
+  registration: {
     player: "Speler",
     bye: "Bye",
     selectPlayers: "Spelers selecteren...",

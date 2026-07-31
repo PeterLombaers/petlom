@@ -13,18 +13,18 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { $api } from "@client/api";
+import { $api, formatHTTPValidationError } from "@client/api";
 import { components } from "@/client/schema";
-import { useRoundPlayers } from "./useRoundPlayers";
-import InitialRatingsModal, {
-  PlayerNeedingRating,
-} from "./InitialRatingsModal";
+import { LoadingState } from "@/ui/LoadingState";
+import { ErrorState } from "@/ui/ErrorState";
+import { useRegistrations } from "./useRegistrations";
+import SeedRatingsModal, { PlayerNeedingRating } from "./SeedRatingsModal";
 import { useState } from "react";
 
 type CompetitionRatingTypePublic =
   components["schemas"]["CompetitionRatingTypePublic"];
 
-export default function RoundPlayerEditor({
+export default function RegistrationEditor({
   competitionName,
   roundNr,
   ratingType,
@@ -39,13 +39,14 @@ export default function RoundPlayerEditor({
 }) {
   const { t } = useTranslation();
   const {
-    roundPlayers,
+    registrations,
+    error,
     isPending,
     isError,
     updateMutation,
     deleteMutation,
     createPairingMutation,
-  } = useRoundPlayers(competitionName, roundNr);
+  } = useRegistrations(competitionName, roundNr);
 
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [comboboxOpen, setComboboxOpen] = useState(false);
@@ -63,16 +64,16 @@ export default function RoundPlayerEditor({
     { params: { path: { name: competitionName } } },
   );
 
-  if (isPending) return <Text>{t("roundPlayers.loadingList")}</Text>;
-  if (isError || !roundPlayers)
-    return <Text>{t("roundPlayers.errorLoading")}</Text>;
+  if (isPending) return <LoadingState />;
+  if (isError || !registrations)
+    return <ErrorState message={formatHTTPValidationError(error)} />;
 
-  const playerCount = roundPlayers.length;
+  const playerCount = registrations.length;
   const isOdd = playerCount % 2 !== 0;
-  const byePlayer = roundPlayers.find((rp) => rp.is_bye);
+  const byePlayer = registrations.find((rp) => rp.is_bye);
 
   const canGenerate = playerCount >= 2 && (!isOdd || byePlayer);
-  const enrolledPlayerIds = new Set(roundPlayers.map((rp) => rp.player.id));
+  const enrolledPlayerIds = new Set(registrations.map((rp) => rp.player.id));
   const playerOptions = (allPlayers ?? [])
     .filter((p) => !enrolledPlayerIds.has(p.id))
     .map((p) => ({ value: String(p.id), label: p.name }));
@@ -150,7 +151,7 @@ export default function RoundPlayerEditor({
   };
 
   const handleGeneratePairing = () => {
-    const playerIds = roundPlayers
+    const playerIds = registrations
       .filter((rp) => !rp.is_bye)
       .map((rp) => rp.player.id);
     createPairingMutation.mutate(
@@ -186,14 +187,14 @@ export default function RoundPlayerEditor({
       <Table>
         <Table.Thead>
           <Table.Tr>
-            <Table.Th>{t("roundPlayers.player")}</Table.Th>
+            <Table.Th>{t("registration.player")}</Table.Th>
             <Table.Th>{t("rating.ratingHeader")}</Table.Th>
-            {isOdd && <Table.Th>{t("roundPlayers.bye")}</Table.Th>}
+            {isOdd && <Table.Th>{t("registration.bye")}</Table.Th>}
             <Table.Th>{t("common.actions")}</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {roundPlayers.map((rp) => (
+          {registrations.map((rp) => (
             <Table.Tr key={rp.id}>
               <Table.Td>{rp.player.name}</Table.Td>
               <Table.Td>
@@ -240,7 +241,7 @@ export default function RoundPlayerEditor({
                     onDropdownClose={() => setComboboxOpen(false)}
                     searchable
                     clearable
-                    placeholder={t("roundPlayers.selectPlayers")}
+                    placeholder={t("registration.selectPlayers")}
                     comboboxProps={{
                       width: "max-content",
                       position: "bottom-start",
@@ -252,7 +253,7 @@ export default function RoundPlayerEditor({
                       !selectedPlayerIds.length || updateMutation.isPending
                     }
                   >
-                    {t("roundPlayers.add")}
+                    {t("registration.add")}
                   </Button>
                 </Group>
               </div>
@@ -262,7 +263,7 @@ export default function RoundPlayerEditor({
       </Table>
 
       {isOdd && !byePlayer && (
-        <Alert>{t("roundPlayers.oddPlayersWarning")}</Alert>
+        <Alert>{t("registration.oddPlayersWarning")}</Alert>
       )}
 
       <Group>
@@ -271,20 +272,20 @@ export default function RoundPlayerEditor({
           disabled={!canGenerate || createPairingMutation.isPending}
         >
           {createPairingMutation.isPending
-            ? t("roundPlayers.generating")
-            : t("roundPlayers.generatePairing", { roundNr })}
+            ? t("registration.generating")
+            : t("registration.generatePairing", { roundNr })}
         </Button>
         <Button variant="default" onClick={openClearModal}>
-          {t("roundPlayers.clearAll")}
+          {t("registration.clearAll")}
         </Button>
       </Group>
 
       <Modal
         opened={clearModalOpened}
         onClose={closeClearModal}
-        title={t("roundPlayers.clearAllPlayers")}
+        title={t("registration.clearAllPlayers")}
       >
-        <Text>{t("roundPlayers.confirmClearAll")}</Text>
+        <Text>{t("registration.confirmClearAll")}</Text>
         <Group mt="md" justify="flex-end">
           <Button variant="default" onClick={closeClearModal}>
             {t("common.cancel")}
@@ -294,13 +295,13 @@ export default function RoundPlayerEditor({
             onClick={handleConfirmClearAll}
             loading={deleteMutation.isPending}
           >
-            {t("roundPlayers.clearAll")}
+            {t("registration.clearAll")}
           </Button>
         </Group>
       </Modal>
 
       {playersNeedingRatings.length > 0 && (
-        <InitialRatingsModal
+        <SeedRatingsModal
           players={playersNeedingRatings}
           onClose={() => setPlayersNeedingRatings([])}
           onConfirm={doAddPlayers}

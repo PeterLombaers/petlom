@@ -636,7 +636,7 @@ def test_round_registrations_add_remove(
     p1, p2, p3 = player_factory(), player_factory(), player_factory()
     # Add players.
     res = auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id, p3.id]},
     )
@@ -645,7 +645,7 @@ def test_round_registrations_add_remove(
 
     # Adding duplicate should not create a second entry.
     res = auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id]},
     )
@@ -654,7 +654,7 @@ def test_round_registrations_add_remove(
 
     # Remove a player.
     res = auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"player_ids_to_remove": [p2.id]},
     )
@@ -665,7 +665,7 @@ def test_round_registrations_add_remove(
 
     # Adding a non-existent player should fail.
     res = auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"player_ids_to_add": [9999]},
     )
@@ -679,14 +679,14 @@ def test_round_registrations_bye(
 ):
     p1, p2, p3 = player_factory(), player_factory(), player_factory()
     auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id, p3.id]},
     ).raise_for_status()
 
     # Set bye player.
     res = auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"bye_player_id": p2.id},
     )
@@ -698,7 +698,7 @@ def test_round_registrations_bye(
 
     # Change bye player.
     res = auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"bye_player_id": p3.id},
     )
@@ -710,7 +710,7 @@ def test_round_registrations_bye(
 
     # Clear bye.
     res = auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"clear_bye": True},
     )
@@ -727,13 +727,13 @@ def test_delete_round_registrations(
 ):
     p1, p2 = player_factory(), player_factory()
     auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id]},
     ).raise_for_status()
 
     res = auth_client.delete(
-        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+        f"/competitions/{competition.name}/registrations", params={"round_nr": 1}
     )
     res.raise_for_status()
     assert len(session.exec(select(RoundRegistration)).all()) == 0
@@ -746,13 +746,13 @@ def test_retrieve_round_registrations(
 ):
     p1, p2 = player_factory(), player_factory()
     auth_client.patch(
-        f"/competitions/{competition.name}/players",
+        f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
         json={"player_ids_to_add": [p1.id, p2.id]},
     ).raise_for_status()
 
     res = auth_client.get(
-        f"/competitions/{competition.name}/players", params={"round_nr": 1}
+        f"/competitions/{competition.name}/registrations", params={"round_nr": 1}
     )
     res.raise_for_status()
     players = res.json()

@@ -4,20 +4,20 @@ import { useQueryClient } from "@tanstack/react-query";
 
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 
-export function useRoundPlayers(competitionName: string, roundNr: number) {
+export function useRegistrations(competitionName: string, roundNr: number) {
   const {
-    data: roundPlayers,
+    data: registrations,
     error,
     isPending,
     isError,
-  } = $api.useQuery("get", "/competitions/{name}/players", {
+  } = $api.useQuery("get", "/competitions/{name}/registrations", {
     params: { path: { name: competitionName }, query: { round_nr: roundNr } },
   });
 
   const queryClient = useQueryClient();
   const onSuccess = () => {
     queryClient.invalidateQueries({
-      queryKey: ["get", "/competitions/{name}/players"],
+      queryKey: ["get", "/competitions/{name}/registrations"],
     });
   };
   const onError = (error: HTTPValidationError) => {
@@ -27,13 +27,13 @@ export function useRoundPlayers(competitionName: string, roundNr: number) {
 
   const updateMutation = $api.useMutation(
     "patch",
-    "/competitions/{name}/players",
+    "/competitions/{name}/registrations",
     { onSuccess, onError },
   );
 
   const deleteMutation = $api.useMutation(
     "delete",
-    "/competitions/{name}/players",
+    "/competitions/{name}/registrations",
     { onSuccess, onError },
   );
 
@@ -52,7 +52,7 @@ export function useRoundPlayers(competitionName: string, roundNr: number) {
           queryKey: ["get", "/competitions/"],
         });
         queryClient.invalidateQueries({
-          queryKey: ["get", "/competitions/{name}/players"],
+          queryKey: ["get", "/competitions/{name}/registrations"],
         });
       },
       onError,
@@ -60,7 +60,7 @@ export function useRoundPlayers(competitionName: string, roundNr: number) {
   );
 
   return {
-    roundPlayers,
+    registrations,
     error,
     isError,
     isPending,

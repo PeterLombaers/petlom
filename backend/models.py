@@ -545,7 +545,7 @@ class RoundRegistration(SQLModel, table=True):
 
 
 class RoundRegistrationPublic(SQLModel):
-    """A round registration as returned by GET /competitions/{name}/players."""
+    """A round registration as returned by GET /competitions/{name}/registrations."""
 
     id: int
     player: PlayerRef
@@ -554,7 +554,7 @@ class RoundRegistrationPublic(SQLModel):
 
 
 class RoundRegistrationUpdate(SQLModel):
-    """Request body of PATCH /competitions/{name}/players."""
+    """Request body of PATCH /competitions/{name}/registrations."""
 
     player_ids_to_add: list[int] | None = None
     player_ids_to_remove: list[int] | None = None

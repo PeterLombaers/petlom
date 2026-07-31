@@ -181,7 +181,7 @@ class PetlomClient:
     ) -> None:
         self._check(
             self.session.patch(
-                self._url(f"/competitions/{name}/players"),
+                self._url(f"/competitions/{name}/registrations"),
                 params={"round_nr": 1},
                 json={
                     "player_ids_to_add": player_ids,
@@ -194,7 +194,7 @@ class PetlomClient:
         # rows (and thus the initial ratings) persist independently.
         self._check(
             self.session.delete(
-                self._url(f"/competitions/{name}/players"),
+                self._url(f"/competitions/{name}/registrations"),
                 params={"round_nr": 1},
             ),
             "clean up round-1 registrations",

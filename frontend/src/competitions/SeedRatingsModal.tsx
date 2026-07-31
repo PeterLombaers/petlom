@@ -8,7 +8,7 @@ export type PlayerNeedingRating = { id: number; name: string };
  * Asks for an initial rating per player. Mount it only while ratings are
  * needed, so each round of questions starts with empty inputs.
  */
-export default function InitialRatingsModal({
+export default function SeedRatingsModal({
   players,
   onClose,
   onConfirm,

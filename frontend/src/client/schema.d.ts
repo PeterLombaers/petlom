@@ -146,23 +146,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/competitions/{name}/players": {
+    "/competitions/{name}/registrations": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Retrieve Round Players */
-        get: operations["retrieve_round_players_competitions__name__players_get"];
+        /** Retrieve Round Registrations */
+        get: operations["retrieve_round_registrations_competitions__name__registrations_get"];
         put?: never;
         post?: never;
-        /** Delete Round Players */
-        delete: operations["delete_round_players_competitions__name__players_delete"];
+        /** Delete Round Registrations */
+        delete: operations["delete_round_registrations_competitions__name__registrations_delete"];
         options?: never;
         head?: never;
-        /** Update Round Players */
-        patch: operations["update_round_players_competitions__name__players_patch"];
+        /** Update Round Registrations */
+        patch: operations["update_round_registrations_competitions__name__registrations_patch"];
         trace?: never;
     };
     "/players/": {
@@ -867,10 +867,10 @@ export interface components {
          */
         Result: "1-0" | "1/2-1/2" | "0-1";
         /**
-         * RoundPlayerPublic
-         * @description A registered player as returned by GET /competitions/{name}/players.
+         * RoundRegistrationPublic
+         * @description A round registration as returned by GET /competitions/{name}/registrations.
          */
-        RoundPlayerPublic: {
+        RoundRegistrationPublic: {
             /** Id */
             id: number;
             player: components["schemas"]["PlayerRef"];
@@ -880,10 +880,10 @@ export interface components {
             initial_rating: number | null;
         };
         /**
-         * RoundPlayerUpdate
-         * @description Request body of PATCH /competitions/{name}/players.
+         * RoundRegistrationUpdate
+         * @description Request body of PATCH /competitions/{name}/registrations.
          */
-        RoundPlayerUpdate: {
+        RoundRegistrationUpdate: {
             /** Player Ids To Add */
             player_ids_to_add?: number[] | null;
             /** Player Ids To Remove */
@@ -1386,7 +1386,7 @@ export interface operations {
             };
         };
     };
-    retrieve_round_players_competitions__name__players_get: {
+    retrieve_round_registrations_competitions__name__registrations_get: {
         parameters: {
             query: {
                 round_nr: number;
@@ -1405,7 +1405,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RoundPlayerPublic"][];
+                    "application/json": components["schemas"]["RoundRegistrationPublic"][];
                 };
             };
             /** @description Validation Error */
@@ -1419,7 +1419,7 @@ export interface operations {
             };
         };
     };
-    delete_round_players_competitions__name__players_delete: {
+    delete_round_registrations_competitions__name__registrations_delete: {
         parameters: {
             query: {
                 round_nr: number;
@@ -1452,7 +1452,7 @@ export interface operations {
             };
         };
     };
-    update_round_players_competitions__name__players_patch: {
+    update_round_registrations_competitions__name__registrations_patch: {
         parameters: {
             query: {
                 round_nr: number;
@@ -1465,7 +1465,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RoundPlayerUpdate"];
+                "application/json": components["schemas"]["RoundRegistrationUpdate"];
             };
         };
         responses: {
@@ -1475,7 +1475,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RoundPlayerPublic"][];
+                    "application/json": components["schemas"]["RoundRegistrationPublic"][];
                 };
             };
             /** @description Validation Error */

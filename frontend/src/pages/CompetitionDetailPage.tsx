@@ -14,8 +14,8 @@ import { useTranslation } from "react-i18next";
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchTable } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
-import RoundPlayerEditor from "@/competitions/RoundPlayerEditor";
-import RoundPlayerTable from "@/competitions/RoundPlayerTable";
+import RegistrationEditor from "@/competitions/RegistrationEditor";
+import RegisteredPlayerTable from "@/competitions/RegisteredPlayerTable";
 import NotFoundPage from "./NotFoundPage";
 import { useAuth } from "@/auth";
 import { useDocumentTitle } from "@/pages/useDocumentTitle";
@@ -61,7 +61,7 @@ function CompetitionDetail({
   let body;
   if (isDraftRound) {
     body = (
-      <RoundPlayerEditor
+      <RegistrationEditor
         competitionName={name}
         roundNr={currentRound}
         ratingType={competition.rating_type}
@@ -164,7 +164,7 @@ function RoundView({
       </Group>
 
       <Collapse expanded={playersVisible}>
-        <RoundPlayerTable competitionName={name} roundNr={currentRound} />
+        <RegisteredPlayerTable competitionName={name} roundNr={currentRound} />
       </Collapse>
       <MatchTable competitionName={name} round={currentRound} />
       <RankingTable competitionName={name} roundNr={currentRound} />

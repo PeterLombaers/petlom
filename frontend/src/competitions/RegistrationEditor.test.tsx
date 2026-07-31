@@ -1,17 +1,17 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render, makeMockMutation } from "@/test-utils";
-import RoundPlayerEditor from "./RoundPlayerEditor";
-import * as useRoundPlayersModule from "./useRoundPlayers";
+import RegistrationEditor from "./RegistrationEditor";
+import * as useRegistrationsModule from "./useRegistrations";
 import * as apiModule from "@client/api";
 
-vi.mock("./useRoundPlayers");
+vi.mock("./useRegistrations");
 vi.mock("@client/api", () => ({
   $api: { useQuery: vi.fn(), useMutation: vi.fn() },
   formatHTTPValidationError: vi.fn(),
 }));
 
-const mockUseRoundPlayers = vi.mocked(useRoundPlayersModule.useRoundPlayers);
+const mockUseRegistrations = vi.mocked(useRegistrationsModule.useRegistrations);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockUseQuery = (apiModule.$api as any).useQuery as ReturnType<
   typeof vi.fn
@@ -32,12 +32,12 @@ const ALICE = { id: 1, name: "Alice", is_active: true };
 const BOB = { id: 2, name: "Bob", is_active: true };
 const CAROL = { id: 3, name: "Carol", is_active: true };
 
-function makeRoundPlayer(id: number, player: typeof ALICE, is_bye = false) {
+function makeRegistration(id: number, player: typeof ALICE, is_bye = false) {
   return { id, player, is_bye, initial_rating: null };
 }
 
 function setupMocks({
-  roundPlayers = [] as ReturnType<typeof makeRoundPlayer>[],
+  registrations = [] as ReturnType<typeof makeRegistration>[],
   updateMutateOverrides = {},
   deleteMutateOverrides = {},
 } = {}) {
@@ -45,15 +45,15 @@ function setupMocks({
   const deleteMutation = makeMockMutation(deleteMutateOverrides);
   const createPairingMutation = makeMockMutation();
 
-  mockUseRoundPlayers.mockReturnValue({
-    roundPlayers,
+  mockUseRegistrations.mockReturnValue({
+    registrations,
     isPending: false,
     isError: false,
     error: null,
     updateMutation,
     deleteMutation,
     createPairingMutation,
-  } as ReturnType<typeof useRoundPlayersModule.useRoundPlayers>);
+  } as ReturnType<typeof useRegistrationsModule.useRegistrations>);
 
   // Return all three players from the players API
   mockUseQuery.mockReturnValue({
@@ -66,12 +66,14 @@ function setupMocks({
   return { updateMutation, deleteMutation };
 }
 
-function renderList(roundPlayers = [] as ReturnType<typeof makeRoundPlayer>[]) {
-  const { updateMutation, deleteMutation } = setupMocks({ roundPlayers });
+function renderList(
+  registrations = [] as ReturnType<typeof makeRegistration>[],
+) {
+  const { updateMutation, deleteMutation } = setupMocks({ registrations });
   const onPairingCreated = vi.fn();
   const onDraftCleared = vi.fn();
   render(
-    <RoundPlayerEditor
+    <RegistrationEditor
       competitionName="TestComp"
       roundNr={2}
       ratingType={MOCK_RATING_TYPE}
@@ -82,7 +84,7 @@ function renderList(roundPlayers = [] as ReturnType<typeof makeRoundPlayer>[]) {
   return { updateMutation, deleteMutation, onPairingCreated, onDraftCleared };
 }
 
-describe("RoundPlayerEditor", () => {
+describe("RegistrationEditor", () => {
   describe("player select", () => {
     it("renders a combobox input for player selection", () => {
       renderList();
@@ -96,7 +98,7 @@ describe("RoundPlayerEditor", () => {
 
     it("filters out enrolled players from the dropdown options", async () => {
       const user = userEvent.setup();
-      renderList([makeRoundPlayer(10, ALICE)]);
+      renderList([makeRegistration(10, ALICE)]);
 
       // Open the combobox
       await user.click(screen.getByRole("combobox"));
@@ -156,12 +158,12 @@ describe("RoundPlayerEditor", () => {
 
   describe("odd player warning", () => {
     it("shows warning when player count is odd and no bye is set", () => {
-      renderList([makeRoundPlayer(10, ALICE)]);
+      renderList([makeRegistration(10, ALICE)]);
       expect(screen.getByText(/Odd number of players/)).toBeInTheDocument();
     });
 
     it("warning appears after the table, not before it", () => {
-      renderList([makeRoundPlayer(10, ALICE)]);
+      renderList([makeRegistration(10, ALICE)]);
       const table = screen.getByRole("table");
       const alert =
         screen.getByText(/Odd number of players/).closest("[role='alert']") ??
@@ -173,7 +175,7 @@ describe("RoundPlayerEditor", () => {
     });
 
     it("does not show warning when player count is even", () => {
-      renderList([makeRoundPlayer(10, ALICE), makeRoundPlayer(11, BOB)]);
+      renderList([makeRegistration(10, ALICE), makeRegistration(11, BOB)]);
       expect(
         screen.queryByText(/Odd number of players/),
       ).not.toBeInTheDocument();
@@ -219,18 +221,18 @@ describe("RoundPlayerEditor", () => {
       const updateMutation = makeMockMutation();
       const createPairingMutation = makeMockMutation();
 
-      mockUseRoundPlayers.mockReturnValue({
-        roundPlayers: [],
+      mockUseRegistrations.mockReturnValue({
+        registrations: [],
         isPending: false,
         isError: false,
         error: null,
         updateMutation,
         deleteMutation,
         createPairingMutation,
-      } as ReturnType<typeof useRoundPlayersModule.useRoundPlayers>);
+      } as ReturnType<typeof useRegistrationsModule.useRegistrations>);
 
       render(
-        <RoundPlayerEditor
+        <RegistrationEditor
           competitionName="TestComp"
           roundNr={2}
           ratingType={MOCK_RATING_TYPE}

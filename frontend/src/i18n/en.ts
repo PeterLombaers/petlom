@@ -92,9 +92,7 @@ const en = {
     initialRatingLabel: "Initial rating for {{playerName}}",
     confirm: "Confirm",
   },
-  roundPlayers: {
-    loadingList: "Loading player list...",
-    errorLoading: "Error loading player list.",
+  registration: {
     player: "Player",
     bye: "Bye",
     selectPlayers: "Select players...",

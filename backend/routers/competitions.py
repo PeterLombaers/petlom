@@ -499,7 +499,7 @@ def update_bye(
     session.add(new_bye_player)
 
 
-@router.get("/{name}/players")
+@router.get("/{name}/registrations")
 def retrieve_round_registrations(
     name: str, round_nr: int, session: SessionDep
 ) -> list[RoundRegistrationPublic]:
@@ -507,7 +507,7 @@ def retrieve_round_registrations(
     return get_round_registrations(competition, round_nr, session)
 
 
-@router.patch("/{name}/players")
+@router.patch("/{name}/registrations")
 def update_round_registrations(
     name: str,
     round_nr: int,
@@ -537,7 +537,7 @@ def update_round_registrations(
     return get_round_registrations(competition, round_nr, session)
 
 
-@router.delete("/{name}/players")
+@router.delete("/{name}/registrations")
 def delete_round_registrations(
     name: str, round_nr: int, session: SessionDep, _: ModeratorDep
 ):
