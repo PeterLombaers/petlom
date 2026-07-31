@@ -11,6 +11,27 @@ export const fetchClient = createFetchClient<paths>({
 
 export const $api = createClient(fetchClient);
 
+type HttpMethod = "get" | "put" | "post" | "delete" | "patch";
+
+/** The paths in the schema that support `M`; the others are typed `never`. */
+type PathsWithMethod<M extends HttpMethod> = {
+  [P in keyof paths]: paths[P][M] extends undefined ? never : P;
+}[keyof paths];
+
+/**
+ * The React Query key prefix of an endpoint, typed against the OpenAPI schema.
+ *
+ * `$api` keys its queries as `[method, path, init]`, so this two-element prefix
+ * matches every cached variant of the endpoint — invalidating
+ * `/competitions/{name}/registrations` covers every round. Because the path is
+ * checked against `schema.d.ts`, a renamed endpoint is a compile error instead
+ * of an invalidation that silently matches nothing.
+ */
+export const endpointKey = <M extends HttpMethod, P extends PathsWithMethod<M>>(
+  method: M,
+  path: P,
+) => [method, path] as const;
+
 export const formatValidationError = (error: ValidationError) => {
   const location = error.loc.join(" -> ");
   return `Validation error at ${location}: ${error.msg} (type: ${error.type})`;

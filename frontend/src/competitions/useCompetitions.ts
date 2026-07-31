@@ -1,4 +1,4 @@
-import { $api, formatHTTPValidationError } from "@/client/api";
+import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
 import { components } from "@/client/schema";
 import { TableQueryResult } from "@/table/types";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,7 +22,9 @@ export function useCompetitions() {
 
   const queryClient = useQueryClient();
   const onSuccess = () =>
-    queryClient.invalidateQueries({ queryKey: ["get", "/competitions/"] });
+    queryClient.invalidateQueries({
+      queryKey: endpointKey("get", "/competitions/"),
+    });
   const onError = (error: HTTPValidationError) => {
     const errorMessage = formatHTTPValidationError(error);
     console.error(errorMessage);

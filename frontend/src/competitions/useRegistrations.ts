@@ -1,4 +1,4 @@
-import { $api, formatHTTPValidationError } from "@/client/api";
+import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
 import { components } from "@/client/schema";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -17,7 +17,7 @@ export function useRegistrations(competitionName: string, roundNr: number) {
   const queryClient = useQueryClient();
   const onSuccess = () => {
     queryClient.invalidateQueries({
-      queryKey: ["get", "/competitions/{name}/registrations"],
+      queryKey: endpointKey("get", "/competitions/{name}/registrations"),
     });
   };
   const onError = (error: HTTPValidationError) => {
@@ -43,16 +43,16 @@ export function useRegistrations(competitionName: string, roundNr: number) {
     {
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: ["get", "/competitions/{name}/pairing"],
+          queryKey: endpointKey("get", "/competitions/{name}/pairing"),
         });
         queryClient.invalidateQueries({
-          queryKey: ["get", "/competitions/{name}"],
+          queryKey: endpointKey("get", "/competitions/{name}"),
         });
         queryClient.invalidateQueries({
-          queryKey: ["get", "/competitions/"],
+          queryKey: endpointKey("get", "/competitions/"),
         });
         queryClient.invalidateQueries({
-          queryKey: ["get", "/competitions/{name}/registrations"],
+          queryKey: endpointKey("get", "/competitions/{name}/registrations"),
         });
       },
       onError,
