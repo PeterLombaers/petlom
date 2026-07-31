@@ -10,6 +10,15 @@ vi.mock("@client/api", () => ({
   $api: { useQuery: vi.fn(), useMutation: vi.fn() },
   formatHTTPValidationError: vi.fn(),
 }));
+vi.mock("@/auth", () => ({ useAuth: () => ({ isModerator: true }) }));
+// The new-player button owns the create mutation; the editor only reacts to the
+// player it reports back.
+const { createMutation } = vi.hoisted(() => ({
+  createMutation: { mutate: vi.fn(), isPending: false },
+}));
+vi.mock("@/players/usePlayers", () => ({
+  usePlayers: () => ({ createMutation }),
+}));
 
 const mockUseRegistrations = vi.mocked(useRegistrationsModule.useRegistrations);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,9 +37,12 @@ const MOCK_RATING_TYPE = {
   updated_at: "2024-01-01T00:00:00",
 };
 
-const ALICE = { id: 1, name: "Alice", is_active: true };
-const BOB = { id: 2, name: "Bob", is_active: true };
-const CAROL = { id: 3, name: "Carol", is_active: true };
+const ALICE = { id: 1, name: "Alice", is_active: true, external_ids: [] };
+const BOB = { id: 2, name: "Bob", is_active: true, external_ids: [] };
+const CAROL = { id: 3, name: "Carol", is_active: true, external_ids: [] };
+
+/** The dropdown shows the FIDE rating beside the name, `—` when there is none. */
+const option = (player: typeof ALICE) => `${player.name} (—)`;
 
 function makeRegistration(id: number, player: typeof ALICE, is_bye = false) {
   return { id, player, is_bye, initial_rating: null };
@@ -104,9 +116,11 @@ describe("RegistrationEditor", () => {
       await user.click(screen.getByRole("combobox"));
 
       const listbox = screen.getByRole("listbox");
-      expect(within(listbox).queryByText("Alice")).not.toBeInTheDocument();
-      expect(within(listbox).getByText("Bob")).toBeInTheDocument();
-      expect(within(listbox).getByText("Carol")).toBeInTheDocument();
+      expect(
+        within(listbox).queryByText(option(ALICE)),
+      ).not.toBeInTheDocument();
+      expect(within(listbox).getByText(option(BOB))).toBeInTheDocument();
+      expect(within(listbox).getByText(option(CAROL))).toBeInTheDocument();
     });
 
     it("enables Add button after selecting a player", async () => {
@@ -114,7 +128,7 @@ describe("RegistrationEditor", () => {
       renderList();
 
       await user.click(screen.getByRole("combobox"));
-      await user.click(screen.getByRole("option", { name: "Alice" }));
+      await user.click(screen.getByRole("option", { name: option(ALICE) }));
 
       expect(screen.getByRole("button", { name: "Add" })).toBeEnabled();
     });
@@ -124,8 +138,8 @@ describe("RegistrationEditor", () => {
       const { updateMutation } = renderList();
 
       await user.click(screen.getByRole("combobox"));
-      await user.click(screen.getByRole("option", { name: "Alice" }));
-      await user.click(screen.getByRole("option", { name: "Bob" }));
+      await user.click(screen.getByRole("option", { name: option(ALICE) }));
+      await user.click(screen.getByRole("option", { name: option(BOB) }));
       await user.click(screen.getByRole("button", { name: "Add" }));
 
       expect(updateMutation.mutate).toHaveBeenCalledWith(
@@ -142,7 +156,7 @@ describe("RegistrationEditor", () => {
 
       // Open dropdown, select a player, then close dropdown with Escape
       await user.click(screen.getByRole("combobox"));
-      await user.click(screen.getByRole("option", { name: "Bob" }));
+      await user.click(screen.getByRole("option", { name: option(BOB) }));
       await user.keyboard("{Escape}");
       // Press Enter to add
       await user.keyboard("{Enter}");
@@ -150,6 +164,42 @@ describe("RegistrationEditor", () => {
       expect(updateMutation.mutate).toHaveBeenCalledWith(
         expect.objectContaining({
           body: expect.objectContaining({ player_ids_to_add: [2] }),
+        }),
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe("new player", () => {
+    it("selects the newly created player so it can be added right away", async () => {
+      const user = userEvent.setup();
+      const dave = { id: 4, name: "Dave", is_active: true, external_ids: [] };
+      createMutation.mutate.mockImplementation(
+        (
+          _variables: unknown,
+          options?: { onSuccess?: (data: unknown) => void },
+        ) => options?.onSuccess?.(dave),
+      );
+      const { updateMutation } = renderList();
+      // The player exists once the create call succeeded.
+      mockUseQuery.mockReturnValue({
+        data: [ALICE, BOB, CAROL, dave],
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      await user.click(screen.getByRole("button", { name: "Add player" }));
+      await user.type(
+        within(screen.getByRole("dialog")).getByLabelText(/^Name/),
+        "Dave",
+      );
+      await user.click(screen.getByRole("button", { name: "Save and close" }));
+      await user.click(screen.getByRole("button", { name: "Add" }));
+
+      expect(updateMutation.mutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ player_ids_to_add: [4] }),
         }),
         expect.any(Object),
       );

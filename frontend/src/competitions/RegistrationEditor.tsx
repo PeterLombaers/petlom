@@ -17,6 +17,8 @@ import { $api, formatHTTPValidationError } from "@client/api";
 import { components } from "@/client/schema";
 import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
+import { getRating } from "@/players/external";
+import NewPlayerButton from "@/players/NewPlayerButton";
 import { useRegistrations } from "./useRegistrations";
 import SeedRatingsModal, { PlayerNeedingRating } from "./SeedRatingsModal";
 import { useState } from "react";
@@ -76,7 +78,10 @@ export default function RegistrationEditor({
   const enrolledPlayerIds = new Set(registrations.map((rp) => rp.player.id));
   const playerOptions = (allPlayers ?? [])
     .filter((p) => !enrolledPlayerIds.has(p.id))
-    .map((p) => ({ value: String(p.id), label: p.name }));
+    .map((p) => ({
+      value: String(p.id),
+      label: `${p.name} (${getRating(p, "fide")?.rating ?? "—"})`,
+    }));
 
   const ratedPlayerIds = new Set(
     (existingRatings ?? []).map((r) => r.player_id),
@@ -119,8 +124,7 @@ export default function RegistrationEditor({
       .map((id) => {
         const num = Number(id);
         if (ratedPlayerIds.has(num)) return null;
-        const player = (allPlayers ?? []).find((p) => p.id === num);
-        return player ? { id: num, name: player.name } : null;
+        return (allPlayers ?? []).find((p) => p.id === num) ?? null;
       })
       .filter((p): p is PlayerNeedingRating => p != null);
 
@@ -255,6 +259,14 @@ export default function RegistrationEditor({
                   >
                     {t("registration.add")}
                   </Button>
+                  <NewPlayerButton
+                    onCreated={(player) =>
+                      setSelectedPlayerIds((prev) => [
+                        ...prev,
+                        String(player.id),
+                      ])
+                    }
+                  />
                 </Group>
               </div>
             </Table.Td>
@@ -303,6 +315,7 @@ export default function RegistrationEditor({
       {playersNeedingRatings.length > 0 && (
         <SeedRatingsModal
           players={playersNeedingRatings}
+          competitionName={competitionName}
           onClose={() => setPlayersNeedingRatings([])}
           onConfirm={doAddPlayers}
           isPending={updateMutation.isPending}
