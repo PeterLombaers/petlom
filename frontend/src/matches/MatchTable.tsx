@@ -96,18 +96,21 @@ export const MatchTable = ({ competitionName, round }: MatchTableProps) => {
           onChange={(val) => {
             onChange("board", val === "" ? null : Number(val));
           }}
+          label={t("match.board")}
           error={errors.board || undefined}
         />
         <PlayerSelect
           player={formData.player_white ?? emptyPlayer}
           setPlayer={(player) => onChange("player_white", player)}
           error={!!errors.player_white}
+          label={t("match.white")}
           helperText={errors.player_white}
         />
         <PlayerSelect
           player={formData.player_black ?? emptyPlayer}
           setPlayer={(player) => onChange("player_black", player)}
           error={!!errors.player_black}
+          label={t("match.black")}
           helperText={errors.player_black}
         />
       </Stack>

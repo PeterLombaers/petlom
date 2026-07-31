@@ -9,6 +9,7 @@ type PlayerSelectProps = {
   error?: boolean;
   helperText?: string;
   filterOptions?: (options: PlayerMinimal[]) => PlayerMinimal[];
+  label?: string;
 };
 
 export default function PlayerSelect({
@@ -17,6 +18,7 @@ export default function PlayerSelect({
   error = false,
   helperText = "",
   filterOptions,
+  label,
 }: PlayerSelectProps) {
   const {
     data: dbPlayers,
@@ -53,6 +55,7 @@ export default function PlayerSelect({
       error={error ? helperText || true : undefined}
       searchable
       comboboxProps={{ width: "max-content" }}
+      label={label}
     />
   );
 }
