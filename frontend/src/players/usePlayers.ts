@@ -16,7 +16,9 @@ export function usePlayers() {
 
   const queryClient = useQueryClient();
   const onSuccess = () =>
-    queryClient.invalidateQueries({ queryKey: endpointKey("get", "/players/") });
+    queryClient.invalidateQueries({
+      queryKey: endpointKey("get", "/players/"),
+    });
   const onError = (error: HTTPValidationError) => {
     const errorMessage = formatHTTPValidationError(error);
     console.error(errorMessage);
