@@ -12,7 +12,7 @@ from backend.dependencies import (
     find_competition,
     find_object,
 )
-from backend.models import Competition, Match, MatchBase, MatchPublic, MatchUpdate
+from backend.models import Competition, Match, MatchCreate, MatchPublic, MatchUpdate
 
 router = APIRouter(prefix="/matches", tags=["matches"])
 
@@ -32,7 +32,7 @@ def touch_competition(session: SessionDep, competition_id: int):
 
 @router.post("/")
 def create_match(
-    match_obj: MatchBase, session: SessionDep, _: ModeratorDep
+    match_obj: MatchCreate, session: SessionDep, _: ModeratorDep
 ) -> MatchPublic:
     competition = find_competition(match_obj.competition_name, session)
     db_match = Match.model_validate(

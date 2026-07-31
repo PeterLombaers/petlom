@@ -10,7 +10,7 @@ import { playerSelectCell, resultToggleCell } from "./cells";
 import { useMatches } from "./useMatches";
 
 type MatchPublic = components["schemas"]["MatchPublic"];
-type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
+type PlayerRef = components["schemas"]["PlayerRef"];
 
 type MatchTableProps = {
   competitionName: string;
@@ -19,11 +19,11 @@ type MatchTableProps = {
 
 type MatchFormData = {
   board: number | null;
-  player_white: PlayerPublicMinimal | null;
-  player_black: PlayerPublicMinimal | null;
+  player_white: PlayerRef | null;
+  player_black: PlayerRef | null;
 };
 
-const emptyPlayer: PlayerPublicMinimal = { id: 0, name: "", is_active: true };
+const emptyPlayer: PlayerRef = { id: 0, name: "", is_active: true };
 
 const sanitizeData = (match: MatchPublic) => match;
 

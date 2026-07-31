@@ -14,7 +14,7 @@ from backend.models import (
     Match,
     Player,
     PlayerCreate,
-    PlayerDetailPublic,
+    PlayerDetail,
     PlayerExternalId,
     PlayerExternalIdPublic,
     PlayerExternalIdUpdate,
@@ -64,7 +64,7 @@ def list_players(
 
 
 @router.get("/{id}/")
-def retrieve_player(id: int, session: SessionDep) -> PlayerDetailPublic:
+def retrieve_player(id: int, session: SessionDep) -> PlayerDetail:
     return find_object(model=Player, identifier=id, session=session)
 
 

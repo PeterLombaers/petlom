@@ -4,11 +4,11 @@ import PlayerSelect from "@/players/PlayerSelect";
 import type { EditProps } from "@/table/types";
 import ResultToggle from "./ResultToggle";
 
-type PlayerPublicMinimal = components["schemas"]["PlayerPublicMinimal"];
+type PlayerRef = components["schemas"]["PlayerRef"];
 type Result = components["schemas"]["Result"];
 
 export const playerSelectCell = {
-  renderValue: (props: { value: PlayerPublicMinimal }) => (
+  renderValue: (props: { value: PlayerRef }) => (
     <Tooltip
       label={props.value.name}
       events={{ hover: true, focus: false, touch: true }}
@@ -16,7 +16,7 @@ export const playerSelectCell = {
       <span>{props.value.name}</span>
     </Tooltip>
   ),
-  renderEdit: (props: EditProps<PlayerPublicMinimal>) => (
+  renderEdit: (props: EditProps<PlayerRef>) => (
     <PlayerSelect
       player={props.editValue}
       setPlayer={props.onChange}

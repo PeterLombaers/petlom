@@ -360,31 +360,21 @@ export interface components {
             /** Client Secret */
             client_secret?: string | null;
         };
-        /** CompetitionCreate */
+        /**
+         * CompetitionCreate
+         * @description Request body of POST /competitions/.
+         */
         CompetitionCreate: {
             /** Name */
             name: string;
             type: components["schemas"]["CompetitionType"];
             rating_type: components["schemas"]["CompetitionRatingTypeCreate"];
         };
-        /** CompetitionPublic */
-        CompetitionPublic: {
-            /** Name */
-            name: string;
-            type: components["schemas"]["CompetitionType"];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
-        /** CompetitionPublicWithNRounds */
-        CompetitionPublicWithNRounds: {
+        /**
+         * CompetitionDetail
+         * @description A competition as returned by GET /competitions/{name} and the write endpoints.
+         */
+        CompetitionDetail: {
             /** Name */
             name: string;
             type: components["schemas"]["CompetitionType"];
@@ -402,13 +392,59 @@ export interface components {
             n_rounds: number;
             rating_type: components["schemas"]["CompetitionRatingTypePublic"];
         };
-        /** CompetitionRatingPublic */
+        /**
+         * CompetitionPublic
+         * @description A competition as returned by GET /competitions/.
+         */
+        CompetitionPublic: {
+            /** Name */
+            name: string;
+            type: components["schemas"]["CompetitionType"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CompetitionRatingForPlayer
+         * @description A rating as nested in the PlayerDetail returned by GET /players/{id}/.
+         *
+         *     Seen from the player's side: it keeps the rating type (which names the
+         *     competition) and drops the player. Its sibling is CompetitionRatingPublic.
+         */
+        CompetitionRatingForPlayer: {
+            /** Id */
+            id: number;
+            /** Initial Rating */
+            initial_rating: number;
+            /** Current Rating */
+            current_rating: number;
+            /** Is Manual */
+            is_manual: boolean;
+            /** Source External Rating Id */
+            source_external_rating_id: number | null;
+            rating_type: components["schemas"]["CompetitionRatingTypePublic"];
+        };
+        /**
+         * CompetitionRatingPublic
+         * @description A rating as returned by GET /competitions/{name}/player-ratings.
+         *
+         *     Seen from the competition's side: it keeps the player and drops the rating
+         *     type, which is the same for every row. Its sibling is
+         *     CompetitionRatingForPlayer.
+         */
         CompetitionRatingPublic: {
             /** Id */
             id: number;
             /** Player Id */
             player_id: number;
-            player: components["schemas"]["PlayerPublicMinimal"];
+            player: components["schemas"]["PlayerRef"];
             /** Rating Type Id */
             rating_type_id: number;
             /** Initial Rating */
@@ -430,7 +466,10 @@ export interface components {
              */
             updated_at: string;
         };
-        /** CompetitionRatingTypeCreate */
+        /**
+         * CompetitionRatingTypeCreate
+         * @description The rating configuration nested in the body of POST /competitions/.
+         */
         CompetitionRatingTypeCreate: {
             /** Name */
             name?: string | null;
@@ -440,7 +479,10 @@ export interface components {
             /** Default Initial Rating */
             default_initial_rating?: number | null;
         };
-        /** CompetitionRatingTypePublic */
+        /**
+         * CompetitionRatingTypePublic
+         * @description The rating configuration nested in a CompetitionDetail or a rating response.
+         */
         CompetitionRatingTypePublic: {
             /** Id */
             id: number;
@@ -464,7 +506,10 @@ export interface components {
              */
             updated_at: string;
         };
-        /** CompetitionRatingTypeUpdate */
+        /**
+         * CompetitionRatingTypeUpdate
+         * @description Request body of PATCH /competitions/{name}/rating.
+         */
         CompetitionRatingTypeUpdate: {
             /** Name */
             name?: string | null;
@@ -479,7 +524,10 @@ export interface components {
          * @enum {string}
          */
         CompetitionType: "simkro";
-        /** CompetitionUpdate */
+        /**
+         * CompetitionUpdate
+         * @description Request body of PATCH /competitions/{name}.
+         */
         CompetitionUpdate: {
             /** Name */
             name?: string | null;
@@ -504,7 +552,10 @@ export interface components {
             /** List Date */
             list_date?: string | null;
         };
-        /** ExternalRatingImportRequest */
+        /**
+         * ExternalRatingImportRequest
+         * @description Request body of POST /external/{source}/import/.
+         */
         ExternalRatingImportRequest: {
             /**
              * Player Ids
@@ -520,7 +571,10 @@ export interface components {
              */
             update_existing: boolean;
         };
-        /** ExternalRatingImportResult */
+        /**
+         * ExternalRatingImportResult
+         * @description Response of POST /external/{source}/import/.
+         */
         ExternalRatingImportResult: {
             /** List Date */
             list_date: string;
@@ -544,7 +598,10 @@ export interface components {
              */
             players_without_id: number[];
         };
-        /** ExternalRatingPublic */
+        /**
+         * ExternalRatingPublic
+         * @description A rating snapshot as returned by GET /players/{id}/external-ratings/.
+         */
         ExternalRatingPublic: {
             /** Id */
             id: number;
@@ -572,10 +629,10 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
-         * MatchBase
-         * @description The API shape of a match, which addresses the competition by name.
+         * MatchCreate
+         * @description Request body of POST /matches/.
          */
-        MatchBase: {
+        MatchCreate: {
             /** Player White Id */
             player_white_id: number;
             /** Player Black Id */
@@ -588,7 +645,10 @@ export interface components {
             board: number;
             result?: components["schemas"]["Result"] | null;
         };
-        /** MatchPublic */
+        /**
+         * MatchPublic
+         * @description A match as returned by GET /matches/ and the match write endpoints.
+         */
         MatchPublic: {
             /** Player White Id */
             player_white_id: number;
@@ -613,10 +673,13 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-            player_white: components["schemas"]["PlayerPublicMinimal"];
-            player_black: components["schemas"]["PlayerPublicMinimal"];
+            player_white: components["schemas"]["PlayerRef"];
+            player_black: components["schemas"]["PlayerRef"];
         };
-        /** MatchUpdate */
+        /**
+         * MatchUpdate
+         * @description Request body of PATCH /matches/{id}/.
+         */
         MatchUpdate: {
             /** Player White Id */
             player_white_id?: number | null;
@@ -630,14 +693,20 @@ export interface components {
             board?: number | null;
             result?: components["schemas"]["Result"] | null;
         };
-        /** ModeratorPublic */
+        /**
+         * ModeratorPublic
+         * @description A moderator as returned by GET /auth/me.
+         */
         ModeratorPublic: {
             /** Id */
             id: number;
             /** Username */
             username: string;
         };
-        /** PairingCreate */
+        /**
+         * PairingCreate
+         * @description Request body of POST /competitions/{name}/pairing.
+         */
         PairingCreate: {
             /** Round Nr */
             round_nr: number;
@@ -645,23 +714,9 @@ export interface components {
             player_ids: number[];
         };
         /**
-         * PlayerCompetitionRatingPublic
-         * @description A competition rating as seen from the player's perspective.
+         * PlayerCreate
+         * @description Request body of POST /players/.
          */
-        PlayerCompetitionRatingPublic: {
-            /** Id */
-            id: number;
-            /** Initial Rating */
-            initial_rating: number;
-            /** Current Rating */
-            current_rating: number;
-            /** Is Manual */
-            is_manual: boolean;
-            /** Source External Rating Id */
-            source_external_rating_id: number | null;
-            rating_type: components["schemas"]["CompetitionRatingTypePublic"];
-        };
-        /** PlayerCreate */
         PlayerCreate: {
             /** Name */
             name: string;
@@ -674,10 +729,13 @@ export interface components {
              * External Ids
              * @default []
              */
-            external_ids: components["schemas"]["PlayerExternalIdInput"][];
+            external_ids: components["schemas"]["PlayerExternalIdCreate"][];
         };
-        /** PlayerDetailPublic */
-        PlayerDetailPublic: {
+        /**
+         * PlayerDetail
+         * @description A player as returned by GET /players/{id}/.
+         */
+        PlayerDetail: {
             /** Name */
             name: string;
             /**
@@ -706,15 +764,21 @@ export interface components {
              * Competition Ratings
              * @default []
              */
-            competition_ratings: components["schemas"]["PlayerCompetitionRatingPublic"][];
+            competition_ratings: components["schemas"]["CompetitionRatingForPlayer"][];
         };
-        /** PlayerExternalIdInput */
-        PlayerExternalIdInput: {
+        /**
+         * PlayerExternalIdCreate
+         * @description An external id nested in the body of POST /players/.
+         */
+        PlayerExternalIdCreate: {
             source: components["schemas"]["ExternalRatingSource"];
             /** External Id */
             external_id: string;
         };
-        /** PlayerExternalIdPublic */
+        /**
+         * PlayerExternalIdPublic
+         * @description A player's id at an external source, as returned inside a player response.
+         */
         PlayerExternalIdPublic: {
             /** Id */
             id: number;
@@ -732,12 +796,18 @@ export interface components {
              */
             updated_at: string;
         };
-        /** PlayerExternalIdUpdate */
+        /**
+         * PlayerExternalIdUpdate
+         * @description Request body of PUT /players/{id}/external-ids/{source}/.
+         */
         PlayerExternalIdUpdate: {
             /** External Id */
             external_id: string;
         };
-        /** PlayerPublic */
+        /**
+         * PlayerPublic
+         * @description A player as returned by GET /players/ and the player write endpoints.
+         */
         PlayerPublic: {
             /** Name */
             name: string;
@@ -764,8 +834,11 @@ export interface components {
              */
             external_ids: components["schemas"]["PlayerExternalIdPublic"][];
         };
-        /** PlayerPublicMinimal */
-        PlayerPublicMinimal: {
+        /**
+         * PlayerRef
+         * @description A player as nested in a match, a registration or a competition rating.
+         */
+        PlayerRef: {
             /** Name */
             name: string;
             /** Id */
@@ -773,7 +846,10 @@ export interface components {
             /** Is Active */
             is_active: boolean;
         };
-        /** PlayerUpdate */
+        /**
+         * PlayerUpdate
+         * @description Request body of PATCH /players/{id}/.
+         */
         PlayerUpdate: {
             /** Name */
             name?: string | null;
@@ -790,17 +866,23 @@ export interface components {
          * @enum {string}
          */
         Result: "1-0" | "1/2-1/2" | "0-1";
-        /** RoundPlayerPublic */
+        /**
+         * RoundPlayerPublic
+         * @description A registered player as returned by GET /competitions/{name}/players.
+         */
         RoundPlayerPublic: {
             /** Id */
             id: number;
-            player: components["schemas"]["PlayerPublicMinimal"];
+            player: components["schemas"]["PlayerRef"];
             /** Is Bye */
             is_bye: boolean;
             /** Initial Rating */
             initial_rating: number | null;
         };
-        /** RoundPlayerUpdate */
+        /**
+         * RoundPlayerUpdate
+         * @description Request body of PATCH /competitions/{name}/players.
+         */
         RoundPlayerUpdate: {
             /** Player Ids To Add */
             player_ids_to_add?: number[] | null;
@@ -815,11 +897,14 @@ export interface components {
                 [key: string]: number;
             } | null;
         };
-        /** SimkroRank */
+        /**
+         * SimkroRank
+         * @description A ranking row as returned by GET|POST /competitions/{name}/ranking.
+         */
         SimkroRank: {
             /** Position */
             position: number;
-            player: components["schemas"]["PlayerPublic"];
+            player: components["schemas"]["PlayerRef"];
             /** Games Played */
             games_played: number;
             /** Saldo */
@@ -959,7 +1044,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionPublicWithNRounds"];
+                    "application/json": components["schemas"]["CompetitionDetail"];
                 };
             };
             /** @description Validation Error */
@@ -990,7 +1075,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionPublicWithNRounds"];
+                    "application/json": components["schemas"]["CompetitionDetail"];
                 };
             };
             /** @description Validation Error */
@@ -1056,7 +1141,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionPublicWithNRounds"];
+                    "application/json": components["schemas"]["CompetitionDetail"];
                 };
             };
             /** @description Validation Error */
@@ -1487,7 +1572,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlayerDetailPublic"];
+                    "application/json": components["schemas"]["PlayerDetail"];
                 };
             };
             /** @description Validation Error */
@@ -1707,7 +1792,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MatchBase"];
+                "application/json": components["schemas"]["MatchCreate"];
             };
         };
         responses: {

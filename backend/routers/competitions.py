@@ -13,8 +13,8 @@ from backend.enums import Result
 from backend.models import (
     Competition,
     CompetitionCreate,
+    CompetitionDetail,
     CompetitionPublic,
-    CompetitionPublicWithNRounds,
     CompetitionRating,
     CompetitionRatingPublic,
     CompetitionRatingType,
@@ -44,8 +44,8 @@ def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
 
 def to_competition_response(
     competition: Competition, session: SessionDep
-) -> CompetitionPublicWithNRounds:
-    return CompetitionPublicWithNRounds(
+) -> CompetitionDetail:
+    return CompetitionDetail(
         name=competition.name,
         type=competition.type,
         created_at=competition.created_at,
@@ -58,7 +58,7 @@ def to_competition_response(
 @router.post("/")
 def create_competition(
     competition: CompetitionCreate, session: SessionDep, _: ModeratorDep
-) -> CompetitionPublicWithNRounds:
+) -> CompetitionDetail:
     if session.exec(
         select(Competition).where(Competition.name == competition.name)
     ).first():
@@ -106,9 +106,7 @@ def list_competitions(
 
 
 @router.get("/{name}")
-def retrieve_competition(
-    name: str, session: SessionDep
-) -> CompetitionPublicWithNRounds:
+def retrieve_competition(name: str, session: SessionDep) -> CompetitionDetail:
     competition = find_competition(name, session)
     return to_competition_response(competition, session)
 
@@ -124,7 +122,7 @@ def delete_competition(name: str, session: SessionDep, _: ModeratorDep):
 @router.patch("/{name}")
 def update_competition(
     name: str, competition: CompetitionUpdate, session: SessionDep, _: ModeratorDep
-) -> CompetitionPublicWithNRounds:
+) -> CompetitionDetail:
     db_competition = find_competition(name, session)
     update_data = competition.model_dump(exclude_unset=True)
     db_competition.sqlmodel_update(update_data)

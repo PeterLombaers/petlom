@@ -12,6 +12,26 @@ from backend.competitions import CompetitionType
 from backend.enums import ExternalRatingSource, Result
 from backend.ratings import BaseRating, SimkroRating
 
+# ---------------------------------------------------------------------------
+# Naming convention
+# ---------------------------------------------------------------------------
+#
+# Every model's purpose should be readable from its name:
+#
+#   <Entity>Base    Fields shared between the table and the write schemas.
+#                   Never a request or response type itself.
+#   <Entity>        The database table (table=True).
+#   <Entity>Create  Request body of the POST that creates it.
+#   <Entity>Update  Request body of the PATCH. Every field optional; does not
+#                   inherit Base.
+#   <Entity>Ref     Minimal reference (id + display fields), used when the
+#                   entity appears inside another response.
+#   <Entity>Public  Standard read response, for both list and single GET.
+#   <Entity>Detail  The richer single-object response, where one exists.
+#
+# Every schema model carries a one-line docstring naming the endpoint that
+# returns or accepts it.
+
 
 class RatingAlgorithm(str, Enum):
     ELO = "elo"
@@ -63,6 +83,8 @@ class CompetitionRatingType(SQLModel, table=True):
 
 
 class CompetitionRatingTypeCreate(SQLModel):
+    """The rating configuration nested in the body of POST /competitions/."""
+
     name: str | None = None
     algorithm: RatingAlgorithm
     algorithm_config: dict[str, Any] | None = None
@@ -70,6 +92,8 @@ class CompetitionRatingTypeCreate(SQLModel):
 
 
 class CompetitionRatingTypePublic(SQLModel):
+    """The rating configuration nested in a CompetitionDetail or a rating response."""
+
     id: int
     name: str
     algorithm: RatingAlgorithm
@@ -81,6 +105,8 @@ class CompetitionRatingTypePublic(SQLModel):
 
 
 class CompetitionRatingTypeUpdate(SQLModel):
+    """Request body of PATCH /competitions/{name}/rating."""
+
     name: str | None = None
     algorithm: RatingAlgorithm | None = None
     algorithm_config: dict[str, Any] | None = None
@@ -123,9 +149,16 @@ class CompetitionRating(SQLModel, table=True):
 
 
 class CompetitionRatingPublic(SQLModel):
+    """A rating as returned by GET /competitions/{name}/player-ratings.
+
+    Seen from the competition's side: it keeps the player and drops the rating
+    type, which is the same for every row. Its sibling is
+    CompetitionRatingForPlayer.
+    """
+
     id: int
     player_id: int
-    player: "PlayerPublicMinimal"
+    player: "PlayerRef"
     rating_type_id: int
     initial_rating: float
     current_rating: float
@@ -133,6 +166,21 @@ class CompetitionRatingPublic(SQLModel):
     source_external_rating_id: int | None
     created_at: datetime
     updated_at: datetime
+
+
+class CompetitionRatingForPlayer(SQLModel):
+    """A rating as nested in the PlayerDetail returned by GET /players/{id}/.
+
+    Seen from the player's side: it keeps the rating type (which names the
+    competition) and drops the player. Its sibling is CompetitionRatingPublic.
+    """
+
+    id: int
+    initial_rating: float
+    current_rating: float
+    is_manual: bool
+    source_external_rating_id: int | None
+    rating_type: CompetitionRatingTypePublic
 
 
 # ---------------------------------------------------------------------------
@@ -183,12 +231,16 @@ class ExternalRating(SQLModel, table=True):
     )
 
 
-class PlayerExternalIdInput(SQLModel):
+class PlayerExternalIdCreate(SQLModel):
+    """An external id nested in the body of POST /players/."""
+
     source: ExternalRatingSource
     external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
 
 
 class PlayerExternalIdPublic(SQLModel):
+    """A player's id at an external source, as returned inside a player response."""
+
     id: int
     source: ExternalRatingSource
     external_id: str
@@ -197,10 +249,14 @@ class PlayerExternalIdPublic(SQLModel):
 
 
 class PlayerExternalIdUpdate(SQLModel):
+    """Request body of PUT /players/{id}/external-ids/{source}/."""
+
     external_id: constr(strip_whitespace=True, min_length=1)  # type: ignore
 
 
 class ExternalRatingPublic(SQLModel):
+    """A rating snapshot as returned by GET /players/{id}/external-ratings/."""
+
     id: int
     player_external_id_id: int
     source: ExternalRatingSource
@@ -210,6 +266,8 @@ class ExternalRatingPublic(SQLModel):
 
 
 class ExternalRatingImportRequest(SQLModel):
+    """Request body of POST /external/{source}/import/."""
+
     player_ids: list[int] | None = Field(
         default=None,
         description=(
@@ -229,6 +287,8 @@ class ExternalRatingImportRequest(SQLModel):
 
 
 class ExternalRatingImportResult(SQLModel):
+    """Response of POST /external/{source}/import/."""
+
     list_date: str
     imported: int
     updated: int
@@ -282,41 +342,39 @@ class Player(PlayerBase, table=True):
 
 
 class PlayerCreate(PlayerBase):
-    is_active: bool = True
-    external_ids: list[PlayerExternalIdInput] = []
+    """Request body of POST /players/."""
+
+    external_ids: list[PlayerExternalIdCreate] = []
 
 
 class PlayerPublic(PlayerBase):
+    """A player as returned by GET /players/ and the player write endpoints."""
+
     id: int
     created_at: datetime
     updated_at: datetime
     external_ids: list[PlayerExternalIdPublic] = []
 
 
-class PlayerPublicMinimal(SQLModel):
+class PlayerRef(SQLModel):
+    """A player as nested in a match, a registration or a competition rating."""
+
     name: str
     id: int
     is_active: bool
 
 
-class PlayerUpdate(PlayerBase):
-    name: constr(strip_whitespace=True, min_length=1) | None = None
+class PlayerUpdate(SQLModel):
+    """Request body of PATCH /players/{id}/."""
+
+    name: constr(strip_whitespace=True, min_length=1) | None = None  # type: ignore
     is_active: bool | None = None
 
 
-class PlayerCompetitionRatingPublic(SQLModel):
-    """A competition rating as seen from the player's perspective."""
+class PlayerDetail(PlayerPublic):
+    """A player as returned by GET /players/{id}/."""
 
-    id: int
-    initial_rating: float
-    current_rating: float
-    is_manual: bool
-    source_external_rating_id: int | None
-    rating_type: CompetitionRatingTypePublic
-
-
-class PlayerDetailPublic(PlayerPublic):
-    competition_ratings: list[PlayerCompetitionRatingPublic] = []
+    competition_ratings: list[CompetitionRatingForPlayer] = []
 
 
 # ---------------------------------------------------------------------------
@@ -344,20 +402,28 @@ class Competition(CompetitionBase, table=True):
 
 
 class CompetitionPublic(CompetitionBase):
+    """A competition as returned by GET /competitions/."""
+
     created_at: datetime
     updated_at: datetime
 
 
 class CompetitionCreate(CompetitionBase):
+    """Request body of POST /competitions/."""
+
     rating_type: CompetitionRatingTypeCreate
 
 
-class CompetitionPublicWithNRounds(CompetitionPublic):
+class CompetitionDetail(CompetitionPublic):
+    """A competition as returned by GET /competitions/{name} and the write endpoints."""
+
     n_rounds: int
     rating_type: CompetitionRatingTypePublic
 
 
 class PairingCreate(SQLModel):
+    """Request body of POST /competitions/{name}/pairing."""
+
     round_nr: int
     player_ids: list[int] = Field(min_length=2)
 
@@ -376,6 +442,8 @@ class PairingCreate(SQLModel):
 
 
 class CompetitionUpdate(SQLModel):
+    """Request body of PATCH /competitions/{name}."""
+
     name: str | None = None
     type: CompetitionType | None = None
 
@@ -429,15 +497,23 @@ class Match(SQLModel, table=True):
     competition: Competition = Relationship(back_populates="matches")
 
 
+class MatchCreate(MatchBase):
+    """Request body of POST /matches/."""
+
+
 class MatchPublic(MatchBase):
+    """A match as returned by GET /matches/ and the match write endpoints."""
+
     id: int
     created_at: datetime
     updated_at: datetime
-    player_white: PlayerPublicMinimal
-    player_black: PlayerPublicMinimal
+    player_white: PlayerRef
+    player_black: PlayerRef
 
 
 class MatchUpdate(SQLModel):
+    """Request body of PATCH /matches/{id}/."""
+
     player_white_id: int | None = None
     player_black_id: int | None = None
     competition_name: str | None = None
@@ -469,13 +545,17 @@ class RoundPlayer(SQLModel, table=True):
 
 
 class RoundPlayerPublic(SQLModel):
+    """A registered player as returned by GET /competitions/{name}/players."""
+
     id: int
-    player: PlayerPublicMinimal
+    player: PlayerRef
     is_bye: bool
     initial_rating: float | None
 
 
 class RoundPlayerUpdate(SQLModel):
+    """Request body of PATCH /competitions/{name}/players."""
+
     player_ids_to_add: list[int] | None = None
     player_ids_to_remove: list[int] | None = None
     bye_player_id: int | None = None
@@ -489,8 +569,10 @@ class RoundPlayerUpdate(SQLModel):
 
 
 class SimkroRank(SQLModel):
+    """A ranking row as returned by GET|POST /competitions/{name}/ranking."""
+
     position: int
-    player: PlayerPublic
+    player: PlayerRef
     games_played: int
     saldo: int
     points: int
@@ -514,5 +596,7 @@ class Moderator(SQLModel, table=True):
 
 
 class ModeratorPublic(SQLModel):
+    """A moderator as returned by GET /auth/me."""
+
     id: int
     username: str

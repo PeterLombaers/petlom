@@ -2,13 +2,13 @@ import { Select } from "@mantine/core";
 import { $api } from "@client/api";
 import { components } from "@client/schema";
 
-type PlayerMinimal = components["schemas"]["PlayerPublicMinimal"];
+type PlayerRef = components["schemas"]["PlayerRef"];
 type PlayerSelectProps = {
-  player: PlayerMinimal;
-  setPlayer: (player: PlayerMinimal) => void;
+  player: PlayerRef;
+  setPlayer: (player: PlayerRef) => void;
   error?: boolean;
   helperText?: string;
-  filterOptions?: (options: PlayerMinimal[]) => PlayerMinimal[];
+  filterOptions?: (options: PlayerRef[]) => PlayerRef[];
   label?: string;
 };
 

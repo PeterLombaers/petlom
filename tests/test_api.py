@@ -13,7 +13,7 @@ from backend.models import (
     Match,
     MatchPublic,
     Player,
-    PlayerDetailPublic,
+    PlayerDetail,
     PlayerExternalId,
     PlayerPublic,
     Result,
@@ -136,7 +136,7 @@ def test_get_player(player: Player, client: TestClient):
     res = client.get(f"/players/{player.id}/")
     res.raise_for_status()
     res_player = res.json()
-    assert res_player == jsonable_encoder(PlayerDetailPublic.model_validate(player))
+    assert res_player == jsonable_encoder(PlayerDetail.model_validate(player))
 
 
 def test_create_player_with_external_id(session: Session, auth_client: TestClient):
