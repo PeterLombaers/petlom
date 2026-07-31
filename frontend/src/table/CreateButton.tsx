@@ -53,13 +53,16 @@ export function CreateButton<T = unknown>({
     setDialogOpen(true);
   };
 
+  // Functional updates, so a handler filling several fields at once (the FIDE
+  // search fills both the name and the FIDE id) does not lose all but the last.
   const onFormDataChange = (field: string, value: unknown) => {
-    setFormData({ ...formData, [field]: value });
-    if (formErrors[field]) {
-      const newErrors = { ...formErrors };
-      delete newErrors[field];
-      setFormErrors(newErrors);
-    }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
   const resetForm = (submitted?: T) => {

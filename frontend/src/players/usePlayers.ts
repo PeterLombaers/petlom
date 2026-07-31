@@ -6,6 +6,13 @@ import { useQueryClient } from "@tanstack/react-query";
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 type PlayerPublic = components["schemas"]["PlayerPublic"];
 
+/** A single player with their external ids and competition ratings. */
+export function usePlayer(id: number) {
+  return $api.useQuery("get", "/players/{id}/", {
+    params: { path: { id } },
+  });
+}
+
 export function usePlayers() {
   const {
     data: players,
@@ -15,10 +22,14 @@ export function usePlayers() {
   } = $api.useQuery("get", "/players/");
 
   const queryClient = useQueryClient();
-  const onSuccess = () =>
+  const onSuccess = () => {
     queryClient.invalidateQueries({
       queryKey: endpointKey("get", "/players/"),
     });
+    queryClient.invalidateQueries({
+      queryKey: endpointKey("get", "/players/{id}/"),
+    });
+  };
   const onError = (error: HTTPValidationError) => {
     const errorMessage = formatHTTPValidationError(error);
     console.error(errorMessage);
@@ -39,7 +50,21 @@ export function usePlayers() {
     onError,
   });
 
-  return {
+  // The external ids live on their own endpoints but dirty the same player
+  // caches, so their invalidation policy belongs here beside the rest.
+  const setExternalIdMutation = $api.useMutation(
+    "put",
+    "/players/{id}/external-ids/{source}/",
+    { onSuccess, onError },
+  );
+
+  const deleteExternalIdMutation = $api.useMutation(
+    "delete",
+    "/players/{id}/external-ids/{source}/",
+    { onSuccess, onError },
+  );
+
+  const result: TableQueryResult<PlayerPublic> = {
     rows: players,
     error,
     isError,
@@ -47,5 +72,7 @@ export function usePlayers() {
     createMutation,
     editMutation,
     deleteMutation,
-  } satisfies TableQueryResult<PlayerPublic>;
+  };
+
+  return { ...result, setExternalIdMutation, deleteExternalIdMutation };
 }

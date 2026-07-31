@@ -92,6 +92,12 @@ const en = {
     initialRatingLabel: "Initial rating for {{playerName}}",
     confirm: "Confirm",
   },
+  player: {
+    fideId: "FIDE ID",
+    fideRating: "FIDE rating",
+    searchFide: "Search FIDE",
+    searchFidePlaceholder: "Search by name...",
+  },
   registration: {
     player: "Player",
     bye: "Bye",

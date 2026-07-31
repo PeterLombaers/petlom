@@ -1,0 +1,31 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
+import { components } from "@/client/schema";
+
+type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+
+/**
+ * Import rating snapshots from an external source.
+ *
+ * Its own hook rather than part of `usePlayers`: it belongs to the `/external/`
+ * router and is called from both the player list and the player detail page.
+ * A successful import changes the ratings nested in player responses, so both
+ * player caches are invalidated.
+ */
+export function useImportExternalRatings() {
+  const queryClient = useQueryClient();
+
+  return $api.useMutation("post", "/external/{source}/import/", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: endpointKey("get", "/players/"),
+      });
+      queryClient.invalidateQueries({
+        queryKey: endpointKey("get", "/players/{id}/"),
+      });
+    },
+    onError: (error: HTTPValidationError) => {
+      console.error(formatHTTPValidationError(error));
+    },
+  });
+}

@@ -94,6 +94,12 @@ const nl: TranslationSchema = {
     initialRatingLabel: "Beginrating voor {{playerName}}",
     confirm: "Bevestigen",
   },
+  player: {
+    fideId: "FIDE-ID",
+    fideRating: "FIDE-rating",
+    searchFide: "Zoek in FIDE",
+    searchFidePlaceholder: "Zoek op naam...",
+  },
   registration: {
     player: "Speler",
     bye: "Bye",
