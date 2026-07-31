@@ -99,15 +99,15 @@ export default function EditableRow<T = unknown>({
         const cell = col.cell!;
         const className = visibleFromClass(col.hideBelow);
         // Only the display path is linked; edit controls stay plain.
-        const href = col.href;
-        const renderValue = href
+        const target = col.href?.(data) ?? null;
+        const renderValue = target
           ? (props: { value: T[typeof key] }) =>
               col.external ? (
-                <Anchor href={href(data)} target="_blank" rel="noreferrer">
+                <Anchor href={target} target="_blank" rel="noreferrer">
                   {cell.renderValue(props)}
                 </Anchor>
               ) : (
-                <Anchor component={Link} to={href(data)}>
+                <Anchor component={Link} to={target}>
                   {cell.renderValue(props)}
                 </Anchor>
               )

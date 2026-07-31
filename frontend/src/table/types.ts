@@ -81,8 +81,9 @@ export type CellConfig<T, K extends keyof T> = {
  * @property href - When set, the displayed value is wrapped in an `Anchor`
  *   pointing at the returned target. It receives the whole row, so the link may
  *   use a different field than the one displayed (e.g. a name cell linking to
- *   `/players/{id}`). Edit mode is unaffected: the cell still renders its plain
- *   edit control.
+ *   `/players/{id}`). Return `null` for a row that has nothing to link to (e.g.
+ *   a player without a FIDE id) — its value then renders unlinked. Edit mode is
+ *   unaffected: the cell still renders its plain edit control.
  *
  * @property external - Marks the `href` as leading outside the app. External
  *   links render as a plain anchor opening in a new tab; internal ones (the
@@ -99,7 +100,7 @@ export type Column<T> = {
     width?: string | number;
     editWidth?: string | number;
     hideBelow?: MantineBreakpoint;
-    href?: (row: T) => string;
+    href?: (row: T) => string | null;
     external?: boolean;
   };
 }[keyof T];

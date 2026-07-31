@@ -1,10 +1,8 @@
 import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
 import { components } from "@/client/schema";
-import { TableQueryResult } from "@/table/types";
 import { useQueryClient } from "@tanstack/react-query";
 
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
-type PlayerPublic = components["schemas"]["PlayerPublic"];
 
 /** A single player with their external ids and competition ratings. */
 export function usePlayer(id: number) {
@@ -64,15 +62,15 @@ export function usePlayers() {
     { onSuccess, onError },
   );
 
-  const result: TableQueryResult<PlayerPublic> = {
-    rows: players,
+  return {
+    players,
     error,
     isError,
     isPending,
     createMutation,
     editMutation,
     deleteMutation,
+    setExternalIdMutation,
+    deleteExternalIdMutation,
   };
-
-  return { ...result, setExternalIdMutation, deleteExternalIdMutation };
 }

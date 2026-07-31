@@ -44,6 +44,12 @@ export const readOnlyNumberCell = {
   renderValue: (props: { value: number }) => props.value.toString(),
 };
 
+/** A number that may be missing, rendered as an em dash when it is. */
+export const readOnlyOptionalNumberCell = {
+  renderValue: (props: { value: number | null }) =>
+    props.value === null ? "—" : props.value.toString(),
+};
+
 export const createNonEmptyStringValidator =
   (field: string, message: string) =>
   (value: string, errors: Record<string, string>) => {

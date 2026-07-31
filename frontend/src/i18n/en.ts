@@ -97,6 +97,7 @@ const en = {
     fideRating: "FIDE rating",
     searchFide: "Search FIDE",
     searchFidePlaceholder: "Search by name...",
+    importFideRatings: "Import FIDE ratings",
   },
   registration: {
     player: "Player",

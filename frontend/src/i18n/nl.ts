@@ -99,6 +99,7 @@ const nl: TranslationSchema = {
     fideRating: "FIDE-rating",
     searchFide: "Zoek in FIDE",
     searchFidePlaceholder: "Zoek op naam...",
+    importFideRatings: "FIDE-ratings importeren",
   },
   registration: {
     player: "Speler",

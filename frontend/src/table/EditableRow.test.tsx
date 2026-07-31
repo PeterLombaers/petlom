@@ -347,6 +347,12 @@ describe("EditableRow", () => {
       expect(link).toHaveAttribute("target", "_blank");
     });
 
+    it("renders the value unlinked when href returns null for the row", () => {
+      renderLinked([{ ...testColumns[1], href: () => null }]);
+      expect(screen.getByTestId("name-value")).toHaveTextContent("Alice");
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    });
+
     it("renders a plain input, without a link, in edit mode", () => {
       renderLinked(linkedColumns, true);
       expect(screen.getByRole("textbox", { name: "name-edit" })).toHaveValue(
