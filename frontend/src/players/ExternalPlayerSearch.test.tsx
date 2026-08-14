@@ -73,6 +73,24 @@ describe("ExternalPlayerSearch", () => {
     expect(onSelect).toHaveBeenCalledWith(CARLSEN);
   });
 
+  it("keeps a hit whose name does not contain the query verbatim", async () => {
+    const user = userEvent.setup();
+    const onSelect = renderSearch();
+
+    // The source matches on words, so "Magnus Carlsen" finds "Carlsen, Magnus".
+    await user.type(
+      screen.getByRole("combobox", { name: "Search FIDE" }),
+      "Magnus Carlsen",
+    );
+    await user.click(
+      await screen.findByRole("option", {
+        name: "Carlsen, Magnus — NOR GM (2839)",
+      }),
+    );
+
+    expect(onSelect).toHaveBeenCalledWith(CARLSEN);
+  });
+
   it("renders nothing for a user who may not search", () => {
     mockIsModerator.mockReturnValue(false);
     renderSearch();

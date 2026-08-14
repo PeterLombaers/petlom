@@ -81,6 +81,10 @@ export default function ExternalPlayerSearch({
       onChange={setValue}
       onOptionSubmit={handleSubmit}
       data={[...byLabel.keys()]}
+      // The source already matched the query — and it matches on words, so it
+      // finds "Giri, Anish" for "Anish Giri". Mantine's default filter would
+      // then drop that hit for not containing the typed string verbatim.
+      filter={({ options }) => options}
       rightSection={isFetching ? <Loader size="xs" /> : undefined}
     />
   );
