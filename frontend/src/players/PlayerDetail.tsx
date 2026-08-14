@@ -3,6 +3,7 @@ import {
   Anchor,
   Button,
   Group,
+  Menu,
   Paper,
   Stack,
   Table,
@@ -18,12 +19,17 @@ import { useAuth } from "@/auth";
 import { useDocumentTitle } from "@/pages/useDocumentTitle";
 import { ErrorState } from "@/ui/ErrorState";
 import { LoadingState } from "@/ui/LoadingState";
-import { fideProfileUrl, getExternalId } from "./external";
+import {
+  EXTERNAL_SOURCES,
+  externalProfileUrl,
+  getExternalId,
+} from "./external";
 import { useImportExternalRatings } from "./useImportExternalRatings";
 import { usePlayer, usePlayers } from "./usePlayers";
 
 type PlayerDetailData = components["schemas"]["PlayerDetail"];
 type PlayerExternalIdPublic = components["schemas"]["PlayerExternalIdPublic"];
+type ExternalRatingSource = components["schemas"]["ExternalRatingSource"];
 type CompetitionRatingForPlayer =
   components["schemas"]["CompetitionRatingForPlayer"];
 
@@ -77,10 +83,10 @@ function PlayerHeader({ player }: { player: PlayerDetailData }) {
 }
 
 /**
- * Name and FIDE id in one form.
+ * Name and external ids in one form.
  *
  * They live on different endpoints, so a save issues only the calls for the
- * fields that actually changed — clearing the FIDE id deletes the external id.
+ * fields that actually changed — clearing an id deletes that external id.
  */
 function PlayerForm({
   player,
@@ -92,16 +98,20 @@ function PlayerForm({
   const { t } = useTranslation();
   const { editMutation, setExternalIdMutation, deleteExternalIdMutation } =
     usePlayers();
-  const initialFideId = getExternalId(player, "fide") ?? "";
+  const initialExternalIds = Object.fromEntries(
+    EXTERNAL_SOURCES.map((source) => [
+      source,
+      getExternalId(player, source) ?? "",
+    ]),
+  ) as Record<ExternalRatingSource, string>;
   const [name, setName] = useState(player.name);
-  const [fideId, setFideId] = useState(initialFideId);
+  const [externalIds, setExternalIds] = useState(initialExternalIds);
 
   const isPending =
     editMutation.isPending ||
     setExternalIdMutation.isPending ||
     deleteExternalIdMutation.isPending;
   const trimmedName = name.trim();
-  const trimmedFideId = fideId.trim();
 
   const handleSave = async () => {
     const id = player.id;
@@ -111,11 +121,13 @@ function PlayerForm({
         params: { path: { id } },
       });
     }
-    if (trimmedFideId !== initialFideId) {
-      const path = { id, source: "fide" as const };
-      if (trimmedFideId) {
+    for (const source of EXTERNAL_SOURCES) {
+      const externalId = externalIds[source].trim();
+      if (externalId === initialExternalIds[source]) continue;
+      const path = { id, source };
+      if (externalId) {
         await setExternalIdMutation.mutateAsync({
-          body: { external_id: trimmedFideId },
+          body: { external_id: externalId },
           params: { path },
         });
       } else {
@@ -136,13 +148,20 @@ function PlayerForm({
         error={trimmedName ? undefined : t("common.valueRequired")}
         onChange={(e) => setName(e.target.value)}
       />
-      <TextInput
-        name="player-fide-id"
-        id="player-fide-id"
-        label={t("player.fideId")}
-        value={fideId}
-        onChange={(e) => setFideId(e.target.value)}
-      />
+      {EXTERNAL_SOURCES.map((source) => (
+        <TextInput
+          key={source}
+          name={`player-${source}-id`}
+          id={`player-${source}-id`}
+          label={t("player.sourceId", {
+            source: t(`externalSource.${source}`),
+          })}
+          value={externalIds[source]}
+          onChange={(e) =>
+            setExternalIds((prev) => ({ ...prev, [source]: e.target.value }))
+          }
+        />
+      ))}
       <Group>
         <Button
           disabled={!trimmedName}
@@ -177,17 +196,31 @@ function ExternalRatingsSection({ player }: { player: PlayerDetailData }) {
             {t("player.externalRatings")}
           </Title>
           {isModerator && (
-            <Button
-              loading={importMutation.isPending}
-              onClick={() =>
-                importMutation.mutate({
-                  params: { path: { source: "fide" } },
-                  body: { player_ids: [player.id], update_existing: true },
-                })
-              }
-            >
-              {t("player.refreshFideRating")}
-            </Button>
+            <Menu>
+              <Menu.Target>
+                <Button loading={importMutation.isPending}>
+                  {t("player.refreshRating")}
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                {EXTERNAL_SOURCES.map((source) => (
+                  <Menu.Item
+                    key={source}
+                    onClick={() =>
+                      importMutation.mutate({
+                        params: { path: { source } },
+                        body: {
+                          player_ids: [player.id],
+                          update_existing: true,
+                        },
+                      })
+                    }
+                  >
+                    {t(`externalSource.${source}`)}
+                  </Menu.Item>
+                ))}
+              </Menu.Dropdown>
+            </Menu>
           )}
         </Group>
         {player.external_ids.length === 0 ? (
@@ -217,16 +250,16 @@ function ExternalRatingsSection({ player }: { player: PlayerDetailData }) {
 }
 
 function ExternalIdRow({ externalId }: { externalId: PlayerExternalIdPublic }) {
+  const profileUrl = externalProfileUrl(
+    externalId.source,
+    externalId.external_id,
+  );
   return (
     <Table.Tr>
       <Table.Td>{externalId.source.toUpperCase()}</Table.Td>
       <Table.Td>
-        {externalId.source === "fide" ? (
-          <Anchor
-            href={fideProfileUrl(externalId.external_id)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+        {profileUrl ? (
+          <Anchor href={profileUrl} target="_blank" rel="noopener noreferrer">
             {externalId.external_id}
           </Anchor>
         ) : (

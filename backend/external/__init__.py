@@ -5,15 +5,15 @@ from backend.external.base import (
     ExternalRatingRecord,
     ProviderNotConfiguredError,
 )
-from backend.external.fide import FideProvider
+from backend.external.chess_db import ChessDbProvider
 from backend.external.registry import get_provider
 
 __all__ = [
+    "ChessDbProvider",
     "ExternalApiError",
     "ExternalPlayerResult",
     "ExternalRatingProvider",
     "ExternalRatingRecord",
-    "FideProvider",
     "ProviderNotConfiguredError",
     "get_provider",
 ]

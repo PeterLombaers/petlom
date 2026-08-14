@@ -14,10 +14,11 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { $api } from "@client/api";
 import { components } from "@/client/schema";
-import { getRating } from "@/players/external";
+import { EXTERNAL_SOURCES, getRating } from "@/players/external";
 
-/** The full player record, so the FIDE rating in the response is available. */
+/** The full player record, so the external rating in the response is available. */
 export type PlayerNeedingRating = components["schemas"]["PlayerPublic"];
+type ExternalRatingSource = components["schemas"]["ExternalRatingSource"];
 
 /** Where a player's initial rating comes from. */
 type SeedSource = "manual" | "external" | "competition";
@@ -26,13 +27,13 @@ type SeedSource = "manual" | "external" | "competition";
 const LIST_DATE_PATTERN = /^\d{4}-\d{2}$/;
 
 /**
- * Asks for an initial rating per player, seeded from FIDE or from a previous
- * competition. Mount it only while ratings are needed, so each round of
- * questions starts with empty inputs.
+ * Asks for an initial rating per player, seeded from a rating source or from a
+ * previous competition. Mount it only while ratings are needed, so each round
+ * of questions starts with empty inputs.
  *
  * The source competition and the rating list stay visible whatever the bulk
  * source is: both feed a column of the table, and a single player can be
- * switched to a competition after everyone was seeded from FIDE.
+ * switched to a competition after everyone was seeded externally.
  */
 export default function SeedRatingsModal({
   players,
@@ -59,6 +60,8 @@ export default function SeedRatingsModal({
     null,
   );
   const [listDate, setListDate] = useState("");
+  const [externalSource, setExternalSource] =
+    useState<ExternalRatingSource>("fide");
 
   const hasListDate = LIST_DATE_PATTERN.test(listDate);
 
@@ -72,7 +75,7 @@ export default function SeedRatingsModal({
   );
 
   // Only fetched for a specific rating list; without one the players already
-  // carry their newest FIDE rating.
+  // carry their newest external rating.
   const { data: playersAtListDate } = $api.useQuery(
     "get",
     "/players/",
@@ -84,7 +87,7 @@ export default function SeedRatingsModal({
 
   const externalRating = (playerId: number) => {
     const player = ratedPlayers.find((p) => p.id === playerId);
-    const rating = player ? getRating(player, "fide") : null;
+    const rating = player ? getRating(player, externalSource) : null;
     return rating ? Math.round(rating.rating) : null;
   };
 
@@ -181,6 +184,18 @@ export default function SeedRatingsModal({
               .filter((c) => c.name !== competitionName)
               .map((c) => c.name)}
           />
+          <Select
+            label={t("rating.externalSourceLabel")}
+            allowDeselect={false}
+            value={externalSource}
+            onChange={(value) =>
+              setExternalSource(value as ExternalRatingSource)
+            }
+            data={EXTERNAL_SOURCES.map((source) => ({
+              value: source,
+              label: t(`externalSource.${source}`),
+            }))}
+          />
           <TextInput
             label={t("rating.listDateLabel")}
             placeholder="2026-05"
@@ -197,7 +212,11 @@ export default function SeedRatingsModal({
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t("registration.player")}</Table.Th>
-                <Table.Th>{t("player.fideRating")}</Table.Th>
+                <Table.Th>
+                  {t("player.sourceRating", {
+                    source: t(`externalSource.${externalSource}`),
+                  })}
+                </Table.Th>
                 <Table.Th>{t("rating.competitionRating")}</Table.Th>
                 <Table.Th>{t("rating.source")}</Table.Th>
                 <Table.Th>{t("player.initialRating")}</Table.Th>

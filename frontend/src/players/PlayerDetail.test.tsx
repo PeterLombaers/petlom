@@ -54,6 +54,14 @@ const ALICE = {
         imported_at: "2026-05-02T00:00:00",
       },
     },
+    {
+      id: 11,
+      source: "knsb" as const,
+      external_id: "9055882",
+      created_at: "2024-01-01T00:00:00",
+      updated_at: "2024-01-01T00:00:00",
+      rating: null,
+    },
   ],
   competition_ratings: [
     {
@@ -129,6 +137,14 @@ describe("PlayerDetail", () => {
     expect(within(row).getByText("2026-05")).toBeInTheDocument();
   });
 
+  it("lists an id without a profile page or a snapshot as plain text", () => {
+    renderDetail();
+    const cell = screen.getByText("9055882");
+    expect(cell.closest("a")).toBeNull();
+    const row = cell.closest("tr") as HTMLElement;
+    expect(within(row).getAllByText("—")).toHaveLength(2);
+  });
+
   it("lists the competitions, most recent first, linking to each", () => {
     renderDetail();
     const links = screen
@@ -143,18 +159,17 @@ describe("PlayerDetail", () => {
     expect(within(row).getByText("1512")).toBeInTheDocument();
   });
 
-  it("refreshes only this player's FIDE rating", async () => {
+  it("refreshes only this player's rating, at the chosen source", async () => {
     const user = userEvent.setup();
     const mutations = renderDetail();
 
-    await user.click(
-      screen.getByRole("button", { name: "Refresh FIDE rating" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Refresh rating" }));
+    await user.click(await screen.findByRole("menuitem", { name: "KNSB" }));
 
     expect(
       mutations["post /external/{source}/import/"].mutate,
     ).toHaveBeenCalledWith({
-      params: { path: { source: "fide" } },
+      params: { path: { source: "knsb" } },
       body: { player_ids: [1], update_existing: true },
     });
   });

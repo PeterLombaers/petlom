@@ -7,8 +7,9 @@ import { components } from "@client/schema";
 import { useAuth } from "@/auth";
 
 type ExternalPlayerResult = components["schemas"]["ExternalPlayerResult"];
+type ExternalRatingSource = components["schemas"]["ExternalRatingSource"];
 
-/** The FIDE search endpoint rejects anything shorter. */
+/** The search endpoint rejects anything shorter. */
 const MIN_QUERY_LENGTH = 2;
 
 /** `Magnus Carlsen — NOR GM (2839)`, skipping whatever the result is missing. */
@@ -20,31 +21,34 @@ function formatResult(result: ExternalPlayerResult) {
     : `${result.name}${rating}`;
 }
 
-type FidePlayerSearchProps = {
+type ExternalPlayerSearchProps = {
+  source: ExternalRatingSource;
   onSelect: (result: ExternalPlayerResult) => void;
   label?: string;
 };
 
 /**
- * Search FIDE for a player and hand the chosen result to `onSelect`.
+ * Search a rating source for a player and hand the chosen result to `onSelect`.
  *
  * The search endpoint is moderator-only, so nothing renders for other users.
  */
-export default function FidePlayerSearch({
+export default function ExternalPlayerSearch({
+  source,
   onSelect,
   label,
-}: FidePlayerSearchProps) {
+}: ExternalPlayerSearchProps) {
   const { t } = useTranslation();
   const { isModerator } = useAuth();
   const [value, setValue] = useState("");
   const [debouncedValue] = useDebouncedValue(value, 300);
+  const sourceName = t(`externalSource.${source}`);
 
   const { data: results, isFetching } = $api.useQuery(
     "get",
     "/external/{source}/search/",
     {
       params: {
-        path: { source: "fide" },
+        path: { source },
         query: { query: debouncedValue },
       },
     },
@@ -69,10 +73,10 @@ export default function FidePlayerSearch({
 
   return (
     <Autocomplete
-      name="fide-search"
-      id="fide-search"
-      label={label ?? t("player.searchFide")}
-      placeholder={t("player.searchFidePlaceholder")}
+      name="external-search"
+      id="external-search"
+      label={label ?? t("player.searchSource", { source: sourceName })}
+      placeholder={t("player.searchSourcePlaceholder")}
       value={value}
       onChange={setValue}
       onOptionSubmit={handleSubmit}

@@ -141,7 +141,24 @@ describe("SeedRatingsModal", () => {
       screen.getByRole("combobox", { name: "Rating source for Carol" }),
     );
 
-    expect(screen.getByRole("option", { name: "FIDE" })).toHaveAttribute(
+    expect(screen.getByRole("option", { name: "External" })).toHaveAttribute(
+      "data-combobox-disabled",
+    );
+  });
+
+  it("reads the rating of the selected external source", async () => {
+    const user = userEvent.setup();
+    // Alice is only rated at FIDE, so switching to KNSB leaves her unrated.
+    renderModal([ALICE]);
+
+    await user.click(screen.getByRole("combobox", { name: "Rating source" }));
+    await user.click(screen.getByRole("option", { name: "KNSB" }));
+
+    expect(screen.queryByText("2100")).toBeNull();
+    await user.click(
+      screen.getByRole("combobox", { name: "Rating source for Alice" }),
+    );
+    expect(screen.getByRole("option", { name: "External" })).toHaveAttribute(
       "data-combobox-disabled",
     );
   });

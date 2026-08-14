@@ -43,6 +43,21 @@ const ALICE = {
         imported_at: "2026-05-02T00:00:00",
       },
     },
+    {
+      id: 11,
+      source: "knsb" as const,
+      external_id: "9055882",
+      created_at: "2024-01-01T00:00:00",
+      updated_at: "2024-01-01T00:00:00",
+      rating: {
+        id: 101,
+        player_external_id_id: 11,
+        source: "knsb" as const,
+        rating: 1750,
+        list_date: "2026-05",
+        imported_at: "2026-05-02T00:00:00",
+      },
+    },
   ],
 };
 
@@ -101,11 +116,13 @@ async function startRowEdit(user: ReturnType<typeof userEvent.setup>) {
 
 describe("PlayerTable", () => {
   describe("columns", () => {
-    it("renders the FIDE rating, and an em dash for a player without one", () => {
+    it("renders the rating of each source, and an em dash without one", () => {
       renderTable();
       expect(screen.getByText("2839")).toBeInTheDocument();
+      expect(screen.getByText("1750")).toBeInTheDocument();
       const bobRow = screen.getByRole("row", { name: /Bob/ });
-      expect(within(bobRow).getByText("—")).toBeInTheDocument();
+      // One per source, since Bob has neither.
+      expect(within(bobRow).getAllByText("—")).toHaveLength(2);
     });
 
     it("links the name to the player detail page", () => {
@@ -124,6 +141,12 @@ describe("PlayerTable", () => {
         "https://ratings.fide.com/profile/1503014",
       );
       expect(link).toHaveAttribute("target", "_blank");
+    });
+
+    it("does not link a KNSB id, which has no public profile page", () => {
+      renderTable();
+      expect(screen.getByText("9055882")).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "9055882" })).toBeNull();
     });
 
     it("does not link the FIDE id of a player without one", () => {
@@ -181,6 +204,24 @@ describe("PlayerTable", () => {
       ).not.toHaveBeenCalled();
     });
 
+    it("puts the external id of the source whose column changed", async () => {
+      const user = userEvent.setup();
+      const mutations = renderTable();
+
+      const row = await startRowEdit(user);
+      const knsbInput = within(row).getByRole("textbox", { name: "KNSB ID" });
+      await user.clear(knsbInput);
+      await user.type(knsbInput, "9000001");
+      await user.click(within(row).getByRole("button", { name: "Save" }));
+
+      expect(
+        mutations["put /players/{id}/external-ids/{source}/"].mutateAsync,
+      ).toHaveBeenCalledWith({
+        body: { external_id: "9000001" },
+        params: { path: { id: 1, source: "knsb" } },
+      });
+    });
+
     it("deletes the external id when the FIDE id is cleared", async () => {
       const user = userEvent.setup();
       const mutations = renderTable();
@@ -197,19 +238,42 @@ describe("PlayerTable", () => {
     });
   });
 
-  describe("import button", () => {
-    it("imports FIDE ratings for every player", async () => {
+  describe("import menu", () => {
+    /** Opens the import menu and picks a source from it. */
+    async function importFrom(
+      user: ReturnType<typeof userEvent.setup>,
+      sourceName: string,
+    ) {
+      await user.click(screen.getByRole("button", { name: "Import ratings" }));
+      await user.click(
+        await screen.findByRole("menuitem", { name: sourceName }),
+      );
+    }
+
+    it("imports ratings of the chosen source for every player", async () => {
       const user = userEvent.setup();
       const mutations = renderTable();
 
-      await user.click(
-        screen.getByRole("button", { name: "Import FIDE ratings" }),
-      );
+      await importFrom(user, "FIDE");
 
       expect(
         mutations["post /external/{source}/import/"].mutate,
       ).toHaveBeenCalledWith({
         params: { path: { source: "fide" } },
+        body: { update_existing: false },
+      });
+    });
+
+    it("imports from the other source too", async () => {
+      const user = userEvent.setup();
+      const mutations = renderTable();
+
+      await importFrom(user, "KNSB");
+
+      expect(
+        mutations["post /external/{source}/import/"].mutate,
+      ).toHaveBeenCalledWith({
+        params: { path: { source: "knsb" } },
         body: { update_existing: false },
       });
     });

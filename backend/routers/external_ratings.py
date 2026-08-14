@@ -24,7 +24,9 @@ from backend.models import (
 
 router = APIRouter(prefix="/external", tags=["external"])
 
-MAX_IMPORT_BATCH_SIZE = 100
+# The external API takes the whole batch in one request, so this is a guard
+# against a runaway import rather than a cost limit.
+MAX_IMPORT_BATCH_SIZE = 500
 
 
 def find_provider(source: ExternalRatingSource) -> ExternalRatingProvider:
@@ -32,6 +34,18 @@ def find_provider(source: ExternalRatingSource) -> ExternalRatingProvider:
         return get_provider(source)
     except ProviderNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+
+
+def api_error(exc: Exception) -> HTTPException:
+    """Turn a provider failure into the response it deserves.
+
+    A source can also turn out to be unconfigured mid-call — whether the rating
+    database holds anything for this federation is only known once it answers —
+    so that is the same 503 as a missing provider, not a 502.
+    """
+    if isinstance(exc, ProviderNotConfiguredError):
+        return HTTPException(status_code=503, detail=str(exc))
+    return HTTPException(status_code=502, detail=str(exc))
 
 
 @router.get("/{source}/search/")
@@ -44,8 +58,8 @@ def search_external_players(
     provider = find_provider(source)
     try:
         return provider.search_players(query, limit=limit)
-    except ExternalApiError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except (ExternalApiError, ProviderNotConfiguredError) as exc:
+        raise api_error(exc)
 
 
 @router.post("/{source}/import/")
@@ -62,8 +76,7 @@ def import_external_ratings(
     the rest are reported back as players_without_id. Players that already
     have a snapshot at the list date are skipped (counted in skipped) unless
     request.update_existing is true. Batches of more than
-    MAX_IMPORT_BATCH_SIZE looked-up players are rejected with a 400, since
-    each player costs one request to the external API.
+    MAX_IMPORT_BATCH_SIZE looked-up players are rejected with a 400.
 
     Which rating: the one at request.list_date ("YYYY-MM"), defaulting to the
     source's most recent list. If the source has no entry for a player at that
@@ -106,8 +119,8 @@ def import_external_ratings(
 
     try:
         list_date = request.list_date or provider.get_latest_list_date()
-    except ExternalApiError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except (ExternalApiError, ProviderNotConfiguredError) as exc:
+        raise api_error(exc)
 
     skipped = 0
     if not request.update_existing:
@@ -137,8 +150,8 @@ def import_external_ratings(
         ratings = provider.get_ratings(
             [ext.external_id for ext in external_ids], list_date=list_date
         )
-    except ExternalApiError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+    except (ExternalApiError, ProviderNotConfiguredError) as exc:
+        raise api_error(exc)
 
     imported = 0
     updated = 0

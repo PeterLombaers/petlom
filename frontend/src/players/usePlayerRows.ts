@@ -1,23 +1,28 @@
 import { AnyMutation, TableQueryResult } from "@/table/types";
-import { getExternalId, getRating } from "./external";
+import { EXTERNAL_SOURCES, getExternalId, getRating } from "./external";
 import { usePlayers } from "./usePlayers";
 
 /**
  * One player as the list table shows them: flat, because `Column<T>.field` must
- * be a key of the row type and the FIDE data lives two levels down in
+ * be a key of the row type and the external data lives two levels down in
  * `PlayerPublic.external_ids`.
+ *
+ * A field per source rather than a map, for the same reason. Adding a source
+ * means adding its two fields here.
  */
 export type PlayerRow = {
   id: number;
   name: string;
-  /** The player's FIDE id, or `""` when they have none. */
+  /** The player's id at the source, or `""` when they have none. */
   fide_id: string;
   fide_rating: number | null;
+  knsb_id: string;
+  knsb_rating: number | null;
 };
 
 /** The variables `EditableTable` sends for a row or column edit. */
 type EditVariables = {
-  body: { name: string; fide_id: string };
+  body: { name: string; fide_id: string; knsb_id: string };
   params: { path: { id: number } };
 };
 
@@ -25,9 +30,9 @@ type EditVariables = {
  * The player list table's rows and mutations.
  *
  * A view-model hook because the table needs a shape the API does not return:
- * flat rows, and a single edit mutation even though the two editable columns hit
- * different endpoints — the name is a `PATCH /players/{id}/`, the FIDE id a
- * `PUT`/`DELETE` on the external id. The endpoints themselves stay in
+ * flat rows, and a single edit mutation even though the editable columns hit
+ * different endpoints — the name is a `PATCH /players/{id}/`, an external id a
+ * `PUT`/`DELETE` on that source's external id. The endpoints themselves stay in
  * `usePlayers`; this only composes them.
  */
 export function usePlayerRows() {
@@ -48,14 +53,15 @@ export function usePlayerRows() {
     name: player.name,
     fide_id: getExternalId(player, "fide") ?? "",
     fide_rating: getRating(player, "fide")?.rating ?? null,
+    knsb_id: getExternalId(player, "knsb") ?? "",
+    knsb_rating: getRating(player, "knsb")?.rating ?? null,
   }));
 
   // Diffed against the row as last fetched, so an edit that only touched the
-  // name does not also rewrite the external id (and vice versa).
+  // name does not also rewrite an external id (and vice versa).
   const applyEdit = async ({ body, params }: EditVariables) => {
     const id = params.path.id;
     const previous = rows?.find((row) => row.id === id);
-    const fideId = body.fide_id.trim();
 
     if (previous?.name !== body.name) {
       await editMutation.mutateAsync({
@@ -63,11 +69,13 @@ export function usePlayerRows() {
         params: { path: { id } },
       });
     }
-    if (previous?.fide_id !== fideId) {
-      const path = { id, source: "fide" as const };
-      if (fideId) {
+    for (const source of EXTERNAL_SOURCES) {
+      const externalId = body[`${source}_id`].trim();
+      if (previous?.[`${source}_id`] === externalId) continue;
+      const path = { id, source };
+      if (externalId) {
         await setExternalIdMutation.mutateAsync({
-          body: { external_id: fideId },
+          body: { external_id: externalId },
           params: { path },
         });
       } else {

@@ -7,9 +7,34 @@ type PlayerExternalIdPublic = components["schemas"]["PlayerExternalIdPublic"];
 /** Any player response that carries external ids: `PlayerPublic` or `PlayerDetail`. */
 type PlayerWithExternalIds = { external_ids: PlayerExternalIdPublic[] };
 
-/** The public FIDE profile of a player, by their FIDE id. */
-export const fideProfileUrl = (fideId: string) =>
-  `https://ratings.fide.com/profile/${fideId}`;
+/**
+ * Every rating source, in the order the UI offers them.
+ *
+ * Typed against the schema enum, so a source added to the backend is a compile
+ * error here until the frontend knows what to call it and where it links to.
+ */
+export const EXTERNAL_SOURCES = [
+  "fide",
+  "knsb",
+] as const satisfies readonly ExternalRatingSource[];
+
+/** The public profile page of a player at each source, where there is one. */
+const PROFILE_URLS: Record<
+  ExternalRatingSource,
+  ((externalId: string) => string) | null
+> = {
+  fide: (externalId) => `https://ratings.fide.com/profile/${externalId}`,
+  // The KNSB publishes no stable per-player page.
+  knsb: null,
+};
+
+/** Where to link a player's id at `source`, or `null` when it links nowhere. */
+export function externalProfileUrl(
+  source: ExternalRatingSource,
+  externalId: string,
+): string | null {
+  return PROFILE_URLS[source]?.(externalId) ?? null;
+}
 
 /** The player's id at `source`, or `null` when they have none. */
 export function getExternalId(

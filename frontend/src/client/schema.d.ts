@@ -315,8 +315,7 @@ export interface paths {
          *     the rest are reported back as players_without_id. Players that already
          *     have a snapshot at the list date are skipped (counted in skipped) unless
          *     request.update_existing is true. Batches of more than
-         *     MAX_IMPORT_BATCH_SIZE looked-up players are rejected with a 400, since
-         *     each player costs one request to the external API.
+         *     MAX_IMPORT_BATCH_SIZE looked-up players are rejected with a 400.
          *
          *     Which rating: the one at request.list_date ("YYYY-MM"), defaulting to the
          *     source's most recent list. If the source has no entry for a player at that

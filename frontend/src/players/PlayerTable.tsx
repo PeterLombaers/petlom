@@ -1,14 +1,15 @@
-import { Button, Group, Stack } from "@mantine/core";
+import { Button, Group, Menu, Stack } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth";
 import EditableTable from "@/table/EditableTable";
+import { Column } from "@/table/types";
 import {
   createNonEmptyStringValidator,
   createTextCell,
   readOnlyNumberCell,
   readOnlyOptionalNumberCell,
 } from "@/table/cells";
-import { fideProfileUrl } from "./external";
+import { EXTERNAL_SOURCES, externalProfileUrl } from "./external";
 import { usePlayerCreateConfig } from "./playerCreateConfig";
 import { useImportExternalRatings } from "./useImportExternalRatings";
 import { PlayerRow, usePlayerRows } from "./usePlayerRows";
@@ -17,10 +18,12 @@ const sanitizeData = (row: PlayerRow) => ({
   ...row,
   name: row.name.trim(),
   fide_id: row.fide_id.trim(),
+  knsb_id: row.knsb_id.trim(),
 });
 const getRequestBody = (row: PlayerRow) => ({
   name: row.name,
   fide_id: row.fide_id,
+  knsb_id: row.knsb_id,
 });
 
 export default function PlayerTable() {
@@ -41,21 +44,65 @@ export default function PlayerTable() {
     return errors;
   };
 
+  // Two columns per source: the id, editable, and the rating it was imported
+  // with, which only an import can change.
+  const externalColumns: Column<PlayerRow>[] = EXTERNAL_SOURCES.flatMap(
+    (source) => {
+      const sourceName = t(`externalSource.${source}`);
+      return [
+        {
+          field: `${source}_id`,
+          header: t("player.sourceId", { source: sourceName }),
+          cell: createTextCell(
+            `player-${source}-id`,
+            t("player.sourceId", { source: sourceName }),
+          ),
+          isEditable: true,
+          hideBelow: "sm",
+          // Players without an id there have no profile to link to, and not
+          // every source publishes one at all.
+          href: (row) =>
+            row[`${source}_id`]
+              ? externalProfileUrl(source, row[`${source}_id`])
+              : null,
+          external: true,
+        },
+        {
+          field: `${source}_rating`,
+          header: t("player.sourceRating", { source: sourceName }),
+          cell: readOnlyOptionalNumberCell,
+          hideBelow: "sm",
+        },
+      ];
+    },
+  );
+
   return (
     <Stack>
       {isModerator && (
         <Group justify="flex-end">
-          <Button
-            loading={importMutation.isPending}
-            onClick={() =>
-              importMutation.mutate({
-                params: { path: { source: "fide" } },
-                body: { update_existing: false },
-              })
-            }
-          >
-            {t("player.importFideRatings")}
-          </Button>
+          <Menu>
+            <Menu.Target>
+              <Button loading={importMutation.isPending}>
+                {t("player.importRatings")}
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              {EXTERNAL_SOURCES.map((source) => (
+                <Menu.Item
+                  key={source}
+                  onClick={() =>
+                    importMutation.mutate({
+                      params: { path: { source } },
+                      body: { update_existing: false },
+                    })
+                  }
+                >
+                  {t(`externalSource.${source}`)}
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       )}
       <EditableTable<PlayerRow>
@@ -74,22 +121,7 @@ export default function PlayerTable() {
             isEditable: true,
             href: (row) => `/players/${row.id}`,
           },
-          {
-            field: "fide_id",
-            header: t("player.fideId"),
-            cell: createTextCell("player-fide-id", t("player.fideId")),
-            isEditable: true,
-            hideBelow: "sm",
-            // Players without a FIDE id have no profile to link to.
-            href: (row) => (row.fide_id ? fideProfileUrl(row.fide_id) : null),
-            external: true,
-          },
-          {
-            field: "fide_rating",
-            header: t("player.fideRating"),
-            cell: readOnlyOptionalNumberCell,
-            hideBelow: "sm",
-          },
+          ...externalColumns,
         ]}
         sort={(a, b) => a.name.localeCompare(b.name)}
         createConfig={createConfig}
