@@ -1,0 +1,27 @@
+# Opt-in overlay: connects the backend to a chess_player_db instance running as
+# its own compose project on this host.
+#
+# Kept out of docker-compose.yml because the network below must already exist:
+# an `external: true` network that is missing makes `docker compose up` fail,
+# and the base stack has to keep working without a rating database.
+#
+# Start chess_player_db first, then:
+#   docker compose -f docker-compose.yml -f docker-compose.chessdb.yml up -d
+services:
+  backend:
+    # chess-player-db is a network alias that project declares for its api
+    # service. Port 8000 is that container's own port, not this one's — each
+    # container has its own namespace, so it does not clash with the backend
+    # also listening on 8000.
+    environment:
+      - CHESS_DB_API_BASE_URL=http://chess-player-db:8000
+    # `default` has to be listed explicitly: naming any network opts the service
+    # out of the implicit one, which is how Caddy reaches backend:8000.
+    networks:
+      - default
+      - chessdb
+
+networks:
+  chessdb:
+    name: chess_player_db_default
+    external: true

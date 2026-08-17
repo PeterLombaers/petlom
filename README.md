@@ -52,6 +52,52 @@ Go to `http://localhost` (or `http://<your-server-ip>` if running on a remote se
 
 ---
 
+### Enable External Ratings *(optional)*
+
+Player search against the FIDE and KNSB rating lists, and the rating import that goes with it,
+are disabled unless a [chess_player_db](https://github.com/PeterLombaers/chess_player_db) instance
+is reachable. Without one those features answer `503` and the rest of the app is unaffected.
+
+The rating database is never contacted by the browser — petlom's backend proxies the requests —
+so it does not need to be exposed to the internet. Run it on the same host and let the two
+containers talk over its compose network:
+
+**1.** Start chess_player_db first (its network has to exist before petlom starts):
+
+```bash
+cd /path/to/chess_player_db
+docker compose up -d
+```
+
+**2.** In petlom's `.env`, uncomment:
+
+```
+COMPOSE_FILE=docker-compose.yml:docker-compose.chessdb.yml
+```
+
+**3.** Start petlom as usual:
+
+```bash
+docker compose up -d --build
+```
+
+Without the `COMPOSE_FILE` line, pass the overlay by hand instead:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.chessdb.yml up -d --build
+```
+
+Verify the connection:
+
+```bash
+docker compose exec backend python -c "import httpx; print(httpx.get('http://chess-player-db:8000/federations/').json())"
+```
+
+External search is moderator-only, so log in before the search field appears in the
+create-player dialog.
+
+---
+
 ### Enable HTTPS
 
 Caddy automatically obtains and renews a TLS certificate from Let's Encrypt. No further configuration is needed. You only need to set the environment variable `CADDY_HOST` so that it knows for which domain to obtain the certificate.
@@ -82,10 +128,7 @@ Copy the SQLite file out of the Docker volume without stopping the application:
 
 ```bash
 mkdir -p backups
-docker run --rm \
-  -v petlom_petlom_db:/data \
-  -v "$(pwd)/backups":/backup \
-  alpine cp /data/petlom.db /backup/petlom_$(date +%Y%m%d).db
+
 ```
 
 ---
