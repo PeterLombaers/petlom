@@ -90,7 +90,7 @@ docker compose -f docker-compose.yml -f docker-compose.chessdb.yml up -d --build
 Verify the connection:
 
 ```bash
-docker compose exec backend python -c "import httpx; print(httpx.get('http://chess-player-db:8000/federations/').json())"
+docker compose exec backend uv run -c "import httpx; print(httpx.get('http://chess-player-db:8000/federations/').json())"
 ```
 
 External search is moderator-only, so log in before the search field appears in the
