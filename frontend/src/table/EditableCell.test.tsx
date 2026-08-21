@@ -1,27 +1,28 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import EditableCell from "@/table/EditableCell";
+import type { EditProps } from "@/table/types";
 import { renderInTableRow } from "@/test-utils";
 
 const renderValue = ({ value }: { value: string }) => (
   <span data-testid="display-value">{value}</span>
 );
 
+const testRow = { name: "Alice" };
+
 const renderEdit = ({
   editValue,
   error,
   onChange,
-}: {
-  editValue: string;
-  error: string;
-  onChange: (v: string) => void;
-}) => (
+  row,
+}: EditProps<string, typeof testRow>) => (
   <>
     <input
       aria-label="edit-input"
       value={editValue}
       onChange={(e) => onChange(e.target.value)}
     />
+    <span data-testid="row-name">{row.name}</span>
     {error && <span data-testid="error-msg">{error}</span>}
   </>
 );
@@ -34,6 +35,7 @@ describe("EditableCell", () => {
         value="Alice"
         editValue="Alice"
         setEditValue={vi.fn()}
+        row={testRow}
         renderValue={renderValue}
         renderEdit={renderEdit}
         error=""
@@ -50,6 +52,7 @@ describe("EditableCell", () => {
         value="Alice"
         editValue="Bob"
         setEditValue={vi.fn()}
+        row={testRow}
         renderValue={renderValue}
         renderEdit={renderEdit}
         error=""
@@ -68,6 +71,7 @@ describe("EditableCell", () => {
         value=""
         editValue=""
         setEditValue={vi.fn()}
+        row={testRow}
         renderValue={renderValue}
         renderEdit={renderEdit}
         error="Name is required"
@@ -87,6 +91,7 @@ describe("EditableCell", () => {
         value=""
         editValue=""
         setEditValue={setEditValue}
+        row={testRow}
         renderValue={renderValue}
         renderEdit={renderEdit}
         error=""
@@ -94,5 +99,21 @@ describe("EditableCell", () => {
     );
     await user.type(screen.getByRole("textbox"), "B");
     expect(setEditValue).toHaveBeenCalledWith("B");
+  });
+
+  it("passes the whole row to renderEdit", () => {
+    renderInTableRow(
+      <EditableCell
+        isEditing={true}
+        value=""
+        editValue=""
+        setEditValue={vi.fn()}
+        row={testRow}
+        renderValue={renderValue}
+        renderEdit={renderEdit}
+        error=""
+      />,
+    );
+    expect(screen.getByTestId("row-name")).toHaveTextContent("Alice");
   });
 });

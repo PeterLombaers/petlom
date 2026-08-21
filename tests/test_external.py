@@ -12,9 +12,14 @@ from backend.enums import ExternalRatingSource
 from backend.external import (
     ChessDbProvider,
     ExternalApiError,
+    ExternalPlayerResult,
     ProviderNotConfiguredError,
+    name_matches,
+    normalize_name,
+    unique_match,
 )
 from backend.models import LIST_DATE_PATTERN, ExternalRating, Player, PlayerExternalId
+from backend.routers import external_ratings
 
 BASE_URL = "http://chess-db.test"
 FEDERATIONS_URL = f"{BASE_URL}/federations/"
@@ -386,6 +391,280 @@ def test_import_endpoint_source_without_data(
 def test_import_endpoint_requires_auth(client: TestClient):
     res = client.post("/external/fide/import/", json={})
     assert res.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Name matching
+# ---------------------------------------------------------------------------
+
+
+def search_result(external_id: str, name: str) -> ExternalPlayerResult:
+    return ExternalPlayerResult(
+        source=ExternalRatingSource.FIDE, external_id=external_id, name=name
+    )
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        ("Magnus Carlsen", "Carlsen, Magnus"),
+        ("Jorden van Foreest", "van Foreest, Jorden"),
+        ("Jorden van Foreest", "Jorden van Föreest"),
+        ("Anish Giri", "GIRI, ANISH"),
+        ("Jan-Krzysztof Duda", "Duda, Jan Krzysztof"),
+        ("Loek  van Wely", "van Wely, Loek"),
+    ],
+)
+def test_normalize_name_equal(left: str, right: str):
+    assert normalize_name(left) == normalize_name(right)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        ("Magnus Carlsen", "Henrik Carlsen"),
+        ("Anish Giri", "Anish Giri Giri"),
+        ("Jan Timman", "Jan Timmen"),
+    ],
+)
+def test_normalize_name_different(left: str, right: str):
+    assert normalize_name(left) != normalize_name(right)
+
+
+def test_name_matches_drops_hits_with_another_name():
+    """The source matches on words, so a surname alone is not a match."""
+    hits = [
+        search_result("1", "Carlsen, Magnus"),
+        search_result("2", "Carlsen, Henrik"),
+    ]
+    assert [hit.external_id for hit in name_matches("Magnus Carlsen", hits)] == ["1"]
+
+
+def test_name_matches_counts_a_repeated_id_once():
+    hits = [search_result("1", "Carlsen, Magnus"), search_result("1", "Magnus Carlsen")]
+    assert len(name_matches("Magnus Carlsen", hits)) == 1
+
+
+def test_unique_match():
+    hits = [search_result("1", "Carlsen, Magnus"), search_result("2", "Doe, John")]
+    assert unique_match("Magnus Carlsen", hits).external_id == "1"
+
+
+def test_unique_match_namesakes():
+    hits = [search_result("1", "Jansen, Piet"), search_result("2", "Jansen, Piet")]
+    assert unique_match("Piet Jansen", hits) is None
+
+
+def test_unique_match_no_hits():
+    assert unique_match("Piet Jansen", []) is None
+
+
+# ---------------------------------------------------------------------------
+# Match endpoint
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+def test_match_endpoint(
+    auth_client: TestClient,
+    session: Session,
+    player_factory: Callable[..., Player],
+    chess_db_configured,
+):
+    player = player_factory(name="Magnus Carlsen")
+    route = respx.get(PLAYERS_URL).respond(
+        json=[
+            player_hit("1503014", 2823, name="Carlsen, Magnus"),
+            player_hit("1503259", 2100, name="Carlsen, Henrik"),
+        ]
+    )
+
+    res = auth_client.post("/external/fide/match/", json={})
+    res.raise_for_status()
+    result = res.json()
+    assert result["searched"] == 1
+    assert result["skipped"] == []
+    assert result["matched"] == [
+        {
+            "player_id": player.id,
+            "player_name": "Magnus Carlsen",
+            "external_id": "1503014",
+            "external_name": "Carlsen, Magnus",
+        }
+    ]
+    assert route.calls.last.request.url.params["q"] == "Magnus Carlsen"
+
+    external_ids = session.exec(select(PlayerExternalId)).all()
+    assert len(external_ids) == 1
+    assert external_ids[0].player_id == player.id
+    assert external_ids[0].external_id == "1503014"
+
+
+@respx.mock
+def test_match_endpoint_ambiguous_and_unknown(
+    auth_client: TestClient,
+    session: Session,
+    player_factory: Callable[..., Player],
+    chess_db_configured,
+):
+    namesake = player_factory(name="Piet Jansen")
+    unknown = player_factory(name="Nobody Here")
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.params["q"] == "Piet Jansen":
+            return httpx.Response(
+                200,
+                json=[
+                    player_hit("11", 1800, name="Jansen, Piet"),
+                    player_hit("22", 1750, name="Jansen, Piet"),
+                ],
+            )
+        return httpx.Response(200, json=[player_hit("33", 1600, name="Someone Else")])
+
+    respx.get(PLAYERS_URL).mock(side_effect=respond)
+
+    res = auth_client.post("/external/fide/match/", json={})
+    res.raise_for_status()
+    result = res.json()
+    assert result["matched"] == []
+    assert {skip["player_id"]: skip["reason"] for skip in result["skipped"]} == {
+        namesake.id: "ambiguous",
+        unknown.id: "not_found",
+    }
+    assert session.exec(select(PlayerExternalId)).all() == []
+
+
+@respx.mock
+def test_match_endpoint_leaves_existing_ids_alone(
+    auth_client: TestClient,
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    chess_db_configured,
+):
+    player_external_id_factory(external_id="111")
+    route = respx.get(PLAYERS_URL).respond(json=[])
+
+    res = auth_client.post("/external/fide/match/", json={})
+    res.raise_for_status()
+    assert res.json()["searched"] == 0
+    # A player who already has an id is not worth a request.
+    assert route.call_count == 0
+
+
+@respx.mock
+def test_match_endpoint_searches_a_source_the_player_has_no_id_for(
+    auth_client: TestClient,
+    session: Session,
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    chess_db_configured,
+):
+    """A FIDE id says nothing about whether the KNSB id is known."""
+    external_id = player_external_id_factory(external_id="111")
+    player_name = external_id.player.name
+    route = respx.get(PLAYERS_URL).respond(json=[player_hit("999", 1800, player_name)])
+
+    res = auth_client.post("/external/knsb/match/", json={})
+    res.raise_for_status()
+    assert res.json()["matched"][0]["external_id"] == "999"
+    assert route.calls.last.request.url.params["federation"] == "KNSB"
+
+    sources = {ext.source for ext in session.exec(select(PlayerExternalId)).all()}
+    assert sources == {ExternalRatingSource.FIDE, ExternalRatingSource.KNSB}
+
+
+@respx.mock
+def test_match_endpoint_id_already_taken(
+    auth_client: TestClient,
+    session: Session,
+    player_factory: Callable[..., Player],
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    chess_db_configured,
+):
+    """Two Petlom players cannot share one external id."""
+    player_external_id_factory(external_id="111")
+    namesake = player_factory(name="Piet Jansen")
+    respx.get(PLAYERS_URL).respond(json=[player_hit("111", 1800, name="Jansen, Piet")])
+
+    res = auth_client.post("/external/fide/match/", json={})
+    res.raise_for_status()
+    result = res.json()
+    assert result["matched"] == []
+    assert result["skipped"] == [
+        {
+            "player_id": namesake.id,
+            "player_name": "Piet Jansen",
+            "reason": "taken",
+        }
+    ]
+    assert len(session.exec(select(PlayerExternalId)).all()) == 1
+
+
+@respx.mock
+def test_match_endpoint_selected_players(
+    auth_client: TestClient,
+    player_factory: Callable[..., Player],
+    chess_db_configured,
+):
+    wanted = player_factory(name="Magnus Carlsen")
+    player_factory(name="Anish Giri")
+    route = respx.get(PLAYERS_URL).respond(
+        json=[player_hit("1503014", 2823, name="Carlsen, Magnus")]
+    )
+
+    res = auth_client.post("/external/fide/match/", json={"player_ids": [wanted.id]})
+    res.raise_for_status()
+    assert res.json()["searched"] == 1
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_match_endpoint_keeps_what_it_found_before_a_failure(
+    auth_client: TestClient,
+    session: Session,
+    player_factory: Callable[..., Player],
+    chess_db_configured,
+):
+    """A retry should pick up where the failed run left off."""
+    player_factory(name="Magnus Carlsen")
+    player_factory(name="Anish Giri")
+    responses = [
+        httpx.Response(200, json=[player_hit("1503014", 2823, name="Carlsen, Magnus")]),
+        httpx.ConnectError("boom"),
+    ]
+    respx.get(PLAYERS_URL).mock(side_effect=responses)
+
+    res = auth_client.post("/external/fide/match/", json={})
+    assert res.status_code == 502
+
+    external_ids = session.exec(select(PlayerExternalId)).all()
+    assert [ext.external_id for ext in external_ids] == ["1503014"]
+
+
+@respx.mock
+def test_match_endpoint_batch_too_large(
+    auth_client: TestClient,
+    player_factory: Callable[..., Player],
+    chess_db_configured,
+    monkeypatch,
+):
+    monkeypatch.setattr(external_ratings, "MAX_MATCH_BATCH_SIZE", 1)
+    player_factory()
+    player_factory()
+    route = respx.get(PLAYERS_URL).respond(json=[])
+
+    res = auth_client.post("/external/fide/match/", json={})
+    assert res.status_code == 400
+    assert route.call_count == 0
+
+
+def test_match_endpoint_requires_auth(client: TestClient):
+    res = client.post("/external/fide/match/", json={})
+    assert res.status_code == 401
+
+
+def test_match_endpoint_unconfigured(auth_client: TestClient, monkeypatch):
+    monkeypatch.setattr(settings, "chess_db_api_base_url", None)
+    res = auth_client.post("/external/fide/match/", json={})
+    assert res.status_code == 503
 
 
 # ---------------------------------------------------------------------------

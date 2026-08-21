@@ -95,12 +95,12 @@ function setupMocks(player: unknown = ALICE) {
       mutations[`${method} ${path}` as keyof typeof mutations] ??
       makeMockMutation(),
   );
-  mockUseQuery.mockReturnValue({
-    data: player,
-    isPending: false,
-    isError: false,
-    error: null,
-  });
+  mockUseQuery.mockImplementation((_method: string, path: string) =>
+    // The identifier fields search the rating source as they are edited.
+    path === "/external/{source}/search/"
+      ? { data: [], isFetching: false }
+      : { data: player, isPending: false, isError: false, error: null },
+  );
   return mutations;
 }
 
@@ -201,7 +201,7 @@ describe("PlayerDetail", () => {
       const mutations = renderDetail();
 
       await user.click(screen.getByRole("button", { name: "Edit" }));
-      await user.clear(screen.getByRole("textbox", { name: "FIDE ID" }));
+      await user.clear(screen.getByRole("combobox", { name: "FIDE ID" }));
       await user.click(screen.getByRole("button", { name: "Save" }));
 
       expect(

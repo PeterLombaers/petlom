@@ -23,16 +23,23 @@ export interface EditConfig<T = unknown> {
   getRequestBody: (editData: T) => unknown;
 }
 
-/** Props an editable cell's `renderEdit` receives for a value of type `V`. */
-export type EditProps<V> = {
+/**
+ * Props an editable cell's `renderEdit` receives for a value of type `V`.
+ *
+ * `row` is the whole row being edited, for a control that needs more of it than
+ * the value it edits (e.g. a player's name to search a rating source with).
+ * Cells that do not care can declare `EditProps<V>` and ignore it.
+ */
+export type EditProps<V, T = unknown> = {
   editValue: V;
   error: string;
   onChange: (newValue: V) => void;
+  row: T;
 };
 
 export type CellConfig<T, K extends keyof T> = {
   renderValue: (props: { value: T[K] }) => React.ReactNode;
-  renderEdit?: (props: EditProps<T[K]>) => React.ReactNode;
+  renderEdit?: (props: EditProps<T[K], T>) => React.ReactNode;
 };
 
 /**

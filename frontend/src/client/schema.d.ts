@@ -337,6 +337,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/{source}/match/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Match External Ids
+         * @description Find the external id of players by searching the source for their name.
+         *
+         *     Which players: those in request.player_ids, or every player when it is
+         *     None, in both cases only the ones that have no external id for the source
+         *     yet. Existing ids are never overwritten, and inactive players are included
+         *     -- their rating is still worth having when they come back. Batches of more
+         *     than MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
+         *     import, this costs one request to the source per player.
+         *
+         *     Which id: the one of the single player at the source whose name equals the
+         *     Petlom player's (see backend.external.matching). A name that several
+         *     players there carry, or none, leaves the player without an id and is
+         *     reported in skipped, as is a name whose match is already another Petlom
+         *     player's id.
+         *
+         *     Returns an ExternalIdMatchResult listing both. Responds 503 if the source
+         *     has no configured provider and 502 if the external API fails; ids matched
+         *     before the failure are saved, so a retry picks up where it left off.
+         */
+        post: operations["match_external_ids_external__source__match__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -531,6 +568,69 @@ export interface components {
             /** Name */
             name?: string | null;
             type?: components["schemas"]["CompetitionType"] | null;
+        };
+        /**
+         * ExternalIdMatchPublic
+         * @description A player that was matched to exactly one player at the source.
+         */
+        ExternalIdMatchPublic: {
+            /** Player Id */
+            player_id: number;
+            /** Player Name */
+            player_name: string;
+            /** External Id */
+            external_id: string;
+            /** External Name */
+            external_name: string;
+        };
+        /**
+         * ExternalIdMatchRequest
+         * @description Request body of POST /external/{source}/match/.
+         */
+        ExternalIdMatchRequest: {
+            /**
+             * Player Ids
+             * @description Players to search for. Defaults to every player without an external id for the source. Players that already have one are never searched: matching only fills gaps, it never overwrites.
+             */
+            player_ids?: number[] | null;
+        };
+        /**
+         * ExternalIdMatchResult
+         * @description Response of POST /external/{source}/match/.
+         */
+        ExternalIdMatchResult: {
+            source: components["schemas"]["ExternalRatingSource"];
+            /** Searched */
+            searched: number;
+            /**
+             * Matched
+             * @default []
+             */
+            matched: components["schemas"]["ExternalIdMatchPublic"][];
+            /**
+             * Skipped
+             * @default []
+             */
+            skipped: components["schemas"]["ExternalIdMatchSkip"][];
+        };
+        /**
+         * ExternalIdMatchSkip
+         * @description A player that was searched for but not matched, and why.
+         *
+         *     - ambiguous: several players at the source carry this name.
+         *     - not_found: none do.
+         *     - taken: the one that does is already another Petlom player's external id.
+         */
+        ExternalIdMatchSkip: {
+            /** Player Id */
+            player_id: number;
+            /** Player Name */
+            player_name: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "ambiguous" | "not_found" | "taken";
         };
         /**
          * ExternalPlayerResult
@@ -1978,6 +2078,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExternalRatingImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    match_external_ids_external__source__match__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: components["schemas"]["ExternalRatingSource"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalIdMatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalIdMatchResult"];
                 };
             };
             /** @description Validation Error */

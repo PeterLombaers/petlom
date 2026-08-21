@@ -6,7 +6,10 @@ import { render, makeMockMutation } from "@/test-utils";
 import PlayerTable from "./PlayerTable";
 import * as apiModule from "@client/api";
 
-vi.mock("@/auth", () => ({ useAuth: () => ({ isModerator: true }) }));
+const mockIsModerator = vi.fn(() => true);
+vi.mock("@/auth", () => ({
+  useAuth: () => ({ isModerator: mockIsModerator() }),
+}));
 vi.mock("@client/api", async (importOriginal) => ({
   ...(await importOriginal<typeof apiModule>()),
   $api: { useQuery: vi.fn(), useMutation: vi.fn() },
@@ -85,12 +88,12 @@ function setupMocks(players = [ALICE, BOB]) {
       mutations[`${method} ${path}` as keyof typeof mutations] ??
       makeMockMutation(),
   );
-  mockUseQuery.mockReturnValue({
-    data: players,
-    isPending: false,
-    isError: false,
-    error: null,
-  });
+  mockUseQuery.mockImplementation((_method: string, path: string) =>
+    // The identifier cells search the rating source as they are edited.
+    path === "/external/{source}/search/"
+      ? { data: [], isFetching: false }
+      : { data: players, isPending: false, isError: false, error: null },
+  );
   return mutations;
 }
 
@@ -115,6 +118,10 @@ async function startRowEdit(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("PlayerTable", () => {
+  beforeEach(() => {
+    mockIsModerator.mockReturnValue(true);
+  });
+
   describe("columns", () => {
     it("renders the rating of each source, and an em dash without one", () => {
       renderTable();
@@ -188,7 +195,9 @@ describe("PlayerTable", () => {
       const mutations = renderTable();
 
       const row = await startRowEdit(user);
-      const fideInput = within(row).getByRole("textbox", { name: "FIDE ID" });
+      const fideInput = within(row).getByRole("combobox", {
+        name: /FIDE ID of Alice/,
+      });
       await user.clear(fideInput);
       await user.type(fideInput, "24116068");
       await user.click(within(row).getByRole("button", { name: "Save" }));
@@ -209,7 +218,9 @@ describe("PlayerTable", () => {
       const mutations = renderTable();
 
       const row = await startRowEdit(user);
-      const knsbInput = within(row).getByRole("textbox", { name: "KNSB ID" });
+      const knsbInput = within(row).getByRole("combobox", {
+        name: /KNSB ID of Alice/,
+      });
       await user.clear(knsbInput);
       await user.type(knsbInput, "9000001");
       await user.click(within(row).getByRole("button", { name: "Save" }));
@@ -227,7 +238,9 @@ describe("PlayerTable", () => {
       const mutations = renderTable();
 
       const row = await startRowEdit(user);
-      await user.clear(within(row).getByRole("textbox", { name: "FIDE ID" }));
+      await user.clear(
+        within(row).getByRole("combobox", { name: /FIDE ID of Alice/ }),
+      );
       await user.click(within(row).getByRole("button", { name: "Save" }));
 
       expect(
@@ -276,6 +289,26 @@ describe("PlayerTable", () => {
         params: { path: { source: "knsb" } },
         body: { update_existing: false },
       });
+    });
+  });
+
+  describe("finding ids", () => {
+    it("opens the search dialog", async () => {
+      const user = userEvent.setup();
+      renderTable();
+
+      await user.click(screen.getByRole("button", { name: "Find IDs" }));
+
+      expect(
+        await screen.findByRole("dialog", { name: "Find IDs" }),
+      ).toBeInTheDocument();
+    });
+
+    it("is hidden from a user who may not search", () => {
+      mockIsModerator.mockReturnValue(false);
+      renderTable();
+
+      expect(screen.queryByRole("button", { name: "Find IDs" })).toBeNull();
     });
   });
 });

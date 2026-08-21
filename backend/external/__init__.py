@@ -6,6 +6,7 @@ from backend.external.base import (
     ProviderNotConfiguredError,
 )
 from backend.external.chess_db import ChessDbProvider
+from backend.external.matching import name_matches, normalize_name, unique_match
 from backend.external.registry import get_provider
 
 __all__ = [
@@ -16,4 +17,7 @@ __all__ = [
     "ExternalRatingRecord",
     "ProviderNotConfiguredError",
     "get_provider",
+    "name_matches",
+    "normalize_name",
+    "unique_match",
 ]

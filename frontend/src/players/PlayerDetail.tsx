@@ -19,6 +19,7 @@ import { useAuth } from "@/auth";
 import { useDocumentTitle } from "@/pages/useDocumentTitle";
 import { ErrorState } from "@/ui/ErrorState";
 import { LoadingState } from "@/ui/LoadingState";
+import ExternalIdInput from "./ExternalIdInput";
 import {
   EXTERNAL_SOURCES,
   externalProfileUrl,
@@ -149,16 +150,17 @@ function PlayerForm({
         onChange={(e) => setName(e.target.value)}
       />
       {EXTERNAL_SOURCES.map((source) => (
-        <TextInput
+        <ExternalIdInput
           key={source}
-          name={`player-${source}-id`}
-          id={`player-${source}-id`}
+          source={source}
+          // The name being edited, so a rename can be searched for right away.
+          playerName={trimmedName || player.name}
           label={t("player.sourceId", {
             source: t(`externalSource.${source}`),
           })}
           value={externalIds[source]}
-          onChange={(e) =>
-            setExternalIds((prev) => ({ ...prev, [source]: e.target.value }))
+          onChange={(externalId) =>
+            setExternalIds((prev) => ({ ...prev, [source]: externalId }))
           }
         />
       ))}

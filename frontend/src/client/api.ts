@@ -43,6 +43,11 @@ export const formatHTTPValidationError = (
   if (error === null || error.detail === undefined) {
     return "";
   }
+  // A 4xx/5xx the backend raised itself carries a plain sentence rather than
+  // the list of validation errors a 422 does; it is already the message.
+  if (typeof error.detail === "string") {
+    return error.detail;
+  }
   return error.detail.map((error) => formatValidationError(error)).join("; ");
 };
 

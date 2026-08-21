@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import constr, field_validator
 from sqlalchemy import Column
@@ -301,6 +301,50 @@ class ExternalRatingImportResult(SQLModel):
     skipped: int = 0
     not_found: list[str] = []
     players_without_id: list[int] = []
+
+
+class ExternalIdMatchRequest(SQLModel):
+    """Request body of POST /external/{source}/match/."""
+
+    player_ids: list[int] | None = Field(
+        default=None,
+        description=(
+            "Players to search for. Defaults to every player without an"
+            " external id for the source. Players that already have one are"
+            " never searched: matching only fills gaps, it never overwrites."
+        ),
+    )
+
+
+class ExternalIdMatchPublic(SQLModel):
+    """A player that was matched to exactly one player at the source."""
+
+    player_id: int
+    player_name: str
+    external_id: str
+    external_name: str
+
+
+class ExternalIdMatchSkip(SQLModel):
+    """A player that was searched for but not matched, and why.
+
+    - ambiguous: several players at the source carry this name.
+    - not_found: none do.
+    - taken: the one that does is already another Petlom player's external id.
+    """
+
+    player_id: int
+    player_name: str
+    reason: Literal["ambiguous", "not_found", "taken"]
+
+
+class ExternalIdMatchResult(SQLModel):
+    """Response of POST /external/{source}/match/."""
+
+    source: ExternalRatingSource
+    searched: int
+    matched: list[ExternalIdMatchPublic] = []
+    skipped: list[ExternalIdMatchSkip] = []
 
 
 # ---------------------------------------------------------------------------

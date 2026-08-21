@@ -120,6 +120,7 @@ export default function EditableRow<T = unknown>({
               value={data[key]}
               editValue={columnEditValue as T[typeof key]}
               setEditValue={(newValue) => onColumnEditChange?.(newValue)}
+              row={data}
               renderValue={renderValue}
               renderEdit={cell.renderEdit}
               error={columnEditError ?? ""}
@@ -135,6 +136,9 @@ export default function EditableRow<T = unknown>({
               value={data[key]}
               editValue={editData[key]}
               setEditValue={(newValue) => setCellEditData(key, newValue)}
+              // The row as it will be saved, so a cell that reads a sibling
+              // field sees the edit in progress rather than the fetched value.
+              row={editData}
               renderValue={renderValue}
               renderEdit={cell.renderEdit}
               error={errors[key] || ""}

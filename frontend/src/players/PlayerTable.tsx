@@ -1,4 +1,5 @@
 import { Button, Group, Menu, Stack } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth";
 import EditableTable from "@/table/EditableTable";
@@ -9,7 +10,9 @@ import {
   readOnlyNumberCell,
   readOnlyOptionalNumberCell,
 } from "@/table/cells";
+import { createExternalIdCell } from "./cells";
 import { EXTERNAL_SOURCES, externalProfileUrl } from "./external";
+import MatchExternalIdsModal from "./MatchExternalIdsModal";
 import { usePlayerCreateConfig } from "./playerCreateConfig";
 import { useImportExternalRatings } from "./useImportExternalRatings";
 import { PlayerRow, usePlayerRows } from "./usePlayerRows";
@@ -32,6 +35,8 @@ export default function PlayerTable() {
   const queryResult = usePlayerRows();
   const createConfig = usePlayerCreateConfig();
   const importMutation = useImportExternalRatings();
+  const [matchModalOpened, { open: openMatchModal, close: closeMatchModal }] =
+    useDisclosure(false);
 
   const validatePlayerName = createNonEmptyStringValidator(
     "name",
@@ -53,11 +58,10 @@ export default function PlayerTable() {
         {
           field: `${source}_id`,
           header: t("player.sourceId", { source: sourceName }),
-          cell: createTextCell(
-            `player-${source}-id`,
-            t("player.sourceId", { source: sourceName }),
-          ),
+          cell: createExternalIdCell(source),
           isEditable: true,
+          // The search dropdown needs more room than the identifier itself.
+          editWidth: 260,
           hideBelow: "sm",
           // Players without an id there have no profile to link to, and not
           // every source publishes one at all.
@@ -81,6 +85,12 @@ export default function PlayerTable() {
     <Stack>
       {isModerator && (
         <Group justify="flex-end">
+          <Button variant="default" onClick={openMatchModal}>
+            {t("player.findIds")}
+          </Button>
+          {matchModalOpened && (
+            <MatchExternalIdsModal onClose={closeMatchModal} />
+          )}
           <Menu>
             <Menu.Target>
               <Button loading={importMutation.isPending}>

@@ -13,8 +13,13 @@ from backend.external import (
     ExternalRatingProvider,
     ProviderNotConfiguredError,
     get_provider,
+    name_matches,
 )
 from backend.models import (
+    ExternalIdMatchPublic,
+    ExternalIdMatchRequest,
+    ExternalIdMatchResult,
+    ExternalIdMatchSkip,
     ExternalRating,
     ExternalRatingImportRequest,
     ExternalRatingImportResult,
@@ -27,6 +32,13 @@ router = APIRouter(prefix="/external", tags=["external"])
 # The external API takes the whole batch in one request, so this is a guard
 # against a runaway import rather than a cost limit.
 MAX_IMPORT_BATCH_SIZE = 500
+
+# Matching costs one request per player, so this one is a real cost limit.
+MAX_MATCH_BATCH_SIZE = 200
+
+# Enough hits to see that a name is ambiguous without paging through everyone
+# who shares a surname.
+MATCH_SEARCH_LIMIT = 20
 
 
 def find_provider(source: ExternalRatingSource) -> ExternalRatingProvider:
@@ -192,4 +204,110 @@ def import_external_ratings(
         skipped=skipped,
         not_found=not_found,
         players_without_id=players_without_id,
+    )
+
+
+@router.post("/{source}/match/")
+def match_external_ids(
+    source: ExternalRatingSource,
+    request: ExternalIdMatchRequest,
+    session: SessionDep,
+    _: ModeratorDep,
+) -> ExternalIdMatchResult:
+    """Find the external id of players by searching the source for their name.
+
+    Which players: those in request.player_ids, or every player when it is
+    None, in both cases only the ones that have no external id for the source
+    yet. Existing ids are never overwritten. Batches of more
+    than MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
+    import, this costs one request to the source per player.
+
+    Which id: the one of the single player at the source whose name equals the
+    Petlom player's (see backend.external.matching). A name that several
+    players there carry, or none, leaves the player without an id and is
+    reported in skipped, as is a name whose match is already another Petlom
+    player's id.
+
+    Returns an ExternalIdMatchResult listing both. Responds 503 if the source
+    has no configured provider and 502 if the external API fails; ids matched
+    before the failure are saved, so a retry picks up where it left off.
+    """
+    provider = find_provider(source)
+
+    players_with_id = select(PlayerExternalId.player_id).where(
+        PlayerExternalId.source == source
+    )
+    player_query = select(Player).where(col(Player.id).not_in(players_with_id))
+    if request.player_ids is not None:
+        player_query = player_query.where(col(Player.id).in_(request.player_ids))
+    players = list(session.exec(player_query).all())
+
+    if len(players) > MAX_MATCH_BATCH_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Match batch too large ({len(players)} players);"
+                f" maximum is {MAX_MATCH_BATCH_SIZE}."
+            ),
+        )
+
+    taken_ids = set(
+        session.exec(
+            select(PlayerExternalId.external_id).where(
+                PlayerExternalId.source == source
+            )
+        ).all()
+    )
+
+    matched: list[ExternalIdMatchPublic] = []
+    skipped: list[ExternalIdMatchSkip] = []
+
+    def skip(player: Player, reason: str) -> None:
+        skipped.append(
+            ExternalIdMatchSkip(
+                player_id=player.id,  # type: ignore[arg-type]
+                player_name=player.name,
+                reason=reason,  # type: ignore[arg-type]
+            )
+        )
+
+    for player in players:
+        try:
+            hits = provider.search_players(player.name, limit=MATCH_SEARCH_LIMIT)
+        except (ExternalApiError, ProviderNotConfiguredError) as exc:
+            # Everything matched so far is worth keeping: the run is long and
+            # searching again for the same player yields the same answer.
+            session.commit()
+            raise api_error(exc)
+        candidates = name_matches(player.name, hits)
+        if len(candidates) != 1:
+            skip(player, "ambiguous" if candidates else "not_found")
+            continue
+        hit = candidates[0]
+        if hit.external_id in taken_ids:
+            skip(player, "taken")
+            continue
+        taken_ids.add(hit.external_id)
+        session.add(
+            PlayerExternalId(
+                player_id=player.id,  # type: ignore[arg-type]
+                source=source,
+                external_id=hit.external_id,
+            )
+        )
+        matched.append(
+            ExternalIdMatchPublic(
+                player_id=player.id,  # type: ignore[arg-type]
+                player_name=player.name,
+                external_id=hit.external_id,
+                external_name=hit.name,
+            )
+        )
+    session.commit()
+
+    return ExternalIdMatchResult(
+        source=source,
+        searched=len(players),
+        matched=matched,
+        skipped=skipped,
     )
