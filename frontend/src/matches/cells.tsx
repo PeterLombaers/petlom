@@ -1,6 +1,7 @@
 import { Tooltip } from "@mantine/core";
 import { components } from "@client/schema";
 import PlayerSelect from "@/players/PlayerSelect";
+import { PlayerName } from "@/ui/PlayerName";
 import type { EditProps } from "@/table/types";
 import ResultToggle from "./ResultToggle";
 
@@ -13,7 +14,12 @@ export const playerSelectCell = {
       label={props.value.name}
       events={{ hover: true, focus: false, touch: true }}
     >
-      <span>{props.value.name}</span>
+      <span>
+        <PlayerName
+          name={props.value.name}
+          isActive={props.value.is_active}
+        />
+      </span>
     </Tooltip>
   ),
   renderEdit: (props: EditProps<PlayerRef>) => (

@@ -17,6 +17,7 @@ import { $api, formatHTTPValidationError } from "@client/api";
 import { components } from "@/client/schema";
 import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
+import { PlayerName } from "@/ui/PlayerName";
 import { getRating } from "@/players/external";
 import NewPlayerButton from "@/players/NewPlayerButton";
 import { useRegistrations } from "./useRegistrations";
@@ -200,7 +201,12 @@ export default function RegistrationEditor({
         <Table.Tbody>
           {registrations.map((rp) => (
             <Table.Tr key={rp.id}>
-              <Table.Td>{rp.player.name}</Table.Td>
+              <Table.Td>
+                <PlayerName
+                  name={rp.player.name}
+                  isActive={rp.player.is_active}
+                />
+              </Table.Td>
               <Table.Td>
                 {rp.initial_rating != null
                   ? Math.round(rp.initial_rating)

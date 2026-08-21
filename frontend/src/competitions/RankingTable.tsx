@@ -6,13 +6,19 @@ import { formatHTTPValidationError } from "@/client/api";
 import { components } from "@/client/schema";
 import { ErrorState } from "@/ui/ErrorState";
 import { LoadingState } from "@/ui/LoadingState";
+import { PlayerName } from "@/ui/PlayerName";
 import { useRanking } from "./useRanking";
 
 type SimkroRank = components["schemas"]["SimkroRank"];
 
 const COLUMNS: { key: ParseKeys; render: (rank: SimkroRank) => ReactNode }[] = [
   { key: "ranking.position", render: (rank) => rank.position },
-  { key: "ranking.player", render: (rank) => rank.player.name },
+  {
+    key: "ranking.player",
+    render: (rank) => (
+      <PlayerName name={rank.player.name} isActive={rank.player.is_active} />
+    ),
+  },
   { key: "ranking.points", render: (rank) => rank.points },
   { key: "ranking.games", render: (rank) => rank.games_played },
   { key: "ranking.saldo", render: (rank) => rank.saldo },

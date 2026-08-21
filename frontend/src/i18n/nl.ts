@@ -113,6 +113,8 @@ const nl: TranslationSchema = {
     knsb: "KNSB",
   },
   player: {
+    deleted: "verwijderd",
+    deletedSuffix: "{{name}} (verwijderd)",
     sourceId: "{{source}}-ID",
     sourceRating: "{{source}}-rating",
     searchSource: "Zoek in {{source}}",

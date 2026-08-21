@@ -18,6 +18,7 @@ import { components } from "@/client/schema";
 import { useAuth } from "@/auth";
 import { useDocumentTitle } from "@/pages/useDocumentTitle";
 import { ErrorState } from "@/ui/ErrorState";
+import { PlayerName } from "@/ui/PlayerName";
 import { LoadingState } from "@/ui/LoadingState";
 import ExternalIdInput from "./ExternalIdInput";
 import {
@@ -70,7 +71,7 @@ function PlayerHeader({ player }: { player: PlayerDetailData }) {
       ) : (
         <Group justify="space-between">
           <Title order={1} size="h2">
-            {player.name}
+            <PlayerName name={player.name} isActive={player.is_active} />
           </Title>
           {isModerator && (
             <Button variant="default" onClick={() => setIsEditing(true)}>

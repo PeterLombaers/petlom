@@ -352,9 +352,10 @@ export interface paths {
          *
          *     Which players: those in request.player_ids, or every player when it is
          *     None, in both cases only the ones that have no external id for the source
-         *     yet. Existing ids are never overwritten, and inactive players are included
-         *     -- their rating is still worth having when they come back. Batches of more
-         *     than MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
+         *     yet. Existing ids are never overwritten, and deleted (inactive) players are
+         *     included -- their rating is still worth having when they come back, so the
+         *     result flags them instead of leaving them out. Batches of more than
+         *     MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
          *     import, this costs one request to the source per player.
          *
          *     Which id: the one of the single player at the source whose name equals the
@@ -578,6 +579,8 @@ export interface components {
             player_id: number;
             /** Player Name */
             player_name: string;
+            /** Player Is Active */
+            player_is_active: boolean;
             /** External Id */
             external_id: string;
             /** External Name */
@@ -626,6 +629,8 @@ export interface components {
             player_id: number;
             /** Player Name */
             player_name: string;
+            /** Player Is Active */
+            player_is_active: boolean;
             /**
              * Reason
              * @enum {string}
@@ -950,6 +955,12 @@ export interface components {
             /** Is Active */
             is_active: boolean;
         };
+        /**
+         * PlayerStatus
+         * @description Which side of the soft-delete flag a player listing asks for.
+         * @enum {string}
+         */
+        PlayerStatus: "active" | "inactive" | "all";
         /**
          * PlayerUpdate
          * @description Request body of PATCH /players/{id}/.
@@ -1598,7 +1609,8 @@ export interface operations {
             query?: {
                 offset?: number;
                 limit?: number;
-                is_active?: boolean | null;
+                /** @description Which players to list. Soft-deleted players are inactive and are left out unless asked for. */
+                status?: components["schemas"]["PlayerStatus"];
                 /** @description Rating list to report external ratings for, as YYYY-MM. Defaults to the newest snapshot of each player. */
                 list_date?: string | null;
             };

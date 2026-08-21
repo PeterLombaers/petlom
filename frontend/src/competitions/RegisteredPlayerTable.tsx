@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { formatHTTPValidationError } from "@client/api";
 import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
+import { PlayerName } from "@/ui/PlayerName";
 import { useRegistrations } from "./useRegistrations";
 
 export default function RegisteredPlayerTable({
@@ -37,7 +38,12 @@ export default function RegisteredPlayerTable({
       <Table.Tbody>
         {registrations.map((rp) => (
           <Table.Tr key={rp.id}>
-            <Table.Td>{rp.player.name}</Table.Td>
+            <Table.Td>
+              <PlayerName
+                name={rp.player.name}
+                isActive={rp.player.is_active}
+              />
+            </Table.Td>
             <Table.Td>
               {rp.initial_rating != null ? Math.round(rp.initial_rating) : "—"}
             </Table.Td>

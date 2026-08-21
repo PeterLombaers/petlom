@@ -488,6 +488,7 @@ def test_match_endpoint(
         {
             "player_id": player.id,
             "player_name": "Magnus Carlsen",
+            "player_is_active": True,
             "external_id": "1503014",
             "external_name": "Carlsen, Magnus",
         }
@@ -592,6 +593,7 @@ def test_match_endpoint_id_already_taken(
         {
             "player_id": namesake.id,
             "player_name": "Piet Jansen",
+            "player_is_active": True,
             "reason": "taken",
         }
     ]

@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { formatHTTPValidationError } from "@client/api";
 import { components } from "@client/schema";
 import { ErrorState } from "@/ui/ErrorState";
+import { PlayerName } from "@/ui/PlayerName";
 import { EXTERNAL_SOURCES } from "./external";
 import { useMatchExternalIds } from "./useMatchExternalIds";
 
@@ -114,7 +115,12 @@ function MatchSummary({ result }: { result: ExternalIdMatchResult }) {
             <Table.Tbody>
               {result.matched.map((match) => (
                 <Table.Tr key={match.player_id}>
-                  <Table.Td>{match.player_name}</Table.Td>
+                  <Table.Td>
+                    <PlayerName
+                      name={match.player_name}
+                      isActive={match.player_is_active}
+                    />
+                  </Table.Td>
                   <Table.Td>{match.external_name}</Table.Td>
                   <Table.Td>{match.external_id}</Table.Td>
                 </Table.Tr>
@@ -155,7 +161,12 @@ function SkippedGroup({
       <Text span fw={500}>
         {t(`player.findIdsReason.${reason}`)}:
       </Text>{" "}
-      {skipped.map((skip) => skip.player_name).join(", ")}
+      {skipped.map((skip, i) => (
+        <span key={skip.player_id}>
+          {i > 0 && ", "}
+          <PlayerName name={skip.player_name} isActive={skip.player_is_active} />
+        </span>
+      ))}
     </Text>
   );
 }

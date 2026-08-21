@@ -111,6 +111,8 @@ const en = {
     knsb: "KNSB",
   },
   player: {
+    deleted: "deleted",
+    deletedSuffix: "{{name}} (deleted)",
     sourceId: "{{source}} ID",
     sourceRating: "{{source}} rating",
     searchSource: "Search {{source}}",

@@ -1,4 +1,5 @@
 import { Select } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { $api } from "@client/api";
 import { components } from "@client/schema";
 
@@ -20,6 +21,7 @@ export default function PlayerSelect({
   filterOptions,
   label,
 }: PlayerSelectProps) {
+  const { t } = useTranslation();
   const {
     data: dbPlayers,
     error: mutateError,
@@ -35,14 +37,22 @@ export default function PlayerSelect({
   const filteredPlayers = filterOptions
     ? filterOptions(allPlayers)
     : allPlayers;
-  const data = filteredPlayers.map((p) => ({
+  // The endpoint only lists active players, so a soft-deleted player already
+  // set on the row would otherwise drop out of the options and show as blank.
+  const options =
+    player.id !== 0 && !filteredPlayers.some((p) => p.id === player.id)
+      ? [player, ...filteredPlayers]
+      : filteredPlayers;
+  // Mantine option labels are plain strings, so a deleted player is marked
+  // with a suffix here rather than with the PlayerName badge.
+  const data = options.map((p) => ({
     value: String(p.id),
-    label: p.name,
+    label: p.is_active ? p.name : t("player.deletedSuffix", { name: p.name }),
   }));
 
   const handleChange = (value: string | null) => {
     if (!value) return;
-    const found = allPlayers.find((p) => String(p.id) === value);
+    const found = options.find((p) => String(p.id) === value);
     if (found) setPlayer(found);
   };
 

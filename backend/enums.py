@@ -10,3 +10,11 @@ class Result(str, Enum):
 class ExternalRatingSource(str, Enum):
     FIDE = "fide"
     KNSB = "knsb"
+
+
+class PlayerStatus(str, Enum):
+    """Which side of the soft-delete flag a player listing asks for."""
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    ALL = "all"

@@ -332,16 +332,33 @@ def test_list_player(player_factory: Callable[..., Player], client):
     assert jsonable_encoder(PlayerPublic.model_validate(p0)) == res_players[0]
     assert jsonable_encoder(PlayerPublic.model_validate(p1)) == res_players[1]
 
-    player_factory(is_active=False)
+
+def test_list_player_status_filter(player_factory: Callable[..., Player], client):
+    player_factory()
+    player_factory()
+    inactive = player_factory(is_active=False)
+
+    # Soft-deleted players are left out by default.
     res = client.get("/players/")
     res.raise_for_status()
-    res_players = res.json()
-    assert len(res_players) == 3
+    assert len(res.json()) == 2
 
-    res = client.get("/players/", params={"is_active": True})
+    res = client.get("/players/", params={"status": "active"})
     res.raise_for_status()
-    res_players = res.json()
-    assert len(res_players) == 2
+    assert len(res.json()) == 2
+
+    res = client.get("/players/", params={"status": "inactive"})
+    res.raise_for_status()
+    assert [p["id"] for p in res.json()] == [inactive.id]
+
+    res = client.get("/players/", params={"status": "all"})
+    res.raise_for_status()
+    assert len(res.json()) == 3
+
+
+def test_list_player_unknown_status_fail(client):
+    res = client.get("/players/", params={"status": "deleted"})
+    assert res.status_code == 422
 
 
 def test_update_player(player, auth_client, session):

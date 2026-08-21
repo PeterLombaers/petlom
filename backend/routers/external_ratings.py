@@ -218,8 +218,10 @@ def match_external_ids(
 
     Which players: those in request.player_ids, or every player when it is
     None, in both cases only the ones that have no external id for the source
-    yet. Existing ids are never overwritten. Batches of more
-    than MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
+    yet. Existing ids are never overwritten, and deleted (inactive) players are
+    included -- their rating is still worth having when they come back, so the
+    result flags them instead of leaving them out. Batches of more than
+    MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
     import, this costs one request to the source per player.
 
     Which id: the one of the single player at the source whose name equals the
@@ -267,6 +269,7 @@ def match_external_ids(
             ExternalIdMatchSkip(
                 player_id=player.id,  # type: ignore[arg-type]
                 player_name=player.name,
+                player_is_active=player.is_active,
                 reason=reason,  # type: ignore[arg-type]
             )
         )
@@ -299,6 +302,7 @@ def match_external_ids(
             ExternalIdMatchPublic(
                 player_id=player.id,  # type: ignore[arg-type]
                 player_name=player.name,
+                player_is_active=player.is_active,
                 external_id=hit.external_id,
                 external_name=hit.name,
             )

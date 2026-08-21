@@ -8,7 +8,7 @@ from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
-from backend.enums import ExternalRatingSource
+from backend.enums import ExternalRatingSource, PlayerStatus
 from backend.models import (
     LIST_DATE_PATTERN,
     ExternalRating,
@@ -67,12 +67,20 @@ def list_players(
     session: SessionDep,
     offset: int = 0,
     limit: Annotated[int, Query(le=MAX_PAGE_LENGTH)] = MAX_PAGE_LENGTH,
-    is_active: bool | None = None,
+    status: Annotated[
+        PlayerStatus,
+        Query(
+            description=(
+                "Which players to list. Soft-deleted players are inactive and are"
+                " left out unless asked for."
+            ),
+        ),
+    ] = PlayerStatus.ACTIVE,
     list_date: ListDateQuery = None,
 ) -> list[PlayerPublic]:
     query = select(Player)
-    if is_active is not None:
-        query = query.where(Player.is_active == is_active)
+    if status is not PlayerStatus.ALL:
+        query = query.where(Player.is_active == (status is PlayerStatus.ACTIVE))
     query = query.order_by(col(Player.id)).offset(offset).limit(limit)
     players = session.exec(query).all()
     ratings = selected_ratings([player.id for player in players], list_date, session)
