@@ -488,7 +488,6 @@ def test_match_endpoint(
         {
             "player_id": player.id,
             "player_name": "Magnus Carlsen",
-            "player_is_active": True,
             "external_id": "1503014",
             "external_name": "Carlsen, Magnus",
         }
@@ -593,7 +592,6 @@ def test_match_endpoint_id_already_taken(
         {
             "player_id": namesake.id,
             "player_name": "Piet Jansen",
-            "player_is_active": True,
             "reason": "taken",
         }
     ]
@@ -616,6 +614,48 @@ def test_match_endpoint_selected_players(
     res.raise_for_status()
     assert res.json()["searched"] == 1
     assert route.call_count == 1
+
+
+@respx.mock
+def test_match_endpoint_skips_deleted_players(
+    auth_client: TestClient,
+    session: Session,
+    player_factory: Callable[..., Player],
+    chess_db_configured,
+):
+    """A search costs a request per player, so deleted players are left out."""
+    active = player_factory(name="Anish Giri")
+    player_factory(name="Magnus Carlsen", is_active=False)
+    route = respx.get(PLAYERS_URL).respond(
+        json=[player_hit("24116068", 2749, name="Giri, Anish")]
+    )
+
+    res = auth_client.post("/external/fide/match/", json={})
+    res.raise_for_status()
+    result = res.json()
+    assert result["searched"] == 1
+    assert [m["player_id"] for m in result["matched"]] == [active.id]
+    assert route.call_count == 1
+
+    external_ids = session.exec(select(PlayerExternalId)).all()
+    assert [ext.player_id for ext in external_ids] == [active.id]
+
+
+@respx.mock
+def test_match_endpoint_skips_deleted_player_asked_for_by_id(
+    auth_client: TestClient,
+    player_factory: Callable[..., Player],
+    chess_db_configured,
+):
+    deleted = player_factory(name="Magnus Carlsen", is_active=False)
+    route = respx.get(PLAYERS_URL).respond(
+        json=[player_hit("1503014", 2823, name="Carlsen, Magnus")]
+    )
+
+    res = auth_client.post("/external/fide/match/", json={"player_ids": [deleted.id]})
+    res.raise_for_status()
+    assert res.json()["searched"] == 0
+    assert route.call_count == 0
 
 
 @respx.mock

@@ -219,8 +219,8 @@ def match_external_ids(
     Which players: those in request.player_ids, or every player when it is
     None, in both cases only the ones that have no external id for the source
     yet. Existing ids are never overwritten, and deleted (inactive) players are
-    included -- their rating is still worth having when they come back, so the
-    result flags them instead of leaving them out. Batches of more than
+    never searched for: a search costs one request to the source per player, so
+    it is not worth spending one on a player that is gone. Batches of more than
     MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
     import, this costs one request to the source per player.
 
@@ -239,7 +239,10 @@ def match_external_ids(
     players_with_id = select(PlayerExternalId.player_id).where(
         PlayerExternalId.source == source
     )
-    player_query = select(Player).where(col(Player.id).not_in(players_with_id))
+    player_query = select(Player).where(
+        col(Player.id).not_in(players_with_id),
+        col(Player.is_active).is_(True),
+    )
     if request.player_ids is not None:
         player_query = player_query.where(col(Player.id).in_(request.player_ids))
     players = list(session.exec(player_query).all())
@@ -269,7 +272,6 @@ def match_external_ids(
             ExternalIdMatchSkip(
                 player_id=player.id,  # type: ignore[arg-type]
                 player_name=player.name,
-                player_is_active=player.is_active,
                 reason=reason,  # type: ignore[arg-type]
             )
         )
@@ -302,7 +304,6 @@ def match_external_ids(
             ExternalIdMatchPublic(
                 player_id=player.id,  # type: ignore[arg-type]
                 player_name=player.name,
-                player_is_active=player.is_active,
                 external_id=hit.external_id,
                 external_name=hit.name,
             )

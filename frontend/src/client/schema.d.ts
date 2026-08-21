@@ -353,8 +353,8 @@ export interface paths {
          *     Which players: those in request.player_ids, or every player when it is
          *     None, in both cases only the ones that have no external id for the source
          *     yet. Existing ids are never overwritten, and deleted (inactive) players are
-         *     included -- their rating is still worth having when they come back, so the
-         *     result flags them instead of leaving them out. Batches of more than
+         *     never searched for: a search costs one request to the source per player, so
+         *     it is not worth spending one on a player that is gone. Batches of more than
          *     MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
          *     import, this costs one request to the source per player.
          *
@@ -579,8 +579,6 @@ export interface components {
             player_id: number;
             /** Player Name */
             player_name: string;
-            /** Player Is Active */
-            player_is_active: boolean;
             /** External Id */
             external_id: string;
             /** External Name */
@@ -629,8 +627,6 @@ export interface components {
             player_id: number;
             /** Player Name */
             player_name: string;
-            /** Player Is Active */
-            player_is_active: boolean;
             /**
              * Reason
              * @enum {string}

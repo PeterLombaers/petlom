@@ -321,7 +321,6 @@ class ExternalIdMatchPublic(SQLModel):
 
     player_id: int
     player_name: str
-    player_is_active: bool
     external_id: str
     external_name: str
 
@@ -336,7 +335,6 @@ class ExternalIdMatchSkip(SQLModel):
 
     player_id: int
     player_name: str
-    player_is_active: bool
     reason: Literal["ambiguous", "not_found", "taken"]
 
 
