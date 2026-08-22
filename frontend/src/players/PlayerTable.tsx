@@ -67,7 +67,6 @@ export default function PlayerTable() {
           isEditable: true,
           // The search dropdown needs more room than the identifier itself.
           editWidth: 260,
-          hideBelow: "sm",
           // Players without an id there have no profile to link to, and not
           // every source publishes one at all.
           href: (row) =>
@@ -80,7 +79,6 @@ export default function PlayerTable() {
           field: `${source}_rating`,
           header: t("player.sourceRating", { source: sourceName }),
           cell: readOnlyOptionalNumberCell,
-          hideBelow: "sm",
         },
       ];
     },
@@ -147,7 +145,6 @@ export default function PlayerTable() {
             icon: <IconArrowMerge size={18} />,
             label: t("player.merge"),
             onClick: setMergeTarget,
-            hideBelow: "sm",
           },
         ]}
       />

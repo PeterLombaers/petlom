@@ -1,6 +1,7 @@
 import { Table } from "@mantine/core";
 import React from "react";
 import type { EditProps } from "./types";
+import classes from "./EditableTable.module.css";
 
 interface EditableCellProps<V = unknown, R = unknown> {
   isEditing: boolean;
@@ -12,7 +13,6 @@ interface EditableCellProps<V = unknown, R = unknown> {
   renderValue: (props: { value: V }) => React.ReactNode;
   renderEdit: (props: EditProps<V, R>) => React.ReactNode;
   error: string;
-  className?: string;
 }
 
 export default function EditableCell<V = unknown, R = unknown>({
@@ -24,21 +24,10 @@ export default function EditableCell<V = unknown, R = unknown>({
   renderValue,
   renderEdit,
   error,
-  className,
 }: EditableCellProps<V, R>) {
   return (
-    <Table.Td
-      className={className}
-      style={
-        isEditing
-          ? undefined
-          : {
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }
-      }
-    >
+    // The resting cell never wraps; an editing cell lets its control lay out.
+    <Table.Td className={isEditing ? undefined : classes.cell}>
       {isEditing
         ? renderEdit({
             editValue,

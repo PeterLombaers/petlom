@@ -514,8 +514,9 @@ describe("EditableRow", () => {
       expect(screen.getByRole("button", { name: "Merge" })).toBeDisabled();
     });
 
-    it("hides the action below its breakpoint on a resting row", () => {
-      const { rerender } = renderInTable(
+    it("shows every action on a resting row", () => {
+      // Nothing is hidden on narrow screens; the table scrolls instead.
+      renderInTable(
         <EditableRow
           data={testData}
           isEditing={false}
@@ -523,27 +524,17 @@ describe("EditableRow", () => {
           columns={testColumns}
           entityIdField="id"
           editConfig={makeEditConfig(makeMockMutation())}
-          rowActions={[mergeAction({ hideBelow: "sm" })]}
+          deleteConfig={{
+            deleteMutation: makeMockMutation(),
+            entityType: "player",
+            getEntityName: (d: TestEntity) => d.name,
+          }}
+          rowActions={[mergeAction()]}
         />,
       );
-      // Same rule as the Delete button: visible from `sm` while resting, and
-      // below `sm` only once the row is expanded into edit mode.
-      const resting = screen.getByRole("button", { name: "Merge" });
-      expect(resting.closest(".mantine-visible-from-sm")).not.toBeNull();
-
-      rerender(
-        <EditableRow
-          data={testData}
-          isEditing={true}
-          setIsEditing={vi.fn()}
-          columns={testColumns}
-          entityIdField="id"
-          editConfig={makeEditConfig(makeMockMutation())}
-          rowActions={[mergeAction({ hideBelow: "sm" })]}
-        />,
-      );
-      const editing = screen.getByRole("button", { name: "Merge" });
-      expect(editing.closest(".mantine-hidden-from-sm")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Merge" })).toBeInTheDocument();
     });
   });
 });

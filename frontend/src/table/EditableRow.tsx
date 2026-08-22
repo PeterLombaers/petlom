@@ -1,12 +1,11 @@
-import { ActionIcon, Anchor, Box, Group, Table } from "@mantine/core";
-import type { MantineBreakpoint } from "@mantine/core";
+import { ActionIcon, Anchor, Group, Table } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
 import DeleteButton from "./DeleteButton";
 import { Column, DeleteConfig, EditConfig, RowAction } from "./types";
-import { visibleFromClass } from "./responsive";
+import classes from "./EditableTable.module.css";
 
 interface EditableRowProps<T = unknown> {
   data: T;
@@ -102,7 +101,6 @@ export default function EditableRow<T = unknown>({
       {columns.map((col) => {
         const key: keyof T = col.field;
         const cell = col.cell!;
-        const className = visibleFromClass(col.hideBelow);
         // Only the display path is linked; edit controls stay plain.
         const target = col.href?.(data) ?? null;
         const renderValue = target
@@ -129,7 +127,6 @@ export default function EditableRow<T = unknown>({
               renderValue={renderValue}
               renderEdit={cell.renderEdit}
               error={columnEditError ?? ""}
-              className={className}
             />
           );
         }
@@ -147,27 +144,18 @@ export default function EditableRow<T = unknown>({
               renderValue={renderValue}
               renderEdit={cell.renderEdit}
               error={errors[key] || ""}
-              className={className}
             />
           );
         }
         return (
-          <Table.Td
-            key={String(key)}
-            className={className}
-            style={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <Table.Td key={String(key)} className={classes.cell}>
             {renderValue({ value: data[key] })}
           </Table.Td>
         );
       })}
       {hasActions && (
-        <Table.Td>
-          <Group>
+        <Table.Td className={classes.cell}>
+          <Group gap="xs" wrap="nowrap">
             {editConfig && !hideRowEditButton && (
               <EditButton
                 isEditing={isEditing}
@@ -178,66 +166,29 @@ export default function EditableRow<T = unknown>({
               />
             )}
             {deleteConfig && !hideRowEditButton && (
-              <NarrowScreenAction hideBelow="sm" isEditing={isEditing}>
-                <DeleteButton
-                  entityType={deleteConfig.entityType}
-                  entityName={deleteConfig.getEntityName(data)}
-                  entityIdField={String(entityIdField)}
-                  entityId={entityId}
-                  mutation={deleteConfig.deleteMutation}
-                  requireTypedConfirmation={
-                    deleteConfig.requireTypedConfirmation
-                  }
-                />
-              </NarrowScreenAction>
+              <DeleteButton
+                entityType={deleteConfig.entityType}
+                entityName={deleteConfig.getEntityName(data)}
+                entityIdField={String(entityIdField)}
+                entityId={entityId}
+                mutation={deleteConfig.deleteMutation}
+                requireTypedConfirmation={deleteConfig.requireTypedConfirmation}
+              />
             )}
             {!hideRowEditButton &&
               rowActions?.map((action) => (
-                <NarrowScreenAction
+                <ActionIcon
                   key={action.label}
-                  hideBelow={action.hideBelow}
-                  isEditing={isEditing}
+                  onClick={() => action.onClick(data)}
+                  disabled={action.isPending}
+                  aria-label={action.label}
                 >
-                  <ActionIcon
-                    onClick={() => action.onClick(data)}
-                    disabled={action.isPending}
-                    aria-label={action.label}
-                  >
-                    {action.icon}
-                  </ActionIcon>
-                </NarrowScreenAction>
+                  {action.icon}
+                </ActionIcon>
               ))}
           </Group>
         </Table.Td>
       )}
     </Table.Tr>
-  );
-}
-
-/**
- * Gives an action the row's narrow-screen rule.
- *
- * At or above the breakpoint the action sits on the resting row; below it there
- * is only room for it once the row is expanded into edit mode. Without a
- * breakpoint the action is always shown.
- */
-function NarrowScreenAction({
-  hideBelow,
-  isEditing,
-  children,
-}: {
-  hideBelow?: MantineBreakpoint;
-  isEditing: boolean;
-  children: React.ReactNode;
-}) {
-  if (!hideBelow) return <>{children}</>;
-  return (
-    <Box
-      component="span"
-      visibleFrom={isEditing ? undefined : hideBelow}
-      hiddenFrom={isEditing ? hideBelow : undefined}
-    >
-      {children}
-    </Box>
   );
 }

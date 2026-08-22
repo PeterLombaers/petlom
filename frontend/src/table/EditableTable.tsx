@@ -16,7 +16,7 @@ import { formatHTTPValidationError } from "@/client/api";
 import { translateEntity } from "@/i18n/translateEntity";
 import { useTranslation } from "react-i18next";
 import { useTableEditState } from "./useTableEditState";
-import { visibleFromClass } from "./responsive";
+import classes from "./EditableTable.module.css";
 
 type TableEditConfig<T> = Omit<EditConfig<T>, "editMutation">;
 type TableDeleteConfig<T> = Omit<
@@ -38,7 +38,6 @@ type EditableTableProps<T extends object> = {
   editConfig?: TableEditConfig<T>;
   deleteConfig?: TableDeleteConfig<T>;
   rowActions?: RowAction<T>[];
-  scrollMinWidth?: number;
 };
 
 /**
@@ -54,7 +53,7 @@ type EditableTableProps<T extends object> = {
  *
  * @param columns - Full column definitions in display order. Each entry carries the
  *   field name (typed against `T`), an optional header (defaults to the field name with
- *   CSS capitalisation), an optional fixed width, and a cell config with `renderValue`
+ *   CSS capitalisation), an optional width hint, and a cell config with `renderValue`
  *   and optional `renderEdit`. Mark one column `isId: true` to identify the entity —
  *   its value becomes the React key and the mutation path parameter. Set `hidden: true`
  *   on the id column to keep it out of the rendered table (e.g. when the id is a
@@ -96,7 +95,6 @@ export default function EditableTable<T extends object>({
   createConfig,
   editConfig,
   rowActions,
-  scrollMinWidth = 500,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
   const { t } = useTranslation();
@@ -142,9 +140,6 @@ export default function EditableTable<T extends object>({
 
   const visibleColumns = columns.filter((c) => !c.hidden);
 
-  const hasColgroup = visibleColumns.some(
-    (c) => c.width !== undefined || c.editWidth !== undefined,
-  );
   const colWidth = (col: (typeof visibleColumns)[number]) =>
     edit.columnEditField === col.field && col.editWidth !== undefined
       ? col.editWidth
@@ -156,24 +151,7 @@ export default function EditableTable<T extends object>({
   const tableTitle = title || translateEntity(t, entityType, true);
 
   const table = (
-    <Table
-      style={hasColgroup ? { tableLayout: "fixed", width: "100%" } : undefined}
-    >
-      {hasColgroup && (
-        <colgroup>
-          {visibleColumns.map((col, i) => {
-            const width = colWidth(col);
-            return (
-              <col
-                key={i}
-                className={visibleFromClass(col.hideBelow)}
-                style={width !== undefined ? { width } : undefined}
-              />
-            );
-          })}
-          {hasActions && <col style={{ width: 100 }} />}
-        </colgroup>
-      )}
+    <Table>
       <Table.Thead>
         <Table.Tr>
           <Table.Td colSpan={nCols}>
@@ -202,7 +180,8 @@ export default function EditableTable<T extends object>({
               <Table.Th
                 key={String(col.field)}
                 scope="col"
-                className={visibleFromClass(col.hideBelow)}
+                // A header width sizes the whole column under automatic layout.
+                w={colWidth(col)}
                 style={col.header ? undefined : { textTransform: "capitalize" }}
               >
                 <Group gap="xs" wrap="nowrap">
@@ -220,7 +199,12 @@ export default function EditableTable<T extends object>({
               </Table.Th>
             );
           })}
-          {hasActions && <Table.Th scope="col">{t("common.actions")}</Table.Th>}
+          {hasActions && (
+            // Shrink-to-fit: the column ends up exactly as wide as its icons.
+            <Table.Th scope="col" w="1%" className={classes.cell}>
+              {t("common.actions")}
+            </Table.Th>
+          )}
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
@@ -270,7 +254,7 @@ export default function EditableTable<T extends object>({
 
   return (
     <Paper withBorder aria-busy={isBusy}>
-      <Table.ScrollContainer minWidth={scrollMinWidth} type="native">
+      <Table.ScrollContainer minWidth={0} type="native">
         {table}
       </Table.ScrollContainer>
     </Paper>

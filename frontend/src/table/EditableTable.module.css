@@ -1,0 +1,16 @@
+/*
+ * Layout rules for the editable-table engine.
+ *
+ * The tables size themselves to their content and let
+ * `Table.ScrollContainer` scroll horizontally when that is wider than the
+ * viewport. Nothing is hidden on small screens; cells never wrap.
+ */
+
+/*
+ * A cell at rest: header, data or actions. Editing cells drop it so their
+ * controls can lay out. Mantine has no style prop for `white-space`, so this is
+ * the one table rule that needs a class.
+ */
+.cell {
+  white-space: nowrap;
+}

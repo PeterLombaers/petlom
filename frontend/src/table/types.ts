@@ -1,6 +1,5 @@
 import React from "react";
 import { UseMutationResult } from "@tanstack/react-query";
-import type { MantineBreakpoint } from "@mantine/core";
 import type { components } from "@client/schema";
 
 // Wildcard mutation type for components that only use .isPending and .mutate().
@@ -36,18 +35,12 @@ export interface DeleteConfig<T = unknown> {
  * @property onClick - Called with the row the button belongs to.
  *
  * @property isPending - Disables the button while the action is in flight.
- *
- * @property hideBelow - Applies the same rule the Delete button follows: at or
- *   above the breakpoint the action shows on the resting row, and below it the
- *   action shows only once the row is expanded into edit mode, where there is
- *   room for it.
  */
 export interface RowAction<T = unknown> {
   icon: React.ReactNode;
   label: string;
   onClick: (row: T) => void;
   isPending?: boolean;
-  hideBelow?: MantineBreakpoint;
 }
 
 export interface EditConfig<T = unknown> {
@@ -106,18 +99,17 @@ export type CellConfig<T, K extends keyof T> = {
  *   are needed for mutations but have no display value (e.g. a numeric `id`
  *   when the table shows `board`, `player_white`, etc.).
  *
- * @property width  - Optional fixed pixel width. When any column has a width,
- *   the table switches to `table-layout: fixed` and a `<colgroup>` is emitted.
+ * @property width  - Optional width hint, emitted on the column's `<col>`. The
+ *   table uses the browser's automatic layout, so this is a preferred width:
+ *   it is honoured when there is room and pushed wider by content that needs
+ *   more. Use it to give a column a stable size, not to constrain it — nothing
+ *   is ever clipped, the table simply grows and scrolls horizontally.
  *
- * @property editWidth - Optional column width used while this column is in
+ * @property editWidth - Optional width hint used while this column is in
  *   column-edit mode (the header edit button); may be larger or smaller than
  *   `width`. Useful when the edit control (e.g. a result toggle) needs a
  *   different amount of room than the displayed value. Falls back to `width`
- *   when unset. Make `width` responsive (e.g. via `useMediaQuery`) if the base
- *   width should differ by screen size.
- *
- * @property hideBelow - When set, the column is hidden on viewports narrower
- *   than the given Mantine breakpoint (e.g. `"sm"` hides it below 768px).
+ *   when unset.
  *
  * @property href - When set, the displayed value is wrapped in an `Anchor`
  *   pointing at the returned target. It receives the whole row, so the link may
@@ -140,7 +132,6 @@ export type Column<T> = {
     hidden?: boolean;
     width?: string | number;
     editWidth?: string | number;
-    hideBelow?: MantineBreakpoint;
     href?: (row: T) => string | null;
     external?: boolean;
   };
