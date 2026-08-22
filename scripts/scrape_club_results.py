@@ -10,15 +10,18 @@
 Scrape all round results from a paulkeres.nl category archive.
 
 Usage:
-    uv run scrape_results.py <category_url> <folder_name>
-    uv run scrape_results.py "https://paulkeres.nl/?cat=125" seizoen_2024_2025
+    uv run scripts/scrape_club_results.py <category_url> <output_dir>
+    uv run scripts/scrape_club_results.py "https://paulkeres.nl/?cat=125" data/2425
 
     Crawls paged=1, 2, 3, ... until a 404/not-found page is reached.
     For each page, finds all links with 'Ronde N' text and scrapes results + standings.
 
-Outputs (one directory per round inside <folder_name>):
-    <folder_name>/round_N/results.csv    — match results (Nr, Witspeler, Zwartspeler, Uitslag)
-    <folder_name>/round_N/standings.csv  — player standings (Nr, Naam, Pnt, Prt, Sal, Ks, w, r, v, Rat, Ext, TPR)
+Outputs (one directory per round inside <output_dir>):
+    <output_dir>/round_N/results.csv    — match results (Nr, Witspeler, Zwartspeler, Uitslag)
+    <output_dir>/round_N/standings.csv  — player standings (Nr, Naam, Pnt, Prt, Sal, Ks, w, r, v, Rat, Ext, TPR)
+
+The scraped names are real; keep the output out of git (`data/` is gitignored) and run
+scripts/anonymize_club_results.py before committing a season as test data.
 """
 
 import csv
@@ -173,8 +176,7 @@ def main() -> None:
         sys.exit(1)
 
     base_url = sys.argv[1]
-    folder_name = sys.argv[2]
-    save_dir = Path(__file__).parent / folder_name
+    save_dir = Path(sys.argv[2])
     save_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Category URL : {base_url}")

@@ -108,13 +108,23 @@ Update `ALLOWED_ORIGINS` in `.env` if you use the development workflow against y
 
 ### Update
 
-Always back up your database before updating (see below).
+On the server:
 
 ```bash
 git pull
-docker compose build --no-cache
+docker compose build
 docker compose up -d
 ```
+
+Or, from a machine that can reach the server over SSH, with `scripts/.env` configured
+(see [scripts/README.md](scripts/README.md)):
+
+```bash
+scripts/deploy.sh --backup
+```
+
+That backs the database up first, then pulls, rebuilds, restarts, and checks the
+containers came back.
 
 > **Note:** Database schema changes are applied automatically when new tables are added, but
 > existing tables are not altered. If a release adds columns to an existing table, a migration step
@@ -124,12 +134,28 @@ docker compose up -d
 
 ### Database Backup
 
-Copy the SQLite file out of the Docker volume without stopping the application:
+Copy the SQLite file out of the Docker volume without stopping the application. SQLite's
+online backup API gives a consistent snapshot even while the app is writing:
 
 ```bash
 mkdir -p backups
-
+docker compose exec -T backend uv run python -c "
+import sqlite3
+src = sqlite3.connect('/data/petlom.db')
+dst = sqlite3.connect('/data/_backup.db')
+with dst:
+    src.backup(dst)
+dst.close(); src.close()
+"
+docker compose exec -T backend cat /data/_backup.db > "backups/petlom-$(date +%Y%m%d-%H%M%S).db"
+docker compose exec -T backend rm -f /data/_backup.db
 ```
+
+From a machine with SSH access to the server, `scripts/backup.sh` does all of that and
+downloads the result — see [scripts/README.md](scripts/README.md).
+
+To restore, stop the stack, copy a backup back into the `petlom_db` volume as
+`petlom.db`, and start it again.
 
 ---
 

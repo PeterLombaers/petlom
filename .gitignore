@@ -14,3 +14,8 @@ database.db
 
 # Secrets
 .env
+scripts/.env
+
+# Real (non-anonymized) scraped club data and downloaded backups
+data/
+backups/

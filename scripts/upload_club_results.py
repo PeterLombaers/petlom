@@ -9,15 +9,15 @@
 Upload a scraped SimKro season folder to a running Petlom instance via its API.
 
 Usage:
-    uv run upload_results.py <folder> --username U --password P
-    uv run upload_results.py tests/data/simkro/2526_compleet -u admin -p secret
+    uv run scripts/upload_club_results.py <folder> --username U --password P
+    uv run scripts/upload_club_results.py data/2526 -u admin -p secret
 
 Only match results are uploaded; standings are recalculated by the app. Each
 player's competition initial rating is taken from the `Rat` column of the
 standings of the first round they played.
 
 Expects a folder containing `round_N/{results.csv,standings.csv}` directories,
-as produced by `tests/data/simkro/scrape_results.py`.
+as produced by `scripts/scrape_club_results.py`.
 """
 
 import argparse
