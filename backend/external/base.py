@@ -7,7 +7,7 @@ transient DTOs, never stored in the database (imported snapshots are stored
 as backend.models.ExternalRating).
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Protocol
 
 from sqlmodel import SQLModel
@@ -55,6 +55,18 @@ class ExternalRatingProvider(Protocol):
     def search_players(self, query: str, limit: int = 20) -> list[ExternalPlayerResult]:
         """Search players at the source by name, or by external id if the query
         looks like one."""
+        ...
+
+    def search_players_bulk(
+        self, queries: Sequence[str], limit: int = 20
+    ) -> Iterator[list[ExternalPlayerResult]]:
+        """Search for many queries, yielding each one's hits in the order given.
+
+        Implementations may run the searches concurrently, but stay within
+        whatever rate limit they impose on the source; that is the point of
+        handing them the whole batch. Yielding is lazy, so a caller that stops
+        consuming -- or one whose iteration raises at a failing query -- keeps
+        every result yielded before it."""
         ...
 
     def get_ratings(

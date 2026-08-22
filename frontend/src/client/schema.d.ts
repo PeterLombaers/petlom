@@ -354,9 +354,12 @@ export interface paths {
          *     None, in both cases only the ones that have no external id for the source
          *     yet. Existing ids are never overwritten, and deleted (inactive) players are
          *     never searched for: a search costs one request to the source per player, so
-         *     it is not worth spending one on a player that is gone. Batches of more than
-         *     MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
-         *     import, this costs one request to the source per player.
+         *     it is not worth spending one on a player that is gone.
+         *
+         *     There is no limit on how many players a run covers, so a run over a whole
+         *     club is one long request. What keeps it from swamping the source is the
+         *     provider's rate limit, which is also what lets the searches run
+         *     concurrently; see backend.external.chess_db.
          *
          *     Which id: the one of the single player at the source whose name equals the
          *     Petlom player's (see backend.external.matching). A name that several

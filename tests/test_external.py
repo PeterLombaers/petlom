@@ -1,4 +1,6 @@
 import re
+import threading
+import time
 from collections.abc import Callable
 
 import httpx
@@ -14,12 +16,12 @@ from backend.external import (
     ExternalApiError,
     ExternalPlayerResult,
     ProviderNotConfiguredError,
+    chess_db,
     name_matches,
     normalize_name,
     unique_match,
 )
 from backend.models import LIST_DATE_PATTERN, ExternalRating, Player, PlayerExternalId
-from backend.routers import external_ratings
 
 BASE_URL = "http://chess-db.test"
 FEDERATIONS_URL = f"{BASE_URL}/federations/"
@@ -199,6 +201,69 @@ def test_get_ratings_ignores_an_id_it_did_not_ask_for(provider: ChessDbProvider)
 
 def test_get_ratings_without_ids_asks_nothing(provider: ChessDbProvider):
     assert provider.get_ratings([], list_date="2026-06") == {}
+
+
+@respx.mock
+def test_search_players_bulk_yields_in_the_order_asked(provider: ChessDbProvider):
+    """Results are zipped against the players that asked for them."""
+    respx.get(PLAYERS_URL).mock(
+        side_effect=lambda request: httpx.Response(
+            200, json=[player_hit("1", 2000, name=request.url.params["q"])]
+        )
+    )
+
+    queries = [f"Player {index}" for index in range(20)]
+    results = list(provider.search_players_bulk(queries))
+
+    assert [hits[0].name for hits in results] == queries
+
+
+@respx.mock
+def test_search_players_bulk_stays_within_the_rate_limit(provider: ChessDbProvider):
+    """The source never sees more than MAX_CONCURRENT_REQUESTS of our requests."""
+    lock = threading.Lock()
+    in_flight = 0
+    high_water = 0
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        nonlocal in_flight, high_water
+        with lock:
+            in_flight += 1
+            high_water = max(high_water, in_flight)
+        time.sleep(0.01)
+        with lock:
+            in_flight -= 1
+        return httpx.Response(200, json=[])
+
+    respx.get(PLAYERS_URL).mock(side_effect=respond)
+
+    list(provider.search_players_bulk([f"Player {index}" for index in range(20)]))
+
+    assert high_water > 1, "the searches did not actually run concurrently"
+    assert high_water <= chess_db.MAX_CONCURRENT_REQUESTS
+
+
+@respx.mock
+def test_search_players_bulk_yields_everything_before_a_failure(
+    provider: ChessDbProvider,
+):
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.params["q"] == "Anish Giri":
+            raise httpx.ConnectError("boom")
+        return httpx.Response(200, json=[player_hit("1503014", 2823)])
+
+    respx.get(PLAYERS_URL).mock(side_effect=respond)
+
+    seen = 0
+    with pytest.raises(ExternalApiError):
+        for _ in provider.search_players_bulk(["Magnus Carlsen", "Anish Giri"]):
+            seen += 1
+
+    assert seen == 1
+
+
+def test_search_players_bulk_without_queries_asks_nothing(provider: ChessDbProvider):
+    assert list(provider.search_players_bulk([])) == []
 
 
 # ---------------------------------------------------------------------------
@@ -668,11 +733,17 @@ def test_match_endpoint_keeps_what_it_found_before_a_failure(
     """A retry should pick up where the failed run left off."""
     player_factory(name="Magnus Carlsen")
     player_factory(name="Anish Giri")
-    responses = [
-        httpx.Response(200, json=[player_hit("1503014", 2823, name="Carlsen, Magnus")]),
-        httpx.ConnectError("boom"),
-    ]
-    respx.get(PLAYERS_URL).mock(side_effect=responses)
+
+    # Keyed on the name rather than the call order: the searches run
+    # concurrently, so which one the source answers first is not ours to say.
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.params["q"] == "Anish Giri":
+            raise httpx.ConnectError("boom")
+        return httpx.Response(
+            200, json=[player_hit("1503014", 2823, name="Carlsen, Magnus")]
+        )
+
+    respx.get(PLAYERS_URL).mock(side_effect=respond)
 
     res = auth_client.post("/external/fide/match/", json={})
     assert res.status_code == 502
@@ -682,20 +753,31 @@ def test_match_endpoint_keeps_what_it_found_before_a_failure(
 
 
 @respx.mock
-def test_match_endpoint_batch_too_large(
+def test_match_endpoint_has_no_batch_limit(
     auth_client: TestClient,
+    session: Session,
     player_factory: Callable[..., Player],
     chess_db_configured,
-    monkeypatch,
 ):
-    monkeypatch.setattr(external_ratings, "MAX_MATCH_BATCH_SIZE", 1)
-    player_factory()
-    player_factory()
-    route = respx.get(PLAYERS_URL).respond(json=[])
+    """A whole club fits in one run; the rate limit is what protects the source."""
+    for index in range(50):
+        player_factory(name=f"Player {index}")
+    respx.get(PLAYERS_URL).mock(
+        side_effect=lambda request: httpx.Response(
+            200,
+            json=[
+                player_hit(
+                    request.url.params["q"][-2:], 2000, name=request.url.params["q"]
+                )
+            ],
+        )
+    )
 
     res = auth_client.post("/external/fide/match/", json={})
-    assert res.status_code == 400
-    assert route.call_count == 0
+    res.raise_for_status()
+
+    assert res.json()["searched"] == 50
+    assert len(session.exec(select(PlayerExternalId)).all()) == 50
 
 
 def test_match_endpoint_requires_auth(client: TestClient):

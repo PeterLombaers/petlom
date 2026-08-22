@@ -126,7 +126,7 @@ const nl: TranslationSchema = {
     findIdsDescription:
       "Zoek in een ratingbron naar elke speler zonder ID daar, en koppel het ID zodra er precies één speler met die naam gevonden wordt.",
     findIdsSlowWarning:
-      "Er wordt één zoekopdracht per speler gedaan, dus dit kan even duren. Bestaande ID's blijven ongewijzigd.",
+      "Er wordt één zoekopdracht per speler gedaan, dus voor een hele club kan dit een paar minuten duren. Dit venster sluiten annuleert het niet; de ID's worden hoe dan ook opgeslagen. Bestaande ID's blijven ongewijzigd.",
     findIdsRun: "Zoeken",
     findIdsNothingToDo: "Elke speler heeft al een ID bij deze bron.",
     findIdsMatched: "{{matched}} van {{searched}} gezochte spelers gevonden.",

@@ -15,10 +15,7 @@ export const playerSelectCell = {
       events={{ hover: true, focus: false, touch: true }}
     >
       <span>
-        <PlayerName
-          name={props.value.name}
-          isActive={props.value.is_active}
-        />
+        <PlayerName name={props.value.name} isActive={props.value.is_active} />
       </span>
     </Tooltip>
   ),

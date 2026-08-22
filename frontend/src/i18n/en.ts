@@ -124,7 +124,7 @@ const en = {
     findIdsDescription:
       "Search a rating source for every player without an ID there, and attach the ID when exactly one player of that name is found.",
     findIdsSlowWarning:
-      "This searches once per player, so it can take a while. Existing IDs are never changed.",
+      "This searches once per player, so for a whole club it can take a few minutes. Closing this window does not cancel it; the IDs are saved either way. Existing IDs are never changed.",
     findIdsRun: "Search",
     findIdsNothingToDo: "Every player already has an ID at this source.",
     findIdsMatched: "Matched {{matched}} of {{searched}} players searched.",

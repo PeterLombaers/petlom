@@ -33,9 +33,6 @@ router = APIRouter(prefix="/external", tags=["external"])
 # against a runaway import rather than a cost limit.
 MAX_IMPORT_BATCH_SIZE = 500
 
-# Matching costs one request per player, so this one is a real cost limit.
-MAX_MATCH_BATCH_SIZE = 200
-
 # Enough hits to see that a name is ambiguous without paging through everyone
 # who shares a surname.
 MATCH_SEARCH_LIMIT = 20
@@ -220,9 +217,12 @@ def match_external_ids(
     None, in both cases only the ones that have no external id for the source
     yet. Existing ids are never overwritten, and deleted (inactive) players are
     never searched for: a search costs one request to the source per player, so
-    it is not worth spending one on a player that is gone. Batches of more than
-    MAX_MATCH_BATCH_SIZE players are rejected with a 400: unlike a rating
-    import, this costs one request to the source per player.
+    it is not worth spending one on a player that is gone.
+
+    There is no limit on how many players a run covers, so a run over a whole
+    club is one long request. What keeps it from swamping the source is the
+    provider's rate limit, which is also what lets the searches run
+    concurrently; see backend.external.chess_db.
 
     Which id: the one of the single player at the source whose name equals the
     Petlom player's (see backend.external.matching). A name that several
@@ -247,15 +247,6 @@ def match_external_ids(
         player_query = player_query.where(col(Player.id).in_(request.player_ids))
     players = list(session.exec(player_query).all())
 
-    if len(players) > MAX_MATCH_BATCH_SIZE:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Match batch too large ({len(players)} players);"
-                f" maximum is {MAX_MATCH_BATCH_SIZE}."
-            ),
-        )
-
     taken_ids = set(
         session.exec(
             select(PlayerExternalId.external_id).where(
@@ -276,43 +267,47 @@ def match_external_ids(
             )
         )
 
-    for player in players:
-        try:
-            hits = provider.search_players(player.name, limit=MATCH_SEARCH_LIMIT)
-        except (ExternalApiError, ProviderNotConfiguredError) as exc:
-            # Everything matched so far is worth keeping: the run is long and
-            # searching again for the same player yields the same answer.
-            session.commit()
-            raise api_error(exc)
-        candidates = name_matches(player.name, hits)
-        if len(candidates) != 1:
-            skip(player, "ambiguous" if candidates else "not_found")
-            continue
-        hit = candidates[0]
-        if hit.external_id in taken_ids:
-            skip(player, "taken")
-            continue
-        taken_ids.add(hit.external_id)
-        session.add(
-            PlayerExternalId(
-                player_id=player.id,  # type: ignore[arg-type]
-                source=source,
-                external_id=hit.external_id,
+    searches = provider.search_players_bulk(
+        [player.name for player in players], limit=MATCH_SEARCH_LIMIT
+    )
+    searched = 0
+    try:
+        for player, hits in zip(players, searches):
+            searched += 1
+            candidates = name_matches(player.name, hits)
+            if len(candidates) != 1:
+                skip(player, "ambiguous" if candidates else "not_found")
+                continue
+            hit = candidates[0]
+            if hit.external_id in taken_ids:
+                skip(player, "taken")
+                continue
+            taken_ids.add(hit.external_id)
+            session.add(
+                PlayerExternalId(
+                    player_id=player.id,  # type: ignore[arg-type]
+                    source=source,
+                    external_id=hit.external_id,
+                )
             )
-        )
-        matched.append(
-            ExternalIdMatchPublic(
-                player_id=player.id,  # type: ignore[arg-type]
-                player_name=player.name,
-                external_id=hit.external_id,
-                external_name=hit.name,
+            matched.append(
+                ExternalIdMatchPublic(
+                    player_id=player.id,  # type: ignore[arg-type]
+                    player_name=player.name,
+                    external_id=hit.external_id,
+                    external_name=hit.name,
+                )
             )
-        )
+    except (ExternalApiError, ProviderNotConfiguredError) as exc:
+        # Everything matched so far is worth keeping: searching again for the
+        # same player yields the same answer, so a retry starts further along.
+        session.commit()
+        raise api_error(exc)
     session.commit()
 
     return ExternalIdMatchResult(
         source=source,
-        searched=len(players),
+        searched=searched,
         matched=matched,
         skipped=skipped,
     )

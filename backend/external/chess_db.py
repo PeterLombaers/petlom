@@ -1,5 +1,7 @@
 import calendar
-from collections.abc import Sequence
+import threading
+from collections.abc import Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from typing import Any
 
@@ -19,6 +21,22 @@ RATING_FORMAT = "classical"
 # The search endpoint refuses a larger page.
 MAX_SEARCH_LIMIT = 50
 
+# How many requests the rating database may be answering for us at once. A
+# match run costs one request per player, so without a cap a single run would
+# be all the traffic that service sees. The semaphore is module level on
+# purpose: it counts every request from this process, whatever source or
+# provider instance it came from, so concurrent runs share the same budget
+# instead of each getting their own.
+MAX_CONCURRENT_REQUESTS = 4
+
+_request_slots = threading.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+# One client for the whole process. Providers are built per request (see
+# backend.external.registry.get_provider) and never closed, so a client per
+# provider would leak a connection pool per request; sharing one also lets
+# connections be reused across the many searches a match run makes.
+_client = httpx.Client(timeout=10.0)
+
 
 class ChessDbProvider:
     """Client for a self-hosted chess_player_db instance.
@@ -35,22 +53,20 @@ class ChessDbProvider:
     and months here, so they are truncated on the way in and widened to the end
     of the month on the way out -- asking for the 1st would miss a list
     published later in its own month.
+
+    Instances are cheap and hold no connection of their own: every request goes
+    through the module's shared client and its MAX_CONCURRENT_REQUESTS budget.
     """
 
-    def __init__(
-        self,
-        base_url: str,
-        source: ExternalRatingSource,
-        timeout: float = 10.0,
-    ):
+    def __init__(self, base_url: str, source: ExternalRatingSource):
         self.base_url = base_url.rstrip("/")
         self.source = source
         self.federation = source.value.upper()
-        self._client = httpx.Client(timeout=timeout)
 
     def _request(self, method: str, path: str, **kwargs) -> Any:
         try:
-            response = self._client.request(method, f"{self.base_url}{path}", **kwargs)
+            with _request_slots:
+                response = _client.request(method, f"{self.base_url}{path}", **kwargs)
             if response.status_code == 404:
                 # The only 404 these endpoints raise is an unknown federation,
                 # which means nobody has imported that rating list yet.
@@ -111,6 +127,32 @@ class ChessDbProvider:
         if not isinstance(hits, list):
             raise ExternalApiError("Rating database search response was not a list")
         return [self._result_from_hit(hit) for hit in hits]
+
+    def search_players_bulk(
+        self, queries: Sequence[str], limit: int = 20
+    ) -> Iterator[list[ExternalPlayerResult]]:
+        """Search for many names at once, yielding hits in the order asked.
+
+        Searches run concurrently, but never more of them than
+        MAX_CONCURRENT_REQUESTS allows -- the semaphore in _request is what
+        holds the line, so this pool cannot outpace it however wide it is.
+
+        Yields lazily so that a caller consuming it can keep what it got before
+        a failing query: the exception surfaces at the position of the query
+        that raised it, with every earlier result already handed over.
+        """
+        queries = list(queries)
+        if not queries:
+            return
+        executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_REQUESTS)
+        try:
+            yield from executor.map(
+                lambda query: self.search_players(query, limit=limit), queries
+            )
+        finally:
+            # cancel_futures: when a query raises, or the caller walks away,
+            # the searches still queued are requests nobody will read.
+            executor.shutdown(wait=False, cancel_futures=True)
 
     def get_ratings(
         self, external_ids: Sequence[str], list_date: str | None = None
