@@ -208,6 +208,37 @@ export interface paths {
         patch: operations["update_player_players__id___patch"];
         trace?: never;
     };
+    "/players/{id}/merge/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge Player
+         * @description Fold another player into this one, and delete them.
+         *
+         *     The same person is sometimes entered twice, usually with a spelling mistake
+         *     in one of the names. This moves every match, round registration, competition
+         *     rating and external id of `other_id` onto `id`, so the history ends up in
+         *     one place.
+         *
+         *     The merge is strict: it only proceeds when the two players' data is
+         *     disjoint. Anything that would collapse two rows into one — a match they
+         *     played against each other, the same round, the same competition rating, two
+         *     different ids at the same source — is reported as a 409 and nothing is
+         *     written.
+         */
+        post: operations["merge_player_players__id__merge__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/players/{id}/external-ids/{source}/": {
         parameters: {
             query?: never;
@@ -911,6 +942,22 @@ export interface components {
         PlayerExternalIdUpdate: {
             /** External Id */
             external_id: string;
+        };
+        /**
+         * PlayerMerge
+         * @description Request body of POST /players/{id}/merge/.
+         */
+        PlayerMerge: {
+            /**
+             * Other Id
+             * @description The player to absorb; they are deleted by the merge.
+             */
+            other_id: number;
+            /**
+             * Name
+             * @description The name the surviving player keeps. Defaults to the name they already have.
+             */
+            name?: string | null;
         };
         /**
          * PlayerPublic
@@ -1749,6 +1796,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PlayerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_player_players__id__merge__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerMerge"];
             };
         };
         responses: {

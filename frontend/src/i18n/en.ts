@@ -120,6 +120,12 @@ const en = {
     searchSourceLabel: "Search at",
     searchIdFor: "{{source}} ID of {{name}}, or search",
     importRatings: "Import ratings",
+    merge: "Merge",
+    mergeDescription:
+      "Fold a duplicate of {{name}} into them: their matches, registrations, ratings and IDs all move over and the duplicate is deleted. This cannot be undone.",
+    mergeSelectLabel: "Duplicate to merge in",
+    mergeKeepNameLabel: "Name to keep",
+    mergeConfirm: "Merge",
     findIds: "Find IDs",
     findIdsDescription:
       "Search a rating source for every player without an ID there, and attach the ID when exactly one player of that name is found.",

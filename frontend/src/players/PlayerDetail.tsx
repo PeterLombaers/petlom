@@ -26,6 +26,7 @@ import {
   externalProfileUrl,
   getExternalId,
 } from "./external";
+import MergePlayerModal from "./MergePlayerModal";
 import { useImportExternalRatings } from "./useImportExternalRatings";
 import { usePlayer, usePlayers } from "./usePlayers";
 
@@ -63,6 +64,7 @@ function PlayerHeader({ player }: { player: PlayerDetailData }) {
   const { t } = useTranslation();
   const { isModerator } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isMerging, setIsMerging] = useState(false);
 
   return (
     <Paper withBorder p="md">
@@ -74,9 +76,20 @@ function PlayerHeader({ player }: { player: PlayerDetailData }) {
             <PlayerName name={player.name} isActive={player.is_active} />
           </Title>
           {isModerator && (
-            <Button variant="default" onClick={() => setIsEditing(true)}>
-              {t("common.edit")}
-            </Button>
+            <Group>
+              <Button variant="default" onClick={() => setIsMerging(true)}>
+                {t("player.merge")}
+              </Button>
+              <Button variant="default" onClick={() => setIsEditing(true)}>
+                {t("common.edit")}
+              </Button>
+              {isMerging && (
+                <MergePlayerModal
+                  player={player}
+                  onClose={() => setIsMerging(false)}
+                />
+              )}
+            </Group>
           )}
         </Group>
       )}

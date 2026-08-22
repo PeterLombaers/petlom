@@ -1,10 +1,11 @@
-import { Anchor, Box, Group, Table } from "@mantine/core";
+import { ActionIcon, Anchor, Box, Group, Table } from "@mantine/core";
+import type { MantineBreakpoint } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
 import DeleteButton from "./DeleteButton";
-import { Column, DeleteConfig, EditConfig } from "./types";
+import { Column, DeleteConfig, EditConfig, RowAction } from "./types";
 import { visibleFromClass } from "./responsive";
 
 interface EditableRowProps<T = unknown> {
@@ -16,6 +17,8 @@ interface EditableRowProps<T = unknown> {
   entityIdField: keyof T;
   editConfig?: EditConfig<T>;
   deleteConfig?: DeleteConfig<T>;
+  /** Domain actions for the actions cell, rendered after the built-in ones. */
+  rowActions?: RowAction<T>[];
   columnEditField?: keyof T | null;
   columnEditValue?: unknown;
   columnEditError?: string;
@@ -31,6 +34,7 @@ export default function EditableRow<T = unknown>({
   entityIdField,
   editConfig,
   deleteConfig,
+  rowActions,
   columnEditField,
   columnEditValue,
   columnEditError,
@@ -66,6 +70,7 @@ export default function EditableRow<T = unknown>({
   };
 
   const entityId = data[entityIdField] as string | number;
+  const hasActions = Boolean(editConfig || rowActions?.length);
 
   const handleSave = () => {
     if (!editConfig) return;
@@ -160,10 +165,10 @@ export default function EditableRow<T = unknown>({
           </Table.Td>
         );
       })}
-      {editConfig && (
+      {hasActions && (
         <Table.Td>
           <Group>
-            {!hideRowEditButton && (
+            {editConfig && !hideRowEditButton && (
               <EditButton
                 isEditing={isEditing}
                 isPending={editConfig.editMutation.isPending}
@@ -173,13 +178,7 @@ export default function EditableRow<T = unknown>({
               />
             )}
             {deleteConfig && !hideRowEditButton && (
-              // Desktop shows delete on the resting row; mobile only has room
-              // for it once the row is expanded into edit mode.
-              <Box
-                component="span"
-                visibleFrom={isEditing ? undefined : "sm"}
-                hiddenFrom={isEditing ? "sm" : undefined}
-              >
+              <NarrowScreenAction hideBelow="sm" isEditing={isEditing}>
                 <DeleteButton
                   entityType={deleteConfig.entityType}
                   entityName={deleteConfig.getEntityName(data)}
@@ -190,11 +189,55 @@ export default function EditableRow<T = unknown>({
                     deleteConfig.requireTypedConfirmation
                   }
                 />
-              </Box>
+              </NarrowScreenAction>
             )}
+            {!hideRowEditButton &&
+              rowActions?.map((action) => (
+                <NarrowScreenAction
+                  key={action.label}
+                  hideBelow={action.hideBelow}
+                  isEditing={isEditing}
+                >
+                  <ActionIcon
+                    onClick={() => action.onClick(data)}
+                    disabled={action.isPending}
+                    aria-label={action.label}
+                  >
+                    {action.icon}
+                  </ActionIcon>
+                </NarrowScreenAction>
+              ))}
           </Group>
         </Table.Td>
       )}
     </Table.Tr>
+  );
+}
+
+/**
+ * Gives an action the row's narrow-screen rule.
+ *
+ * At or above the breakpoint the action sits on the resting row; below it there
+ * is only room for it once the row is expanded into edit mode. Without a
+ * breakpoint the action is always shown.
+ */
+function NarrowScreenAction({
+  hideBelow,
+  isEditing,
+  children,
+}: {
+  hideBelow?: MantineBreakpoint;
+  isEditing: boolean;
+  children: React.ReactNode;
+}) {
+  if (!hideBelow) return <>{children}</>;
+  return (
+    <Box
+      component="span"
+      visibleFrom={isEditing ? undefined : hideBelow}
+      hiddenFrom={isEditing ? hideBelow : undefined}
+    >
+      {children}
+    </Box>
   );
 }

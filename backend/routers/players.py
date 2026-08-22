@@ -11,6 +11,8 @@ from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
 from backend.enums import ExternalRatingSource, PlayerStatus
 from backend.models import (
     LIST_DATE_PATTERN,
+    Competition,
+    CompetitionRating,
     ExternalRating,
     ExternalRatingPublic,
     Match,
@@ -20,6 +22,7 @@ from backend.models import (
     PlayerExternalId,
     PlayerExternalIdPublic,
     PlayerExternalIdUpdate,
+    PlayerMerge,
     PlayerPublic,
     PlayerUpdate,
     RoundRegistration,
@@ -191,6 +194,146 @@ def _has_competition_history(player: Player, session: SessionDep) -> bool:
         .limit(1)
     ).first()
     return played is not None or registered is not None
+
+
+@router.post("/{id}/merge/")
+def merge_player(
+    id: int, merge: PlayerMerge, session: SessionDep, _: ModeratorDep
+) -> PlayerPublic:
+    """Fold another player into this one, and delete them.
+
+    The same person is sometimes entered twice, usually with a spelling mistake
+    in one of the names. This moves every match, round registration, competition
+    rating and external id of `other_id` onto `id`, so the history ends up in
+    one place.
+
+    The merge is strict: it only proceeds when the two players' data is
+    disjoint. Anything that would collapse two rows into one — a match they
+    played against each other, the same round, the same competition rating, two
+    different ids at the same source — is reported as a 409 and nothing is
+    written.
+    """
+    if merge.other_id == id:
+        raise HTTPException(
+            status_code=400, detail="A player cannot merge into itself."
+        )
+    player = find_object(model=Player, identifier=id, session=session)
+    other = find_object(model=Player, identifier=merge.other_id, session=session)
+
+    conflicts = _merge_conflicts(player, other, session)
+    if conflicts:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"{player.name} and {other.name} cannot be merged: "
+                + "; ".join(conflicts)
+                + "."
+            ),
+        )
+
+    matches = session.exec(
+        select(Match).where(
+            (Match.player_white_id == other.id) | (Match.player_black_id == other.id)
+        )
+    ).all()
+    for match in matches:
+        if match.player_white_id == other.id:
+            match.player_white_id = player.id
+        if match.player_black_id == other.id:
+            match.player_black_id = player.id
+        session.add(match)
+    registrations = session.exec(
+        select(RoundRegistration).where(RoundRegistration.player_id == other.id)
+    ).all()
+    ratings = session.exec(
+        select(CompetitionRating).where(CompetitionRating.player_id == other.id)
+    ).all()
+    # The external rating snapshots hang off the identifier, so they come along
+    # with it and need no touching of their own.
+    external_ids = session.exec(
+        select(PlayerExternalId).where(PlayerExternalId.player_id == other.id)
+    ).all()
+    for owned in (*registrations, *ratings, *external_ids):
+        owned.player_id = player.id
+        session.add(owned)
+
+    if merge.name is not None:
+        player.name = merge.name
+    # A duplicate is often the row that was soft-deleted; the merged player is
+    # active if either half was.
+    player.is_active = player.is_active or other.is_active
+    player.updated_at = datetime.now(UTC)
+    session.add(player)
+
+    session.flush()
+    # `Player.competition_ratings` and `.external_ids` cascade-delete, and the
+    # rows we just moved are still in the loaded collections. Refreshing empties
+    # them, so deleting `other` takes nothing with it.
+    session.refresh(other)
+    session.delete(other)
+    session.commit()
+    session.refresh(player)
+    return player
+
+
+def _merge_conflicts(player: Player, other: Player, session: SessionDep) -> list[str]:
+    """Everything that stops the two players from being folded into one."""
+    conflicts = []
+
+    played_each_other = session.exec(
+        select(Match).where(
+            ((Match.player_white_id == player.id) & (Match.player_black_id == other.id))
+            | (
+                (Match.player_white_id == other.id)
+                & (Match.player_black_id == player.id)
+            )
+        )
+    ).all()
+    for match in played_each_other:
+        conflicts.append(
+            f"they played each other in {match.competition_name} round"
+            f" {match.round} board {match.board}"
+        )
+
+    registrations = session.exec(
+        select(RoundRegistration).where(
+            col(RoundRegistration.player_id).in_([player.id, other.id])
+        )
+    ).all()
+    seen_rounds: dict[tuple[int, int], RoundRegistration] = {}
+    for registration in registrations:
+        key = (registration.competition_id, registration.round)
+        if key in seen_rounds:
+            competition = session.get(Competition, registration.competition_id)
+            conflicts.append(
+                "they are both registered for round"
+                f" {registration.round} of {competition.name}"
+            )
+        else:
+            seen_rounds[key] = registration
+
+    ratings = session.exec(
+        select(CompetitionRating).where(
+            col(CompetitionRating.player_id).in_([player.id, other.id])
+        )
+    ).all()
+    seen_rating_types: set[int] = set()
+    for rating in ratings:
+        if rating.rating_type_id in seen_rating_types:
+            conflicts.append(
+                f"they both have a rating in {rating.rating_type.competition_name}"
+            )
+        else:
+            seen_rating_types.add(rating.rating_type_id)
+
+    # Two rows can never share an external id (source, external_id) is unique,
+    # so a shared source always means two different identifiers.
+    sources = {external_id.source for external_id in player.external_ids}
+    for external_id in other.external_ids:
+        if external_id.source in sources:
+            conflicts.append(f"they have different {external_id.source.value} ids")
+
+    return conflicts
 
 
 @router.patch("/{id}/")

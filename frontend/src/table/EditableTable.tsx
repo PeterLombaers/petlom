@@ -2,7 +2,13 @@ import { Group, Paper, Table, Text } from "@mantine/core";
 import EditableRow from "./EditableRow";
 import { EditButton } from "./EditButton";
 import { CreateButton, CreateDialogConfig } from "./CreateButton";
-import { Column, DeleteConfig, EditConfig, TableQueryResult } from "./types";
+import {
+  Column,
+  DeleteConfig,
+  EditConfig,
+  RowAction,
+  TableQueryResult,
+} from "./types";
 import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
 import { useAuth } from "@/auth";
@@ -31,6 +37,7 @@ type EditableTableProps<T extends object> = {
   createConfig?: CreateDialogConfig<any>;
   editConfig?: TableEditConfig<T>;
   deleteConfig?: TableDeleteConfig<T>;
+  rowActions?: RowAction<T>[];
   scrollMinWidth?: number;
 };
 
@@ -71,6 +78,12 @@ type EditableTableProps<T extends object> = {
  *   returns the display name shown in the confirmation dialog. Set `typedConfirmation`
  *   to `false` to skip requiring the user to type the name (defaults to `true`). When
  *   absent, no Delete button is rendered.
+ *
+ * @param rowActions - Moderator-only domain actions for the Actions column, rendered
+ *   after the built-in ones. Use them for what the engine cannot describe with
+ *   primitives (e.g. merging two players, which needs a player picker). The table
+ *   renders the buttons; each action supplies an icon, a label and an `onClick` that
+ *   receives the row, and the caller mounts whatever dialog the action opens.
  */
 
 export default function EditableTable<T extends object>({
@@ -82,6 +95,7 @@ export default function EditableTable<T extends object>({
   deleteConfig,
   createConfig,
   editConfig,
+  rowActions,
   scrollMinWidth = 500,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
@@ -114,6 +128,7 @@ export default function EditableTable<T extends object>({
           requireTypedConfirmation: deleteConfig.requireTypedConfirmation,
         }
       : undefined;
+  const activeRowActions = isModerator ? rowActions : undefined;
 
   const edit = useTableEditState<T>({
     rows,
@@ -134,7 +149,9 @@ export default function EditableTable<T extends object>({
     edit.columnEditField === col.field && col.editWidth !== undefined
       ? col.editWidth
       : col.width;
-  const nCols = visibleColumns.length + (activeEditConfig ? 1 : 0);
+  // The Actions column exists as soon as something can be rendered in it.
+  const hasActions = Boolean(activeEditConfig || activeRowActions?.length);
+  const nCols = visibleColumns.length + (hasActions ? 1 : 0);
   const showCreate = isModerator && createConfig !== undefined;
   const tableTitle = title || translateEntity(t, entityType, true);
 
@@ -154,7 +171,7 @@ export default function EditableTable<T extends object>({
               />
             );
           })}
-          {activeEditConfig && <col style={{ width: 100 }} />}
+          {hasActions && <col style={{ width: 100 }} />}
         </colgroup>
       )}
       <Table.Thead>
@@ -203,9 +220,7 @@ export default function EditableTable<T extends object>({
               </Table.Th>
             );
           })}
-          {activeEditConfig && (
-            <Table.Th scope="col">{t("common.actions")}</Table.Th>
-          )}
+          {hasActions && <Table.Th scope="col">{t("common.actions")}</Table.Th>}
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
@@ -224,6 +239,7 @@ export default function EditableTable<T extends object>({
                 entityIdField={entityIdField}
                 editConfig={activeEditConfig}
                 deleteConfig={activeDeleteConfig}
+                rowActions={activeRowActions}
                 columnEditField={edit.columnEditField}
                 columnEditValue={edit.columnEditValues.get(key)}
                 columnEditError={edit.columnEditErrors.get(key) ?? ""}

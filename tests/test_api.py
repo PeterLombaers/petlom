@@ -10,6 +10,7 @@ from backend.enums import ExternalRatingSource
 from backend.models import (
     Competition,
     CompetitionPublic,
+    CompetitionRating,
     ExternalRating,
     Match,
     MatchPublic,
@@ -409,6 +410,215 @@ def test_delete_player_registered_for_round(
     session.refresh(player)
     assert not player.is_active
     assert len(session.scalars(select(RoundRegistration)).all()) == 1
+
+
+def test_merge_players(
+    player_factory: Callable[..., Player],
+    match_factory: Callable[..., Match],
+    competition: Competition,
+    auth_client: TestClient,
+    session: Session,
+):
+    keeper = player_factory(name="Jan Colijn")
+    duplicate = player_factory(name="Jan Collijn")
+    other = player_factory()
+    white = match_factory(
+        competition=competition, player_white=duplicate, player_black=other
+    )
+    black = match_factory(
+        competition=competition, player_white=other, player_black=duplicate
+    )
+    session.add(
+        RoundRegistration(
+            competition_id=competition.id, round=1, player_id=duplicate.id
+        )
+    )
+    session.commit()
+
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/",
+        json={"other_id": duplicate.id, "name": "Jan Collijn"},
+    )
+    res.raise_for_status()
+    assert res.json()["name"] == "Jan Collijn"
+
+    session.refresh(keeper)
+    session.refresh(white)
+    session.refresh(black)
+    assert session.get(Player, duplicate.id) is None
+    assert keeper.name == "Jan Collijn"
+    assert white.player_white_id == keeper.id
+    assert black.player_black_id == keeper.id
+    registration = session.scalars(select(RoundRegistration)).one()
+    assert registration.player_id == keeper.id
+
+
+def test_merge_players_keeps_name_by_default(
+    player_factory: Callable[..., Player], auth_client: TestClient, session: Session
+):
+    keeper = player_factory(name="Jan Colijn")
+    duplicate = player_factory(name="Jan Collijn")
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/", json={"other_id": duplicate.id}
+    )
+    res.raise_for_status()
+    session.refresh(keeper)
+    assert keeper.name == "Jan Colijn"
+
+
+def test_merge_players_reactivates(
+    player_factory: Callable[..., Player], auth_client: TestClient, session: Session
+):
+    keeper = player_factory(is_active=False)
+    duplicate = player_factory()
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/", json={"other_id": duplicate.id}
+    )
+    res.raise_for_status()
+    session.refresh(keeper)
+    assert keeper.is_active
+
+
+def test_merge_players_takes_over_external_id(
+    player_factory: Callable[..., Player],
+    external_rating_factory: Callable[..., ExternalRating],
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    auth_client: TestClient,
+    session: Session,
+):
+    keeper = player_factory()
+    duplicate = player_factory()
+    external_id = player_external_id_factory(
+        player=duplicate, source=ExternalRatingSource.FIDE, external_id="4242424"
+    )
+    external_rating_factory(player_external_id=external_id, rating=1750.0)
+
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/", json={"other_id": duplicate.id}
+    )
+    res.raise_for_status()
+
+    session.refresh(keeper)
+    assert [(e.source, e.external_id) for e in keeper.external_ids] == [
+        (ExternalRatingSource.FIDE, "4242424")
+    ]
+    ratings = session.scalars(select(ExternalRating)).all()
+    assert len(ratings) == 1
+    assert ratings[0].player_external_id.player_id == keeper.id
+
+
+def test_merge_players_played_each_other_conflict(
+    player_factory: Callable[..., Player],
+    match_factory: Callable[..., Match],
+    auth_client: TestClient,
+    session: Session,
+):
+    keeper = player_factory()
+    duplicate = player_factory()
+    match_factory(player_white=keeper, player_black=duplicate)
+
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/", json={"other_id": duplicate.id}
+    )
+    assert res.status_code == 409
+    assert "played each other" in res.json()["detail"]
+    assert session.get(Player, duplicate.id) is not None
+    assert len(session.scalars(select(Match)).all()) == 1
+
+
+def test_merge_players_same_round_conflict(
+    player_factory: Callable[..., Player],
+    competition: Competition,
+    auth_client: TestClient,
+    session: Session,
+):
+    keeper = player_factory()
+    duplicate = player_factory()
+    for player in (keeper, duplicate):
+        session.add(
+            RoundRegistration(
+                competition_id=competition.id, round=2, player_id=player.id
+            )
+        )
+    session.commit()
+
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/", json={"other_id": duplicate.id}
+    )
+    assert res.status_code == 409
+    assert "round 2" in res.json()["detail"]
+    assert session.get(Player, duplicate.id) is not None
+    assert len(session.scalars(select(RoundRegistration)).all()) == 2
+
+
+def test_merge_players_same_competition_rating_conflict(
+    player_factory: Callable[..., Player],
+    competition: Competition,
+    auth_client: TestClient,
+    session: Session,
+):
+    keeper = player_factory()
+    duplicate = player_factory()
+    for player in (keeper, duplicate):
+        session.add(
+            CompetitionRating(
+                player_id=player.id,
+                rating_type_id=competition.rating_type.id,
+                initial_rating=1500.0,
+                current_rating=1500.0,
+            )
+        )
+    session.commit()
+
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/", json={"other_id": duplicate.id}
+    )
+    assert res.status_code == 409
+    assert competition.name in res.json()["detail"]
+    assert len(session.scalars(select(CompetitionRating)).all()) == 2
+
+
+def test_merge_players_different_external_ids_conflict(
+    player_factory: Callable[..., Player],
+    player_external_id_factory: Callable[..., PlayerExternalId],
+    auth_client: TestClient,
+    session: Session,
+):
+    keeper = player_factory()
+    duplicate = player_factory()
+    player_external_id_factory(
+        player=keeper, source=ExternalRatingSource.FIDE, external_id="1111111"
+    )
+    player_external_id_factory(
+        player=duplicate, source=ExternalRatingSource.FIDE, external_id="2222222"
+    )
+
+    res = auth_client.post(
+        f"/players/{keeper.id}/merge/", json={"other_id": duplicate.id}
+    )
+    assert res.status_code == 409
+    assert "fide" in res.json()["detail"]
+    assert len(session.scalars(select(PlayerExternalId)).all()) == 2
+
+
+def test_merge_players_failures(player: Player, auth_client: TestClient):
+    assert (
+        auth_client.post(
+            f"/players/{player.id}/merge/", json={"other_id": player.id}
+        ).status_code
+        == 400
+    )
+    assert (
+        auth_client.post(
+            f"/players/{player.id}/merge/", json={"other_id": 9999}
+        ).status_code
+        == 404
+    )
+
+
+def test_merge_players_requires_auth(player: Player, client: TestClient):
+    res = client.post(f"/players/{player.id}/merge/", json={"other_id": 9999})
+    assert res.status_code == 401
 
 
 def test_create_match(

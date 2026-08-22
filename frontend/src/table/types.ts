@@ -16,6 +16,40 @@ export interface DeleteConfig<T = unknown> {
   requireTypedConfirmation?: boolean;
 }
 
+/**
+ * A domain action the table hosts but does not implement, shown as an icon in
+ * the Actions column beside Edit and Delete (moderators only).
+ *
+ * The engine owns the chrome — icon size, aria-label, disabled-while-pending
+ * and the responsive rules — so a domain action looks and behaves like the
+ * built-in ones. The domain owns the behavior: `onClick` receives the row, and
+ * whatever dialog the action needs is mounted by the caller, not by the row.
+ * Use this for anything the engine cannot describe with primitives, such as
+ * merging two players (it needs a player picker, so no config of primitives
+ * would do).
+ *
+ * @property icon - Rendered inside the ActionIcon. Give it `size={18}`, like
+ *   the built-in buttons.
+ *
+ * @property label - Accessible name of the button, already translated.
+ *
+ * @property onClick - Called with the row the button belongs to.
+ *
+ * @property isPending - Disables the button while the action is in flight.
+ *
+ * @property hideBelow - Applies the same rule the Delete button follows: at or
+ *   above the breakpoint the action shows on the resting row, and below it the
+ *   action shows only once the row is expanded into edit mode, where there is
+ *   room for it.
+ */
+export interface RowAction<T = unknown> {
+  icon: React.ReactNode;
+  label: string;
+  onClick: (row: T) => void;
+  isPending?: boolean;
+  hideBelow?: MantineBreakpoint;
+}
+
 export interface EditConfig<T = unknown> {
   editMutation: AnyMutation;
   validateData: (editData: T) => Partial<Record<keyof T, string>>;

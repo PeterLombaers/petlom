@@ -421,6 +421,21 @@ class PlayerUpdate(SQLModel):
     is_active: bool | None = None
 
 
+class PlayerMerge(SQLModel):
+    """Request body of POST /players/{id}/merge/."""
+
+    other_id: int = Field(
+        description="The player to absorb; they are deleted by the merge."
+    )
+    name: constr(strip_whitespace=True, min_length=1) | None = Field(  # type: ignore
+        default=None,
+        description=(
+            "The name the surviving player keeps. Defaults to the name they"
+            " already have."
+        ),
+    )
+
+
 class PlayerDetail(PlayerPublic):
     """A player as returned by GET /players/{id}/."""
 

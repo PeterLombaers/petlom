@@ -1,5 +1,7 @@
 import { Button, Group, Menu, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconArrowMerge } from "@tabler/icons-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth";
 import EditableTable from "@/table/EditableTable";
@@ -13,6 +15,7 @@ import {
 import { createExternalIdCell } from "./cells";
 import { EXTERNAL_SOURCES, externalProfileUrl } from "./external";
 import MatchExternalIdsModal from "./MatchExternalIdsModal";
+import MergePlayerModal from "./MergePlayerModal";
 import { usePlayerCreateConfig } from "./playerCreateConfig";
 import { useImportExternalRatings } from "./useImportExternalRatings";
 import { PlayerRow, usePlayerRows } from "./usePlayerRows";
@@ -37,6 +40,8 @@ export default function PlayerTable() {
   const importMutation = useImportExternalRatings();
   const [matchModalOpened, { open: openMatchModal, close: closeMatchModal }] =
     useDisclosure(false);
+  // One modal for the whole table, opened by the row whose merge icon was hit.
+  const [mergeTarget, setMergeTarget] = useState<PlayerRow | null>(null);
 
   const validatePlayerName = createNonEmptyStringValidator(
     "name",
@@ -137,7 +142,21 @@ export default function PlayerTable() {
         createConfig={createConfig}
         editConfig={{ validateData, sanitizeData, getRequestBody }}
         deleteConfig={{ getEntityName: (row) => row.name }}
+        rowActions={[
+          {
+            icon: <IconArrowMerge size={18} />,
+            label: t("player.merge"),
+            onClick: setMergeTarget,
+            hideBelow: "sm",
+          },
+        ]}
       />
+      {mergeTarget && (
+        <MergePlayerModal
+          player={mergeTarget}
+          onClose={() => setMergeTarget(null)}
+        />
+      )}
     </Stack>
   );
 }

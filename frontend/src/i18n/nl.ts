@@ -122,6 +122,12 @@ const nl: TranslationSchema = {
     searchSourceLabel: "Zoek bij",
     searchIdFor: "{{source}}-ID van {{name}}, of zoeken",
     importRatings: "Ratings importeren",
+    merge: "Samenvoegen",
+    mergeDescription:
+      "Voeg een dubbele invoer van {{name}} samen met deze speler: de partijen, inschrijvingen, ratings en ID's gaan mee en de dubbele speler wordt verwijderd. Dit kan niet ongedaan gemaakt worden.",
+    mergeSelectLabel: "Dubbele speler om samen te voegen",
+    mergeKeepNameLabel: "Naam die behouden blijft",
+    mergeConfirm: "Samenvoegen",
     findIds: "ID's zoeken",
     findIdsDescription:
       "Zoek in een ratingbron naar elke speler zonder ID daar, en koppel het ID zodra er precies één speler met die naam gevonden wordt.",

@@ -457,4 +457,93 @@ describe("EditableRow", () => {
       expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
     });
   });
+
+  describe("row actions", () => {
+    const mergeAction = (overrides = {}) => ({
+      icon: <span data-testid="merge-icon" />,
+      label: "Merge",
+      onClick: vi.fn(),
+      ...overrides,
+    });
+
+    it("calls onClick with the row", async () => {
+      const user = userEvent.setup();
+      const action = mergeAction();
+      renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          columns={testColumns}
+          entityIdField="id"
+          rowActions={[action]}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Merge" }));
+      expect(action.onClick).toHaveBeenCalledWith(testData);
+    });
+
+    it("renders the actions cell without an editConfig", () => {
+      renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          columns={testColumns}
+          entityIdField="id"
+          rowActions={[mergeAction()]}
+        />,
+      );
+      expect(screen.getByRole("button", { name: "Merge" })).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Edit" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("disables the button while the action is pending", () => {
+      renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          columns={testColumns}
+          entityIdField="id"
+          rowActions={[mergeAction({ isPending: true })]}
+        />,
+      );
+      expect(screen.getByRole("button", { name: "Merge" })).toBeDisabled();
+    });
+
+    it("hides the action below its breakpoint on a resting row", () => {
+      const { rerender } = renderInTable(
+        <EditableRow
+          data={testData}
+          isEditing={false}
+          setIsEditing={vi.fn()}
+          columns={testColumns}
+          entityIdField="id"
+          editConfig={makeEditConfig(makeMockMutation())}
+          rowActions={[mergeAction({ hideBelow: "sm" })]}
+        />,
+      );
+      // Same rule as the Delete button: visible from `sm` while resting, and
+      // below `sm` only once the row is expanded into edit mode.
+      const resting = screen.getByRole("button", { name: "Merge" });
+      expect(resting.closest(".mantine-visible-from-sm")).not.toBeNull();
+
+      rerender(
+        <EditableRow
+          data={testData}
+          isEditing={true}
+          setIsEditing={vi.fn()}
+          columns={testColumns}
+          entityIdField="id"
+          editConfig={makeEditConfig(makeMockMutation())}
+          rowActions={[mergeAction({ hideBelow: "sm" })]}
+        />,
+      );
+      const editing = screen.getByRole("button", { name: "Merge" });
+      expect(editing.closest(".mantine-hidden-from-sm")).not.toBeNull();
+    });
+  });
 });

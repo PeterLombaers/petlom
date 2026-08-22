@@ -56,6 +56,25 @@ export function usePlayers() {
     { onSuccess, onError },
   );
 
+  // A merge rewrites the merged player's matches, registrations and ratings,
+  // so it dirties every cache that nests a player, not just the player caches.
+  const onMergeSuccess = () => {
+    onSuccess();
+    for (const key of [
+      endpointKey("get", "/competitions/{name}/pairing"),
+      endpointKey("get", "/competitions/{name}/registrations"),
+      endpointKey("get", "/competitions/{name}/player-ratings"),
+      endpointKey("post", "/competitions/{name}/ranking"),
+    ]) {
+      queryClient.invalidateQueries({ queryKey: key });
+    }
+  };
+
+  const mergeMutation = $api.useMutation("post", "/players/{id}/merge/", {
+    onSuccess: onMergeSuccess,
+    onError,
+  });
+
   const deleteExternalIdMutation = $api.useMutation(
     "delete",
     "/players/{id}/external-ids/{source}/",
@@ -72,5 +91,6 @@ export function usePlayers() {
     deleteMutation,
     setExternalIdMutation,
     deleteExternalIdMutation,
+    mergeMutation,
   };
 }
