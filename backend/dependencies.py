@@ -6,7 +6,7 @@ from sqlmodel import Session, SQLModel, select
 from backend.db import engine
 from backend.models import Competition
 
-MAX_PAGE_LENGTH = 100
+MAX_PAGE_LENGTH = 500
 
 
 def get_session():
