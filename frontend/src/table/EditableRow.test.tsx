@@ -533,7 +533,9 @@ describe("EditableRow", () => {
         />,
       );
       expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Delete" }),
+      ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Merge" })).toBeInTheDocument();
     });
   });

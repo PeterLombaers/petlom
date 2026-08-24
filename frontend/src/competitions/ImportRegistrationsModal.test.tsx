@@ -1,14 +1,56 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render } from "@/test-utils";
 import ImportRegistrationsModal from "./ImportRegistrationsModal";
 import * as importModule from "./useRegistrationImport";
+import * as apiModule from "@client/api";
 
 vi.mock("./useRegistrationImport", () => ({ useRegistrationImport: vi.fn() }));
 
+vi.mock("@client/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof apiModule>()),
+  $api: { useQuery: vi.fn() },
+}));
+
+// The create-player dialog is covered by its own tests; here it only has to
+// report a player, so the modal can be checked on what it does with one.
+vi.mock("@/players/NewPlayerButton", () => ({
+  default: ({
+    initialName,
+    onCreated,
+  }: {
+    initialName?: string;
+    onCreated: (player: {
+      id: number;
+      name: string;
+      is_active: boolean;
+    }) => void;
+  }) => (
+    <button
+      onClick={() =>
+        onCreated({ id: 9, name: initialName ?? "", is_active: true })
+      }
+    >
+      {`create ${initialName}`}
+    </button>
+  ),
+}));
+
 const mockUseRegistrationImport = vi.mocked(importModule.useRegistrationImport);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockUseQuery = (apiModule.$api as any).useQuery as ReturnType<
+  typeof vi.fn
+>;
 
 const player = (id: number, name: string) => ({ id, name, is_active: true });
+
+const ALL_PLAYERS = [
+  player(1, "Sander Bakker"),
+  player(2, "Wouter Nijhuis"),
+  player(3, "Marijke de Vries"),
+  player(4, "Lieke van den Bosch"),
+  player(5, "Lieke van der Bosch"),
+];
 
 const PREVIEW = {
   source_url: "https://club.test/?page_id=1",
@@ -47,6 +89,15 @@ const PREVIEW = {
 
 type Preview = typeof PREVIEW;
 
+beforeEach(() => {
+  mockUseQuery.mockReturnValue({
+    data: ALL_PLAYERS,
+    error: null,
+    isPending: false,
+    isError: false,
+  });
+});
+
 function setupQuery(
   overrides: Partial<{ data: Preview | undefined }> &
     Record<string, unknown> = {},
@@ -62,13 +113,16 @@ function setupQuery(
   } as unknown as ReturnType<typeof importModule.useRegistrationImport>);
 }
 
-function renderModal() {
+// Marijke is the one player of the fixture who is on the round already, which
+// is what makes her sign-up the "Already registered" row.
+function renderModal(enrolled: number[] = [3]) {
   const onClose = vi.fn();
   const onImport = vi.fn();
   render(
     <ImportRegistrationsModal
       competitionName="interne_2024"
       roundNr={5}
+      enrolledPlayerIds={new Set(enrolled)}
       onClose={onClose}
       onImport={onImport}
     />,
@@ -76,22 +130,35 @@ function renderModal() {
   return { onClose, onImport };
 }
 
+const row = (name: RegExp) => screen.getByRole("row", { name });
+
 describe("ImportRegistrationsModal", () => {
-  it("reports what was recognised and what was not", () => {
+  it("gives every sign-up a row, and says what the matcher made of it", () => {
     setupQuery();
     renderModal();
 
     expect(screen.getByText("Recognised 3 of 5 sign-ups.")).toBeInTheDocument();
+    expect(row(/Wouter Nijhuys/)).toHaveTextContent("Spelled differently");
+    expect(row(/Marijke de Vries/)).toHaveTextContent("Already registered");
+    expect(row(/Lieke van de Bosch/)).toHaveTextContent("No unique match");
     expect(
-      screen.getByRole("row", { name: /Wouter Nijhuys/ }),
-    ).toHaveTextContent("Spelled differently");
-    expect(
-      screen.getByRole("row", { name: /Marijke de Vries/ }),
-    ).toHaveTextContent("Already registered");
-    expect(
-      screen.getByText(/Lieke van den Bosch, Lieke van der Bosch/),
+      within(row(/Lieke van de Bosch/)).getByText(
+        "Lieke van den Bosch, Lieke van der Bosch",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Tom Verhoeven afgemeld")).toBeInTheDocument();
+    expect(row(/Tom Verhoeven afgemeld/)).toHaveTextContent("No match");
+  });
+
+  it("prefills the matched rows and leaves the unresolved ones empty", () => {
+    setupQuery();
+    renderModal();
+
+    expect(
+      within(row(/Wouter Nijhuys/)).getByRole("combobox"),
+    ).toHaveDisplayValue("Wouter Nijhuis");
+    expect(
+      within(row(/Tom Verhoeven afgemeld/)).getByRole("combobox"),
+    ).toHaveDisplayValue("");
   });
 
   it("hands over only the players that are not registered yet", async () => {
@@ -105,21 +172,100 @@ describe("ImportRegistrationsModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("leaves out a row that is unchecked", async () => {
+    const user = userEvent.setup();
+    setupQuery();
+    const { onImport } = renderModal();
+
+    await user.click(
+      screen.getByRole("checkbox", { name: "Import Sander Bakker" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Select 1 player" }));
+
+    expect(onImport).toHaveBeenCalledWith([2]);
+  });
+
+  it("imports a player picked by hand for a name with no unique match", async () => {
+    const user = userEvent.setup();
+    setupQuery();
+    const { onImport } = renderModal();
+
+    await user.click(within(row(/Lieke van de Bosch/)).getByRole("combobox"));
+    await user.click(
+      await screen.findByRole("option", { name: "Lieke van der Bosch" }),
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "Import Lieke van de Bosch" }),
+    ).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Select 3 players" }));
+    expect(onImport).toHaveBeenCalledWith([1, 2, 5]);
+  });
+
+  it("offers the players already taken by another row nowhere else", async () => {
+    const user = userEvent.setup();
+    setupQuery();
+    renderModal();
+
+    await user.click(within(row(/Tom Verhoeven/)).getByRole("combobox"));
+
+    expect(
+      await screen.findByRole("option", { name: "Lieke van den Bosch" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Sander Bakker" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("imports a player created for a name it did not recognise", async () => {
+    const user = userEvent.setup();
+    setupQuery();
+    const { onImport } = renderModal();
+
+    await user.click(
+      screen.getByRole("button", { name: "create Tom Verhoeven afgemeld" }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Select 3 players" }));
+    expect(onImport).toHaveBeenCalledWith([1, 2, 9]);
+  });
+
   it("has nothing to select when everyone is already registered", () => {
     setupQuery({
-      data: {
-        ...PREVIEW,
-        matched: PREVIEW.matched.map((m) => ({
-          ...m,
-          already_registered: true,
-        })),
-      },
+      data: { ...PREVIEW, unmatched: [], ambiguous: [] },
     });
-    renderModal();
+    renderModal([1, 2, 3]);
 
     expect(
       screen.getByRole("button", { name: "Select 0 players" }),
     ).toBeDisabled();
+  });
+
+  it("offers no tick on a sign-up by someone the round already has", () => {
+    setupQuery();
+    renderModal();
+
+    expect(
+      within(row(/Marijke de Vries/)).queryByRole("checkbox"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(row(/Sander Bakker/)).getByRole("checkbox"),
+    ).toBeInTheDocument();
+  });
+
+  it("offers a player the round already has to no row", async () => {
+    const user = userEvent.setup();
+    setupQuery();
+    renderModal();
+
+    await user.click(within(row(/Tom Verhoeven/)).getByRole("combobox"));
+
+    expect(
+      await screen.findByRole("option", { name: "Lieke van den Bosch" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Marijke de Vries" }),
+    ).not.toBeInTheDocument();
   });
 
   it("says so when nobody has signed up", () => {

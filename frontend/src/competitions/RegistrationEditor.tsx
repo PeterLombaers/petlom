@@ -330,6 +330,7 @@ export default function RegistrationEditor({
         <ImportRegistrationsModal
           competitionName={competitionName}
           roundNr={roundNr}
+          enrolledPlayerIds={enrolledPlayerIds}
           onClose={closeImportModal}
           onImport={(playerIds) =>
             setSelectedPlayerIds((prev) => [

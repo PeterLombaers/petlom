@@ -16,10 +16,12 @@ type PlayerPublic = components["schemas"]["PlayerPublic"];
  */
 export default function NewPlayerButton({
   onCreated,
+  initialName,
 }: {
   onCreated: (player: PlayerPublic) => void;
+  initialName?: string;
 }) {
-  const createConfig = usePlayerCreateConfig();
+  const createConfig = usePlayerCreateConfig(initialName);
   const { createMutation } = usePlayers();
 
   const mutation: AnyMutation = {

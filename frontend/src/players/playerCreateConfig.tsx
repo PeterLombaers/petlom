@@ -22,8 +22,14 @@ export type PlayerFormData = {
  * `useTranslation` and the state of the source picker. A search fills the name
  * and the id of the source it searched; every field can still be typed by
  * hand, and a player created without any external id is fine.
+ *
+ * `initialName` seeds the name field, so a caller that already knows what the
+ * player is called (the import modal, from the sign-up sheet) does not make the
+ * moderator retype it.
  */
-export function usePlayerCreateConfig(): CreateDialogConfig<PlayerFormData> {
+export function usePlayerCreateConfig(
+  initialName = "",
+): CreateDialogConfig<PlayerFormData> {
   const { t } = useTranslation();
   const [searchSource, setSearchSource] =
     useState<ExternalRatingSource>("fide");
@@ -33,7 +39,7 @@ export function usePlayerCreateConfig(): CreateDialogConfig<PlayerFormData> {
   );
 
   return {
-    getInitialFormData: () => ({ name: "", fide_id: "", knsb_id: "" }),
+    getInitialFormData: () => ({ name: initialName, fide_id: "", knsb_id: "" }),
     validateForm: (formData) => {
       const errors: Record<string, string> = {};
       validatePlayerName(formData.name, errors);

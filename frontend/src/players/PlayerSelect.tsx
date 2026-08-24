@@ -11,6 +11,7 @@ type PlayerSelectProps = {
   helperText?: string;
   filterOptions?: (options: PlayerRef[]) => PlayerRef[];
   label?: string;
+  placeholder?: string;
 };
 
 export default function PlayerSelect({
@@ -20,6 +21,7 @@ export default function PlayerSelect({
   helperText = "",
   filterOptions,
   label,
+  placeholder,
 }: PlayerSelectProps) {
   const { t } = useTranslation();
   const {
@@ -66,6 +68,7 @@ export default function PlayerSelect({
       searchable
       comboboxProps={{ width: "max-content" }}
       label={label}
+      placeholder={placeholder}
     />
   );
 }

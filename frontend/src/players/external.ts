@@ -26,7 +26,8 @@ const PROFILE_URLS: Record<
   fide: (externalId) => `https://ratings.fide.com/profile/${externalId}`,
   // The KNSB publishes no stable 'latest' player page. The link below is to the
   // 2026-August rating list.
-  knsb: (externalId) => `https://ratingviewer.nl/lists/187/players/${externalId}`,
+  knsb: (externalId) =>
+    `https://ratingviewer.nl/lists/187/players/${externalId}`,
 };
 
 /** Where to link a player's id at `source`, or `null` when it links nowhere. */
