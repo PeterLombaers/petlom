@@ -153,7 +153,6 @@ function RoundView({
           </Button>
         ) : (
           <Button
-            variant="default"
             onClick={() => setPlayersVisible((v) => !v)}
           >
             {playersVisible
