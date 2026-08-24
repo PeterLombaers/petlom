@@ -137,11 +137,14 @@ describe("PlayerDetail", () => {
     expect(within(row).getByText("2026-05")).toBeInTheDocument();
   });
 
-  it("lists an id without a profile page or a snapshot as plain text", () => {
+  it("lists an id without a snapshot with em dashes for the rating", () => {
     renderDetail();
-    const cell = screen.getByText("9055882");
-    expect(cell.closest("a")).toBeNull();
-    const row = cell.closest("tr") as HTMLElement;
+    const link = screen.getByRole("link", { name: "9055882" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://ratingviewer.nl/lists/187/players/9055882",
+    );
+    const row = link.closest("tr") as HTMLElement;
     expect(within(row).getAllByText("—")).toHaveLength(2);
   });
 

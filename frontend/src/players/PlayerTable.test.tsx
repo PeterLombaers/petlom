@@ -150,10 +150,14 @@ describe("PlayerTable", () => {
       expect(link).toHaveAttribute("target", "_blank");
     });
 
-    it("does not link a KNSB id, which has no public profile page", () => {
+    it("links the KNSB id to its rating list page", () => {
       renderTable();
-      expect(screen.getByText("9055882")).toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: "9055882" })).toBeNull();
+      const link = screen.getByRole("link", { name: "9055882" });
+      expect(link).toHaveAttribute(
+        "href",
+        "https://ratingviewer.nl/lists/187/players/9055882",
+      );
+      expect(link).toHaveAttribute("target", "_blank");
     });
 
     it("does not link the FIDE id of a player without one", () => {
