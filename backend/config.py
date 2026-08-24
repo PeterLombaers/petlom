@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     # service covers every source, so there is one setting rather than one per
     # federation. Unset means no external ratings at all.
     chess_db_api_base_url: str | None = None
+    # Page on the club website that embeds the Google Sheet members sign up in.
+    club_registration_url: str = "https://paulkeres.nl/?page_id=22537"
 
 
 settings = Settings()  # type: ignore[call-arg]

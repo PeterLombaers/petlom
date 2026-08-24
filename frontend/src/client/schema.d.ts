@@ -165,6 +165,30 @@ export interface paths {
         patch: operations["update_round_registrations_competitions__name__registrations_patch"];
         trace?: never;
     };
+    "/competitions/{name}/registrations/import-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Registration Import
+         * @description Report what signing up on the club website would add to this round.
+         *
+         *     Read-only on purpose: the names come from a form people type into, so the
+         *     moderator gets to see what was matched to whom before anything is
+         *     registered.
+         */
+        get: operations["preview_registration_import_competitions__name__registrations_import_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/players/": {
         parameters: {
             query?: never;
@@ -763,6 +787,35 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * ImportedRegistrationAmbiguity
+         * @description A name on the club website that does not resolve to exactly one player.
+         *
+         *     Either several players carry it, or another name on the website resolves to
+         *     the same player.
+         */
+        ImportedRegistrationAmbiguity: {
+            /** Scraped Name */
+            scraped_name: string;
+            /** Candidates */
+            candidates: components["schemas"]["PlayerRef"][];
+        };
+        /**
+         * ImportedRegistrationMatch
+         * @description A name on the club website resolved to exactly one player.
+         */
+        ImportedRegistrationMatch: {
+            /** Scraped Name */
+            scraped_name: string;
+            player: components["schemas"]["PlayerRef"];
+            /**
+             * Approximate
+             * @description Matched on similarity rather than exactly, so the website spells the name differently than Petlom does.
+             */
+            approximate: boolean;
+            /** Already Registered */
+            already_registered: boolean;
+        };
+        /**
          * MatchCreate
          * @description Request body of POST /matches/.
          */
@@ -1022,6 +1075,31 @@ export interface components {
          * @enum {string}
          */
         RatingAlgorithm: "elo";
+        /**
+         * RegistrationImportPreview
+         * @description Response of GET /competitions/{name}/registrations/import-preview.
+         */
+        RegistrationImportPreview: {
+            /** Source Url */
+            source_url: string;
+            /** Scraped Count */
+            scraped_count: number;
+            /**
+             * Matched
+             * @default []
+             */
+            matched: components["schemas"]["ImportedRegistrationMatch"][];
+            /**
+             * Unmatched
+             * @default []
+             */
+            unmatched: string[];
+            /**
+             * Ambiguous
+             * @default []
+             */
+            ambiguous: components["schemas"]["ImportedRegistrationAmbiguity"][];
+        };
         /**
          * Result
          * @enum {string}
@@ -1637,6 +1715,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoundRegistrationPublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_registration_import_competitions__name__registrations_import_preview_get: {
+        parameters: {
+            query: {
+                round_nr: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationImportPreview"];
                 };
             };
             /** @description Validation Error */

@@ -168,6 +168,18 @@ const nl: TranslationSchema = {
     clearAllPlayers: "Alle spelers wissen",
     confirmClearAll:
       "Weet je zeker dat je alle spelers voor deze ronde wilt wissen?",
+    importFromWebsite: "Importeren van website",
+    importSource: "Aanmeldingen op",
+    importMatched: "{{matched}} van {{scraped}} aanmeldingen herkend.",
+    importScrapedName: "Aangemeld als",
+    importApproximate: "Anders gespeld",
+    importAlreadyRegistered: "Al aangemeld",
+    importAmbiguous: "Geen unieke match",
+    importUnmatched: "Geen match",
+    importAddByHand: "Voeg deze handmatig toe als ze meedoen.",
+    importNobodySignedUp: "Er heeft zich nog niemand aangemeld op de website.",
+    importSelect_one: "1 speler selecteren",
+    importSelect_other: "{{count}} spelers selecteren",
   },
   match: {
     boardMin: "Bord moet minimaal 1 zijn",

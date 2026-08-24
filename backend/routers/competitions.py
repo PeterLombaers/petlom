@@ -7,7 +7,9 @@ from sqlalchemy import func
 from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
+from backend.club_site import ClubSiteError, fetch_registered_names
 from backend.competitions.simkro import calculate_ranking, create_matchups
+from backend.config import settings
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_competition
 from backend.enums import Result
 from backend.models import (
@@ -21,16 +23,20 @@ from backend.models import (
     CompetitionRatingTypePublic,
     CompetitionRatingTypeUpdate,
     CompetitionUpdate,
+    ImportedRegistrationAmbiguity,
+    ImportedRegistrationMatch,
     Match,
     MatchPublic,
     PairingCreate,
     Player,
+    RegistrationImportPreview,
     RoundRegistration,
     RoundRegistrationPublic,
     RoundRegistrationUpdate,
     SimkroRank,
 )
 from backend.ratings import calculate_ratings
+from backend.registration_import import match_names
 
 router = APIRouter(prefix="/competitions", tags=["competitions"])
 
@@ -505,6 +511,51 @@ def retrieve_round_registrations(
 ) -> list[RoundRegistrationPublic]:
     competition = find_competition(name, session)
     return get_round_registrations(competition, round_nr, session)
+
+
+@router.get("/{name}/registrations/import-preview")
+def preview_registration_import(
+    name: str, round_nr: int, session: SessionDep, _: ModeratorDep
+) -> RegistrationImportPreview:
+    """Report what signing up on the club website would add to this round.
+
+    Read-only on purpose: the names come from a form people type into, so the
+    moderator gets to see what was matched to whom before anything is
+    registered.
+    """
+    competition = find_competition(name, session)
+    url = settings.club_registration_url
+    try:
+        names = fetch_registered_names(url)
+    except ClubSiteError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    players = session.exec(select(Player).where(Player.is_active)).all()
+    result = match_names(names, players)
+    registered = {
+        reg.player_id for reg in get_round_registrations(competition, round_nr, session)
+    }
+
+    return RegistrationImportPreview(
+        source_url=url,
+        scraped_count=len(names),
+        matched=[
+            ImportedRegistrationMatch(
+                scraped_name=m.scraped_name,
+                player=m.player,
+                approximate=m.approximate,
+                already_registered=m.player.id in registered,
+            )
+            for m in result.matched
+        ],
+        unmatched=result.unmatched,
+        ambiguous=[
+            ImportedRegistrationAmbiguity(
+                scraped_name=a.scraped_name, candidates=a.candidates
+            )
+            for a in result.ambiguous
+        ],
+    )
 
 
 @router.patch("/{name}/registrations")

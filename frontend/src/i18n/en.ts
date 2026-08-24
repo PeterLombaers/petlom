@@ -166,6 +166,18 @@ const en = {
     clearAllPlayers: "Clear all players",
     confirmClearAll:
       "Are you sure you want to clear all players for this round?",
+    importFromWebsite: "Import from website",
+    importSource: "Sign-ups on",
+    importMatched: "Recognised {{matched}} of {{scraped}} sign-ups.",
+    importScrapedName: "Signed up as",
+    importApproximate: "Spelled differently",
+    importAlreadyRegistered: "Already registered",
+    importAmbiguous: "No unique match",
+    importUnmatched: "No match",
+    importAddByHand: "Add these by hand if they should play.",
+    importNobodySignedUp: "Nobody has signed up on the website yet.",
+    importSelect_one: "Select 1 player",
+    importSelect_other: "Select {{count}} players",
   },
   match: {
     boardMin: "Board must be at least 1",

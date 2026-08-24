@@ -1,11 +1,13 @@
 from collections.abc import Callable
 
 import pytest
+import respx
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from backend.competitions import CompetitionType
+from backend.config import settings
 from backend.enums import ExternalRatingSource
 from backend.models import (
     Competition,
@@ -1062,3 +1064,127 @@ def test_retrieve_round_registrations(
     players = res.json()
     assert len(players) == 2
     assert {rp["player"]["id"] for rp in players} == {p1.id, p2.id}
+
+
+CLUB_PAGE_URL = "https://club.test/?page_id=1"
+SIGNUP_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/SIGNUPS/pub"
+
+
+@pytest.fixture
+def club_site(monkeypatch: pytest.MonkeyPatch) -> Callable[..., None]:
+    """Point the import at a stub club website, to be stocked with names."""
+    monkeypatch.setattr(settings, "club_registration_url", CLUB_PAGE_URL)
+
+    def setup(*names: str) -> None:
+        respx.get(CLUB_PAGE_URL).respond(
+            text=(
+                '<html><body><iframe src="https://docs.google.com/spreadsheets'
+                '/d/e/SIGNUPS/pubhtml"></iframe></body></html>'
+            )
+        )
+        rows = "\n".join(f"{i},{name}" for i, name in enumerate(names, start=1))
+        respx.get(SIGNUP_SHEET_URL).respond(text=f"#,Naam\n{rows}\n")
+
+    return setup
+
+
+def import_preview(client: TestClient, competition: Competition):
+    return client.get(
+        f"/competitions/{competition.name}/registrations/import-preview",
+        params={"round_nr": 1},
+    )
+
+
+@respx.mock
+def test_preview_registration_import(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    club_site: Callable[..., None],
+):
+    registered = player_factory(name="Sander Bakker")
+    player_factory(name="Marijke de Vries")
+    player_factory(name="Wouter Nijhuis")
+    auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [registered.id]},
+    ).raise_for_status()
+
+    club_site(
+        "Sander Bakker",
+        "Marijke de Vries",
+        "Wouter Nijhuys",
+        "Tom Verhoeven afgemeld",
+    )
+    res = import_preview(auth_client, competition)
+    res.raise_for_status()
+    preview = res.json()
+
+    assert preview["source_url"] == CLUB_PAGE_URL
+    assert preview["scraped_count"] == 4
+    assert [(m["player"]["name"], m["approximate"]) for m in preview["matched"]] == [
+        ("Sander Bakker", False),
+        ("Marijke de Vries", False),
+        ("Wouter Nijhuis", True),
+    ]
+    assert [m["already_registered"] for m in preview["matched"]] == [True, False, False]
+    assert preview["unmatched"] == ["Tom Verhoeven afgemeld"]
+    assert preview["ambiguous"] == []
+
+
+@respx.mock
+def test_preview_registration_import_reports_ambiguity(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    club_site: Callable[..., None],
+):
+    player_factory(name="Lieke van den Bosch")
+    player_factory(name="Lieke van der Bosch")
+
+    club_site("Lieke van de Bosch")
+    res = import_preview(auth_client, competition)
+    res.raise_for_status()
+    preview = res.json()
+
+    assert preview["matched"] == []
+    assert preview["ambiguous"][0]["scraped_name"] == "Lieke van de Bosch"
+    assert {c["name"] for c in preview["ambiguous"][0]["candidates"]} == {
+        "Lieke van den Bosch",
+        "Lieke van der Bosch",
+    }
+
+
+@respx.mock
+def test_preview_registration_import_ignores_inactive_players(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    club_site: Callable[..., None],
+):
+    player_factory(name="Sander Bakker", is_active=False)
+
+    club_site("Sander Bakker")
+    res = import_preview(auth_client, competition)
+    res.raise_for_status()
+
+    assert res.json()["unmatched"] == ["Sander Bakker"]
+
+
+@respx.mock
+def test_preview_registration_import_when_the_site_is_down(
+    competition: Competition,
+    auth_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(settings, "club_registration_url", CLUB_PAGE_URL)
+    respx.get(CLUB_PAGE_URL).respond(status_code=403)
+
+    assert import_preview(auth_client, competition).status_code == 502
+
+
+def test_preview_registration_import_requires_a_moderator(
+    competition: Competition, client: TestClient
+):
+    assert import_preview(client, competition).status_code == 401

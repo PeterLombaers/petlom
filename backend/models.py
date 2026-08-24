@@ -618,6 +618,41 @@ class RoundRegistrationPublic(SQLModel):
     initial_rating: float | None
 
 
+class ImportedRegistrationMatch(SQLModel):
+    """A name on the club website resolved to exactly one player."""
+
+    scraped_name: str
+    player: PlayerRef
+    approximate: bool = Field(
+        description=(
+            "Matched on similarity rather than exactly, so the website spells"
+            " the name differently than Petlom does."
+        )
+    )
+    already_registered: bool
+
+
+class ImportedRegistrationAmbiguity(SQLModel):
+    """A name on the club website that does not resolve to exactly one player.
+
+    Either several players carry it, or another name on the website resolves to
+    the same player.
+    """
+
+    scraped_name: str
+    candidates: list[PlayerRef]
+
+
+class RegistrationImportPreview(SQLModel):
+    """Response of GET /competitions/{name}/registrations/import-preview."""
+
+    source_url: str
+    scraped_count: int
+    matched: list[ImportedRegistrationMatch] = []
+    unmatched: list[str] = []
+    ambiguous: list[ImportedRegistrationAmbiguity] = []
+
+
 class RoundRegistrationUpdate(SQLModel):
     """Request body of PATCH /competitions/{name}/registrations."""
 

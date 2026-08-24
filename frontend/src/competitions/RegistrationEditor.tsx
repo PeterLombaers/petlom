@@ -21,6 +21,7 @@ import { PlayerName } from "@/ui/PlayerName";
 import { getRating } from "@/players/external";
 import NewPlayerButton from "@/players/NewPlayerButton";
 import { useRegistrations } from "./useRegistrations";
+import ImportRegistrationsModal from "./ImportRegistrationsModal";
 import SeedRatingsModal, { PlayerNeedingRating } from "./SeedRatingsModal";
 import { useState } from "react";
 
@@ -55,6 +56,10 @@ export default function RegistrationEditor({
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [clearModalOpened, { open: openClearModal, close: closeClearModal }] =
     useDisclosure(false);
+  const [
+    importModalOpened,
+    { open: openImportModal, close: closeImportModal },
+  ] = useDisclosure(false);
   const [playersNeedingRatings, setPlayersNeedingRatings] = useState<
     PlayerNeedingRating[]
   >([]);
@@ -273,6 +278,9 @@ export default function RegistrationEditor({
                       ])
                     }
                   />
+                  <Button onClick={openImportModal}>
+                    {t("registration.importFromWebsite")}
+                  </Button>
                 </Group>
               </div>
             </Table.Td>
@@ -317,6 +325,19 @@ export default function RegistrationEditor({
           </Button>
         </Group>
       </Modal>
+
+      {importModalOpened && (
+        <ImportRegistrationsModal
+          competitionName={competitionName}
+          roundNr={roundNr}
+          onClose={closeImportModal}
+          onImport={(playerIds) =>
+            setSelectedPlayerIds((prev) => [
+              ...new Set([...prev, ...playerIds.map(String)]),
+            ])
+          }
+        />
+      )}
 
       {playersNeedingRatings.length > 0 && (
         <SeedRatingsModal
