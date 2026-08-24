@@ -88,7 +88,7 @@ export default function PlayerTable() {
     <Stack>
       {isModerator && (
         <Group justify="flex-end">
-          <Button variant="default" onClick={openMatchModal}>
+          <Button onClick={openMatchModal}>
             {t("player.findIds")}
           </Button>
           {matchModalOpened && (
