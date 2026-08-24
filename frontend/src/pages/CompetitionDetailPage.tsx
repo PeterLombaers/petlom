@@ -145,19 +145,16 @@ function RoundView({
           onChange={(val) => val && handleRoundChange(Number(val))}
           data={roundOptions}
         />
-        {isModerator && isLatestRound ? (
+        <Button onClick={() => setPlayersVisible((v) => !v)}>
+          {playersVisible
+            ? t("competition.hidePlayers")
+            : t("competition.showPlayers")}
+        </Button>
+        {isModerator && isLatestRound && (
           <Button
             onClick={() => navigate(`/competitions/${name}/round/${nextRound}`)}
           >
             {t("competition.createPairingRoundN", { nextRound })}
-          </Button>
-        ) : (
-          <Button
-            onClick={() => setPlayersVisible((v) => !v)}
-          >
-            {playersVisible
-              ? t("competition.hidePlayers")
-              : t("competition.showPlayers")}
           </Button>
         )}
       </Group>
