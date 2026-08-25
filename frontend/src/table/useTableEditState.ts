@@ -25,6 +25,8 @@ type UseTableEditStateArgs<T> = {
    * unavailable — `saveColumnEdit` then does nothing.
    */
   editConfig?: EditConfig<T>;
+  /** Rows this returns `false` for take no part in column edit. */
+  isRowEditable?: (row: T) => boolean;
 };
 
 export type TableEditState<T> = {
@@ -60,8 +62,13 @@ export function useTableEditState<T extends object>({
   getRowKey,
   entityIdField,
   editConfig,
+  isRowEditable,
 }: UseTableEditStateArgs<T>): TableEditState<T> {
   const { t } = useTranslation();
+  // Column edit spans "every row", which means every row it is allowed to
+  // touch: a frozen one is excluded from the buffer, the validation and the
+  // save alike, so it can never be counted as changed.
+  const editableRows = isRowEditable ? rows.filter(isRowEditable) : rows;
   const [editableRowKey, setEditableRowKey] = useState<RowKey | null>(null);
   const [columnEditField, setColumnEditField] = useState<keyof T | null>(null);
   const [columnEditValues, setColumnEditValues] = useState<
@@ -88,7 +95,7 @@ export function useTableEditState<T extends object>({
     setEditableRowKey(null);
     setColumnEditField(field);
     setColumnEditValues(
-      new Map(rows.map((row) => [getRowKey(row), row[field]])),
+      new Map(editableRows.map((row) => [getRowKey(row), row[field]])),
     );
     setColumnEditErrors(new Map());
   };
@@ -114,7 +121,7 @@ export function useTableEditState<T extends object>({
       }) as T;
 
     const validationErrors = new Map<RowKey, string>();
-    rows.forEach((row) => {
+    editableRows.forEach((row) => {
       const err = validateData(sanitizeData(editedRow(row)))[columnEditField];
       if (err) validationErrors.set(getRowKey(row), err);
     });
@@ -123,7 +130,7 @@ export function useTableEditState<T extends object>({
       return;
     }
 
-    const changedRows = rows.filter(
+    const changedRows = editableRows.filter(
       (row) => columnEditValues.get(getRowKey(row)) !== row[columnEditField],
     );
 

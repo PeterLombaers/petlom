@@ -1,6 +1,13 @@
 import { CreateDialogConfig } from "@/table/CreateButton";
 import EditableTable from "@/table/EditableTable";
-import { NumberInput, Select, Stack, Textarea, TextInput } from "@mantine/core";
+import {
+  Badge,
+  NumberInput,
+  Select,
+  Stack,
+  Textarea,
+  TextInput,
+} from "@mantine/core";
 import { components } from "@/client/schema";
 import {
   createTextCell,
@@ -131,6 +138,13 @@ export default function CompetitionTable() {
   };
   const getRequestBody = (competition: CompetitionPublic) => competition;
 
+  // Read-only on purpose: a competition is finished and reopened from its
+  // detail page, which is the single entry point for that.
+  const finishedCell = {
+    renderValue: ({ value }: { value: boolean }) =>
+      value ? <Badge color="gray">{t("competition.finished")}</Badge> : null,
+  };
+
   return (
     <EditableTable<CompetitionPublic>
       queryResult={queryResult}
@@ -152,11 +166,20 @@ export default function CompetitionTable() {
           cell: readOnlyDateCell,
           header: t("competition.updatedDate"),
         },
+        {
+          field: "is_finished",
+          cell: finishedCell,
+          header: t("competition.status"),
+          width: 120,
+        },
       ]}
       sort={(a, b) => b.updated_at.localeCompare(a.updated_at)}
       createConfig={createDialogConfig}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{ getEntityName: (c) => c.name }}
+      // The backend rejects renaming a finished competition, so do not offer it.
+      // Delete stays: deleting a finished competition is still allowed.
+      isRowEditable={(c) => !c.is_finished}
     />
   );
 }

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Literal
 
 from pydantic import constr, field_validator
-from sqlalchemy import Column
+from sqlalchemy import Column, false
 from sqlalchemy.orm import RelationshipProperty
 from sqlalchemy.types import JSON
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
@@ -458,6 +458,10 @@ class Competition(CompetitionBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    # The server default keeps the rows that predate the column readable.
+    is_finished: bool = Field(
+        default=False, sa_column_kwargs={"server_default": false()}
+    )
     matches: list["Match"] = Relationship(
         back_populates="competition", cascade_delete=True
     )
@@ -471,6 +475,7 @@ class CompetitionPublic(CompetitionBase):
 
     created_at: datetime
     updated_at: datetime
+    is_finished: bool
 
 
 class CompetitionCreate(CompetitionBase):
@@ -511,6 +516,7 @@ class CompetitionUpdate(SQLModel):
 
     name: str | None = None
     type: CompetitionType | None = None
+    is_finished: bool | None = None
 
 
 # ---------------------------------------------------------------------------

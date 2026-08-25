@@ -7,9 +7,30 @@ type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
 export function useCompetition(name: string) {
-  return $api.useQuery("get", "/competitions/{name}", {
-    params: { path: { name } },
+  const { data, error, isPending, isError } = $api.useQuery(
+    "get",
+    "/competitions/{name}",
+    { params: { path: { name } } },
+  );
+
+  const queryClient = useQueryClient();
+  // Finishing changes the competition itself and its row in the list, so it
+  // dirties the same two caches an edit does.
+  const finishMutation = $api.useMutation("patch", "/competitions/{name}", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: endpointKey("get", "/competitions/{name}"),
+      });
+      queryClient.invalidateQueries({
+        queryKey: endpointKey("get", "/competitions/"),
+      });
+    },
+    onError: (error: HTTPValidationError) => {
+      console.error(formatHTTPValidationError(error));
+    },
   });
+
+  return { data, error, isPending, isError, finishMutation };
 }
 
 export function useCompetitions() {

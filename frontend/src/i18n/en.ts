@@ -65,6 +65,16 @@ const en = {
     roundLabel: "Round {{currentRound}}",
     createdDate: "Created Date",
     updatedDate: "Updated Date",
+    status: "Status",
+    finished: "Finished",
+    finish: "Finish competition",
+    reopen: "Reopen competition",
+    confirmFinishTitle: "Finish competition?",
+    confirmReopenTitle: "Reopen competition?",
+    confirmFinishBody:
+      "'{{name}}' will be frozen: its matches, pairings and registrations can no longer be changed. You can reopen it later.",
+    confirmReopenBody:
+      "'{{name}}' becomes editable again: its matches, pairings and registrations can be changed.",
   },
   ranking: {
     title: "Ranking",

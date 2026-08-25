@@ -483,6 +483,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Is Finished */
+            is_finished: boolean;
             /** N Rounds */
             n_rounds: number;
             rating_type: components["schemas"]["CompetitionRatingTypePublic"];
@@ -505,6 +507,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Is Finished */
+            is_finished: boolean;
         };
         /**
          * CompetitionRatingForPlayer
@@ -627,6 +631,8 @@ export interface components {
             /** Name */
             name?: string | null;
             type?: components["schemas"]["CompetitionType"] | null;
+            /** Is Finished */
+            is_finished?: boolean | null;
         };
         /**
          * ExternalIdMatchPublic

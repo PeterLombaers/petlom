@@ -73,6 +73,69 @@ function renderTable(
   );
 }
 
+const editableColumns: Column<TestEntity>[] = [
+  {
+    field: "id",
+    isId: true,
+    hidden: true,
+    cell: {
+      renderValue: ({ value }: { value: number }) => (
+        <span data-testid={`id-${value}`}>{value}</span>
+      ),
+    },
+  },
+  {
+    field: "name",
+    header: "Name",
+    isEditable: true,
+    cell: {
+      renderValue: ({ value }: { value: string }) => (
+        <span data-testid={`name-${value}`}>{value}</span>
+      ),
+      renderEdit: ({
+        editValue,
+        error,
+        onChange,
+      }: {
+        editValue: string;
+        error: string;
+        onChange: (v: string) => void;
+      }) => (
+        <>
+          <input
+            aria-label="name-edit"
+            value={editValue}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          {error && <span data-testid="name-error">{error}</span>}
+        </>
+      ),
+    },
+  },
+];
+
+const columnEditConfig = {
+  validateData: () => ({}),
+  sanitizeData: (d: TestEntity) => d,
+  getRequestBody: (d: TestEntity) => d,
+};
+
+function renderColumnTable(
+  overrides: Partial<
+    React.ComponentProps<typeof EditableTable<TestEntity>>
+  > = {},
+) {
+  return render(
+    <EditableTable<TestEntity>
+      queryResult={baseQueryResult}
+      entityType="item"
+      columns={editableColumns}
+      editConfig={columnEditConfig}
+      {...overrides}
+    />,
+  );
+}
+
 describe("EditableTable", () => {
   describe("empty state", () => {
     it("renders emptyMessage when rows is empty", () => {
@@ -147,69 +210,6 @@ describe("EditableTable", () => {
   });
 
   describe("column edit mode", () => {
-    const editableColumns: Column<TestEntity>[] = [
-      {
-        field: "id",
-        isId: true,
-        hidden: true,
-        cell: {
-          renderValue: ({ value }: { value: number }) => (
-            <span data-testid={`id-${value}`}>{value}</span>
-          ),
-        },
-      },
-      {
-        field: "name",
-        header: "Name",
-        isEditable: true,
-        cell: {
-          renderValue: ({ value }: { value: string }) => (
-            <span data-testid={`name-${value}`}>{value}</span>
-          ),
-          renderEdit: ({
-            editValue,
-            error,
-            onChange,
-          }: {
-            editValue: string;
-            error: string;
-            onChange: (v: string) => void;
-          }) => (
-            <>
-              <input
-                aria-label="name-edit"
-                value={editValue}
-                onChange={(e) => onChange(e.target.value)}
-              />
-              {error && <span data-testid="name-error">{error}</span>}
-            </>
-          ),
-        },
-      },
-    ];
-
-    const columnEditConfig = {
-      validateData: () => ({}),
-      sanitizeData: (d: TestEntity) => d,
-      getRequestBody: (d: TestEntity) => d,
-    };
-
-    function renderColumnTable(
-      overrides: Partial<
-        React.ComponentProps<typeof EditableTable<TestEntity>>
-      > = {},
-    ) {
-      return render(
-        <EditableTable<TestEntity>
-          queryResult={baseQueryResult}
-          entityType="item"
-          columns={editableColumns}
-          editConfig={columnEditConfig}
-          {...overrides}
-        />,
-      );
-    }
-
     it("shows an Edit button in the header of an isEditable column when editConfig is provided", () => {
       renderColumnTable();
       const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
@@ -448,6 +448,114 @@ describe("EditableTable", () => {
         screen.queryByRole("textbox", { name: "name-edit" }),
       ).not.toBeInTheDocument();
       expect(screen.queryByTestId("name-error")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("readOnly", () => {
+    const fullConfigs = {
+      editConfig: {
+        validateData: () => ({}),
+        sanitizeData: (d: TestEntity) => d,
+        getRequestBody: (d: TestEntity) => d,
+      },
+      deleteConfig: { getEntityName: (d: TestEntity) => d.name },
+      createConfig: {
+        getInitialFormData: () => ({}),
+        validateForm: () => ({}),
+        sanitizeForm: (d: object) => d,
+        getRequestBody: (d: object) => d,
+        renderContent: () => <div />,
+      },
+      rowActions: [{ icon: <span />, label: "Merge", onClick: () => {} }],
+    };
+
+    it("renders every control for a moderator when it is not set", () => {
+      renderTable(fullConfigs);
+      expect(screen.getAllByRole("button", { name: "Edit" })).toHaveLength(2);
+      expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2);
+      expect(screen.getAllByRole("button", { name: "Merge" })).toHaveLength(2);
+      expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
+    });
+
+    it("hides every control from a moderator when it is set", () => {
+      renderTable({ ...fullConfigs, readOnly: true });
+      expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Merge" })).toBeNull();
+      expect(screen.queryByRole("button", { name: /add/i })).toBeNull();
+      expect(
+        screen.queryByRole("columnheader", { name: "Actions" }),
+      ).toBeNull();
+    });
+
+    it("still renders the data", () => {
+      renderTable({ ...fullConfigs, readOnly: true });
+      expect(screen.getByTestId("name-Alice")).toBeInTheDocument();
+      expect(screen.getByTestId("name-Bob")).toBeInTheDocument();
+    });
+  });
+
+  describe("isRowEditable", () => {
+    const onlyAliceEditable = (row: TestEntity) => row.name === "Alice";
+    const editConfig = {
+      validateData: () => ({}),
+      sanitizeData: (d: TestEntity) => d,
+      getRequestBody: (d: TestEntity) => d,
+    };
+
+    it("gives an Edit button only to the rows it allows", () => {
+      renderTable({ editConfig, isRowEditable: onlyAliceEditable });
+      expect(screen.getAllByRole("button", { name: "Edit" })).toHaveLength(1);
+    });
+
+    it("keeps Delete on a frozen row", () => {
+      renderTable({
+        editConfig,
+        deleteConfig: { getEntityName: (d: TestEntity) => d.name },
+        isRowEditable: onlyAliceEditable,
+      });
+      expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2);
+    });
+
+    it("leaves frozen rows out of column edit", async () => {
+      const user = userEvent.setup();
+      renderColumnTable({ isRowEditable: onlyAliceEditable });
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+      // Only Alice turns into an input; Bob keeps showing his value.
+      expect(
+        screen.getAllByRole("textbox", { name: "name-edit" }),
+      ).toHaveLength(1);
+      expect(screen.getByTestId("name-Bob")).toBeInTheDocument();
+    });
+
+    it("never saves a frozen row on column save", async () => {
+      const user = userEvent.setup();
+      const mutateAsync = vi.fn().mockResolvedValue({});
+      renderColumnTable({
+        isRowEditable: onlyAliceEditable,
+        queryResult: {
+          ...baseQueryResult,
+          editMutation: makeMockMutation({ mutateAsync }),
+        },
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: /Name/ });
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Edit" }),
+      );
+      const input = screen.getByRole("textbox", { name: "name-edit" });
+      await user.clear(input);
+      await user.type(input, "Charlie");
+      await user.click(
+        within(nameHeader).getByRole("button", { name: "Save" }),
+      );
+
+      expect(mutateAsync).toHaveBeenCalledTimes(1);
+      expect(mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ params: { path: { id: 1 } } }),
+      );
     });
   });
 

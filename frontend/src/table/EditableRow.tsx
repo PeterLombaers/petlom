@@ -23,6 +23,11 @@ interface EditableRowProps<T = unknown> {
   columnEditError?: string;
   onColumnEditChange?: (newValue: unknown) => void;
   hideRowEditButton?: boolean;
+  /**
+   * `false` for a row whose data is frozen: no Edit button, but Delete and row
+   * actions stay, so the Actions cell keeps its other buttons.
+   */
+  isEditable?: boolean;
 }
 
 export default function EditableRow<T = unknown>({
@@ -39,6 +44,7 @@ export default function EditableRow<T = unknown>({
   columnEditError,
   onColumnEditChange,
   hideRowEditButton,
+  isEditable = true,
 }: EditableRowProps<T>) {
   // Only the fields the user actually touched are buffered; everything else is
   // read from the latest `data`, so a background refetch during an edit does
@@ -156,7 +162,7 @@ export default function EditableRow<T = unknown>({
       {hasActions && (
         <Table.Td className={classes.cell}>
           <Group gap="xs" wrap="nowrap">
-            {editConfig && !hideRowEditButton && (
+            {editConfig && isEditable && !hideRowEditButton && (
               <EditButton
                 isEditing={isEditing}
                 isPending={editConfig.editMutation.isPending}

@@ -38,3 +38,19 @@ def find_competition(name: str, session: SessionDep) -> Competition:
     if not competition:
         raise HTTPException(status_code=404, detail="Competition not found")
     return competition
+
+
+def ensure_competition_open(competition: Competition) -> None:
+    """Reject writes to a finished competition.
+
+    A finished competition is frozen: only reopening it and deleting it are
+    still allowed.
+    """
+    if competition.is_finished:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Competition '{competition.name}' is finished. "
+                "Reopen it before making changes."
+            ),
+        )

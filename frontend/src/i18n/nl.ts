@@ -67,6 +67,16 @@ const nl: TranslationSchema = {
     roundLabel: "Ronde {{currentRound}}",
     createdDate: "Aangemaakt op",
     updatedDate: "Bijgewerkt op",
+    status: "Status",
+    finished: "Afgesloten",
+    finish: "Competitie afsluiten",
+    reopen: "Competitie heropenen",
+    confirmFinishTitle: "Competitie afsluiten?",
+    confirmReopenTitle: "Competitie heropenen?",
+    confirmFinishBody:
+      "'{{name}}' wordt bevroren: partijen, indelingen en inschrijvingen kunnen niet meer worden gewijzigd. Je kunt de competitie later heropenen.",
+    confirmReopenBody:
+      "'{{name}}' wordt weer bewerkbaar: partijen, indelingen en inschrijvingen kunnen weer worden gewijzigd.",
   },
   ranking: {
     title: "Klassement",

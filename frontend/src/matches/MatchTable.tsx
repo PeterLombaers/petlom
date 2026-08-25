@@ -14,6 +14,8 @@ type PlayerRef = components["schemas"]["PlayerRef"];
 type MatchTableProps = {
   competitionName: string;
   round: number;
+  /** View-only, even for a moderator: the competition is finished. */
+  readOnly?: boolean;
 };
 
 type MatchFormData = {
@@ -33,7 +35,11 @@ const getRequestBody = (match: MatchPublic) => ({
   result: match.result,
 });
 
-export const MatchTable = ({ competitionName, round }: MatchTableProps) => {
+export const MatchTable = ({
+  competitionName,
+  round,
+  readOnly = false,
+}: MatchTableProps) => {
   const { t } = useTranslation();
   const queryResult = useMatches(competitionName, round);
   const matchList = queryResult.rows ?? [];
@@ -151,6 +157,7 @@ export const MatchTable = ({ competitionName, round }: MatchTableProps) => {
         },
         requireTypedConfirmation: false,
       }}
+      readOnly={readOnly}
     />
   );
 };

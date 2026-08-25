@@ -10,7 +10,12 @@ from backend.auth import ModeratorDep
 from backend.club_site import ClubSiteError, fetch_registered_names
 from backend.competitions.simkro import calculate_ranking, create_matchups
 from backend.config import settings
-from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_competition
+from backend.dependencies import (
+    MAX_PAGE_LENGTH,
+    SessionDep,
+    ensure_competition_open,
+    find_competition,
+)
 from backend.enums import Result
 from backend.models import (
     Competition,
@@ -56,6 +61,7 @@ def to_competition_response(
         type=competition.type,
         created_at=competition.created_at,
         updated_at=competition.updated_at,
+        is_finished=competition.is_finished,
         n_rounds=get_latest_round_nr(competition, session),
         rating_type=competition.rating_type,
     )
@@ -131,6 +137,10 @@ def update_competition(
 ) -> CompetitionDetail:
     db_competition = find_competition(name, session)
     update_data = competition.model_dump(exclude_unset=True)
+    # Flipping `is_finished` is always allowed; that is how a competition is
+    # reopened. Any other field is a write to a possibly frozen competition.
+    if set(update_data) - {"is_finished"}:
+        ensure_competition_open(db_competition)
     db_competition.sqlmodel_update(update_data)
     db_competition.updated_at = datetime.now(UTC)
     session.add(db_competition)
@@ -158,6 +168,7 @@ def update_rating(
     _: ModeratorDep,
 ) -> CompetitionRatingTypePublic:
     competition = find_competition(name, session)
+    ensure_competition_open(competition)
     competition.rating_type.sqlmodel_update(update.model_dump(exclude_unset=True))
     competition.rating_type.updated_at = datetime.now(UTC)
     session.add(competition.rating_type)
@@ -208,6 +219,7 @@ def create_pairing(
     name: str, pairing: PairingCreate, session: SessionDep, _: ModeratorDep
 ) -> list[MatchPublic]:
     competition = find_competition(name, session)
+    ensure_competition_open(competition)
     round_nr = pairing.round_nr
     player_ids = pairing.player_ids
 
@@ -273,6 +285,7 @@ def create_pairing(
 @router.delete("/{name}/pairing")
 def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDep):
     competition = find_competition(name, session)
+    ensure_competition_open(competition)
     round_matches = session.exec(
         select(Match)
         .where(Match.round == round_nr)
@@ -567,6 +580,7 @@ def update_round_registrations(
     _: ModeratorDep,
 ) -> list[RoundRegistrationPublic]:
     competition = find_competition(name, session)
+    ensure_competition_open(competition)
 
     if update.player_ids_to_add:
         add_round_registrations(
@@ -593,6 +607,7 @@ def delete_round_registrations(
     name: str, round_nr: int, session: SessionDep, _: ModeratorDep
 ):
     competition = find_competition(name, session)
+    ensure_competition_open(competition)
     for reg in get_round_registrations(competition, round_nr, session):
         session.delete(reg)
     session.commit()

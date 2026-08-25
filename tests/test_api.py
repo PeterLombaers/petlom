@@ -1188,3 +1188,202 @@ def test_preview_registration_import_requires_a_moderator(
     competition: Competition, client: TestClient
 ):
     assert import_preview(client, competition).status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Finishing a competition
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def finished_competition(
+    simkro_setup: tuple[Competition, list[Player], list[Match]], session: Session
+) -> Competition:
+    """The `simkro_setup` competition, frozen."""
+    (competition, _, _) = simkro_setup
+    competition.is_finished = True
+    session.add(competition)
+    session.commit()
+    session.refresh(competition)
+    return competition
+
+
+def test_competition_is_finished_is_exposed(
+    competition: Competition, client: TestClient
+):
+    res = client.get(f"/competitions/{competition.name}/")
+    res.raise_for_status()
+    assert res.json()["is_finished"] is False
+
+    res = client.get("/competitions/")
+    res.raise_for_status()
+    assert res.json()[0]["is_finished"] is False
+
+
+def test_competition_is_created_open(session: Session, auth_client: TestClient):
+    res = auth_client.post(
+        "/competitions/",
+        json={
+            "name": "interne",
+            "type": "simkro",
+            "rating_type": {"algorithm": "elo"},
+            # A competition is always created open, so this is ignored.
+            "is_finished": True,
+        },
+    )
+    res.raise_for_status()
+    assert res.json()["is_finished"] is False
+
+
+def test_finish_and_reopen_competition(
+    competition: Competition, auth_client: TestClient, session: Session
+):
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/", json={"is_finished": True}
+    )
+    res.raise_for_status()
+    assert res.json()["is_finished"] is True
+    session.refresh(competition)
+    assert competition.is_finished
+
+    # Renaming is frozen while finished ...
+    assert (
+        auth_client.patch(
+            f"/competitions/{competition.name}/", json={"name": "foo"}
+        ).status_code
+        == 409
+    )
+
+    # ... but reopening is always allowed, and unfreezes the rest.
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/", json={"is_finished": False}
+    )
+    res.raise_for_status()
+    assert res.json()["is_finished"] is False
+    auth_client.patch(
+        f"/competitions/{competition.name}/", json={"name": "foo"}
+    ).raise_for_status()
+
+
+def test_finishing_and_renaming_at_once_is_rejected(
+    finished_competition: Competition, auth_client: TestClient
+):
+    res = auth_client.patch(
+        f"/competitions/{finished_competition.name}/",
+        json={"is_finished": False, "name": "foo"},
+    )
+    assert res.status_code == 409
+
+
+def test_finished_competition_rejects_rating_update(
+    finished_competition: Competition, auth_client: TestClient
+):
+    res = auth_client.patch(
+        f"/competitions/{finished_competition.name}/rating",
+        json={"default_initial_rating": 1500},
+    )
+    assert res.status_code == 409
+    assert "is finished" in res.json()["detail"]
+
+
+def test_finished_competition_rejects_pairing(
+    finished_competition: Competition,
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+):
+    (_, players, matches) = simkro_setup
+    next_round = max(m.round for m in matches) + 1
+    res = auth_client.post(
+        f"/competitions/{finished_competition.name}/pairing",
+        json={"round_nr": next_round, "player_ids": [p.id for p in players]},
+    )
+    assert res.status_code == 409
+
+    res = auth_client.delete(
+        f"/competitions/{finished_competition.name}/pairing", params={"round_nr": 1}
+    )
+    assert res.status_code == 409
+
+
+def test_finished_competition_rejects_registration_changes(
+    finished_competition: Competition,
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+):
+    (_, players, _) = simkro_setup
+    res = auth_client.patch(
+        f"/competitions/{finished_competition.name}/registrations",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [players[0].id]},
+    )
+    assert res.status_code == 409
+
+    res = auth_client.delete(
+        f"/competitions/{finished_competition.name}/registrations",
+        params={"round_nr": 1},
+    )
+    assert res.status_code == 409
+
+
+def test_finished_competition_rejects_match_writes(
+    finished_competition: Competition,
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+):
+    (_, players, matches) = simkro_setup
+    match_obj = matches[0]
+
+    res = auth_client.post(
+        "/matches/",
+        json={
+            "competition_name": finished_competition.name,
+            "round": 99,
+            "board": 1,
+            "player_white_id": players[0].id,
+            "player_black_id": players[1].id,
+        },
+    )
+    assert res.status_code == 409
+
+    res = auth_client.patch(f"/matches/{match_obj.id}/", json={"result": "0-1"})
+    assert res.status_code == 409
+
+    res = auth_client.delete(f"/matches/{match_obj.id}/")
+    assert res.status_code == 409
+
+    session.refresh(match_obj)
+    assert match_obj.result == Result.WHITE_WIN
+
+
+def test_match_cannot_be_moved_into_a_finished_competition(
+    finished_competition: Competition,
+    competition_factory: Callable[..., Competition],
+    match_factory: Callable[..., Match],
+    auth_client: TestClient,
+    session: Session,
+):
+    match_obj = match_factory(competition=competition_factory(name="open"))
+    res = auth_client.patch(
+        f"/matches/{match_obj.id}/",
+        json={"competition_name": finished_competition.name},
+    )
+    assert res.status_code == 409
+    session.refresh(match_obj)
+    assert match_obj.competition_id != finished_competition.id
+
+
+def test_finished_competition_can_still_be_deleted(
+    finished_competition: Competition, auth_client: TestClient, session: Session
+):
+    res = auth_client.delete(f"/competitions/{finished_competition.name}/")
+    res.raise_for_status()
+    assert session.get(Competition, finished_competition.id) is None
+
+
+def test_finished_competition_ranking_still_renders(
+    finished_competition: Competition, auth_client: TestClient
+):
+    res = auth_client.post(f"/competitions/{finished_competition.name}/ranking")
+    res.raise_for_status()
+    assert res.json()

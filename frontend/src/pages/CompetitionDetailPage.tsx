@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Anchor,
+  Badge,
   Breadcrumbs,
   Button,
   Collapse,
   Group,
+  Modal,
   Select,
   Stack,
   Text,
@@ -39,7 +41,12 @@ function CompetitionDetail({
   name: string;
   roundNr?: number;
 }) {
-  const { data: competition, isPending, isError } = useCompetition(name);
+  const {
+    data: competition,
+    isPending,
+    isError,
+    finishMutation,
+  } = useCompetition(name);
   const navigate = useNavigate();
   const { isModerator } = useAuth();
   const { t } = useTranslation();
@@ -52,11 +59,14 @@ function CompetitionDetail({
   if (isError || !competition) return <NotFoundPage />;
 
   const nRounds = competition.n_rounds;
+  const isFinished = competition.is_finished;
   const currentRound = roundNr ?? nRounds;
   const isDraftRound = currentRound > nRounds;
   const backUrl = `/competitions/${name}`;
 
-  if (isDraftRound && !isModerator) return <NotFoundPage />;
+  // A finished competition accepts no new pairing, so a stale draft-round URL
+  // must not reach the RegistrationEditor.
+  if (isDraftRound && (!isModerator || isFinished)) return <NotFoundPage />;
 
   let body;
   if (isDraftRound) {
@@ -70,34 +80,115 @@ function CompetitionDetail({
       />
     );
   } else if (currentRound === 0) {
-    body = <NoRoundsYet name={name} />;
+    body = <NoRoundsYet name={name} isFinished={isFinished} />;
   } else {
     body = (
-      <RoundView name={name} currentRound={currentRound} nRounds={nRounds} />
+      <RoundView
+        name={name}
+        currentRound={currentRound}
+        nRounds={nRounds}
+        isFinished={isFinished}
+      />
     );
   }
 
   return (
     <Stack>
       <h1 className="sr-only">{pageTitle}</h1>
-      <CompetitionBreadcrumbs
-        name={name}
-        currentRound={currentRound}
-        nRounds={nRounds}
-      />
+      <Group justify="space-between">
+        <Group>
+          <CompetitionBreadcrumbs
+            name={name}
+            currentRound={currentRound}
+            nRounds={nRounds}
+          />
+          {isFinished && (
+            <Badge color="gray">{t("competition.finished")}</Badge>
+          )}
+        </Group>
+        {isModerator && (
+          <FinishButton
+            name={name}
+            isFinished={isFinished}
+            finishMutation={finishMutation}
+          />
+        )}
+      </Group>
       {body}
     </Stack>
   );
 }
 
-function NoRoundsYet({ name }: { name: string }) {
+function FinishButton({
+  name,
+  isFinished,
+  finishMutation,
+}: {
+  name: string;
+  isFinished: boolean;
+  finishMutation: ReturnType<typeof useCompetition>["finishMutation"];
+}) {
+  const { t } = useTranslation();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const confirm = () => {
+    finishMutation.mutate(
+      {
+        params: { path: { name } },
+        body: { is_finished: !isFinished },
+      },
+      { onSuccess: () => setConfirmOpen(false) },
+    );
+  };
+
+  return (
+    <>
+      <Button variant="default" onClick={() => setConfirmOpen(true)}>
+        {isFinished ? t("competition.reopen") : t("competition.finish")}
+      </Button>
+      <Modal
+        opened={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title={
+          isFinished
+            ? t("competition.confirmReopenTitle")
+            : t("competition.confirmFinishTitle")
+        }
+      >
+        <Stack>
+          <Text>
+            {isFinished
+              ? t("competition.confirmReopenBody", { name })
+              : t("competition.confirmFinishBody", { name })}
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setConfirmOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={confirm} loading={finishMutation.isPending}>
+              {isFinished ? t("competition.reopen") : t("competition.finish")}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </>
+  );
+}
+
+function NoRoundsYet({
+  name,
+  isFinished,
+}: {
+  name: string;
+  isFinished: boolean;
+}) {
   const navigate = useNavigate();
   const { isModerator } = useAuth();
   const { t } = useTranslation();
   return (
     <>
       <Text>{t("competition.noRoundsYet")}</Text>
-      {isModerator && (
+      {isModerator && !isFinished && (
         <Button onClick={() => navigate(`/competitions/${name}/round/1`)}>
           {t("competition.createPairingRound1")}
         </Button>
@@ -110,10 +201,12 @@ function RoundView({
   name,
   currentRound,
   nRounds,
+  isFinished,
 }: {
   name: string;
   currentRound: number;
   nRounds: number;
+  isFinished: boolean;
 }) {
   const navigate = useNavigate();
   const { isModerator } = useAuth();
@@ -150,7 +243,7 @@ function RoundView({
             ? t("competition.hidePlayers")
             : t("competition.showPlayers")}
         </Button>
-        {isModerator && isLatestRound && (
+        {isModerator && !isFinished && isLatestRound && (
           <Button
             onClick={() => navigate(`/competitions/${name}/round/${nextRound}`)}
           >
@@ -162,7 +255,11 @@ function RoundView({
       <Collapse expanded={playersVisible}>
         <RegisteredPlayerTable competitionName={name} roundNr={currentRound} />
       </Collapse>
-      <MatchTable competitionName={name} round={currentRound} />
+      <MatchTable
+        competitionName={name}
+        round={currentRound}
+        readOnly={isFinished}
+      />
       <RankingTable competitionName={name} roundNr={currentRound} />
     </>
   );

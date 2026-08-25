@@ -38,6 +38,8 @@ type EditableTableProps<T extends object> = {
   editConfig?: TableEditConfig<T>;
   deleteConfig?: TableDeleteConfig<T>;
   rowActions?: RowAction<T>[];
+  readOnly?: boolean;
+  isRowEditable?: (row: T) => boolean;
 };
 
 /**
@@ -83,6 +85,16 @@ type EditableTableProps<T extends object> = {
  *   primitives (e.g. merging two players, which needs a player picker). The table
  *   renders the buttons; each action supplies an icon, a label and an `onClick` that
  *   receives the row, and the caller mounts whatever dialog the action opens.
+ *
+ * @param readOnly - Renders the table as view-only even for a moderator. Use it when the
+ *   data itself is frozen (e.g. the matches of a finished competition) rather than when
+ *   the user lacks the rights, which `useAuth` already handles.
+ *
+ * @param isRowEditable - Per-row version of `readOnly`, for a table where only some rows
+ *   are frozen (e.g. a finished competition in the competition list). A row it returns
+ *   `false` for loses its Edit button and is left out of column edit entirely — not
+ *   merely skipped on save, so its value is never shown as editable. Delete and row
+ *   actions are deliberately untouched: a frozen row can still be deletable.
  */
 
 export default function EditableTable<T extends object>({
@@ -95,8 +107,11 @@ export default function EditableTable<T extends object>({
   createConfig,
   editConfig,
   rowActions,
+  readOnly = false,
+  isRowEditable,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
+  const canEdit = isModerator && !readOnly;
   const { t } = useTranslation();
 
   const {
@@ -116,9 +131,9 @@ export default function EditableTable<T extends object>({
   const getRowKey = (row: T) => row[entityIdField] as string | number;
 
   const activeEditConfig: EditConfig<T> | undefined =
-    isModerator && editConfig ? { ...editConfig, editMutation } : undefined;
+    canEdit && editConfig ? { ...editConfig, editMutation } : undefined;
   const activeDeleteConfig: DeleteConfig<T> | undefined =
-    isModerator && deleteConfig
+    canEdit && deleteConfig
       ? {
           getEntityName: deleteConfig.getEntityName,
           entityType,
@@ -126,13 +141,15 @@ export default function EditableTable<T extends object>({
           requireTypedConfirmation: deleteConfig.requireTypedConfirmation,
         }
       : undefined;
-  const activeRowActions = isModerator ? rowActions : undefined;
+  const activeRowActions = canEdit ? rowActions : undefined;
+  const rowIsEditable = (row: T) => !isRowEditable || isRowEditable(row);
 
   const edit = useTableEditState<T>({
     rows,
     getRowKey,
     entityIdField,
     editConfig: activeEditConfig,
+    isRowEditable: rowIsEditable,
   });
 
   if (isPending) return <LoadingState />;
@@ -147,7 +164,7 @@ export default function EditableTable<T extends object>({
   // The Actions column exists as soon as something can be rendered in it.
   const hasActions = Boolean(activeEditConfig || activeRowActions?.length);
   const nCols = visibleColumns.length + (hasActions ? 1 : 0);
-  const showCreate = isModerator && createConfig !== undefined;
+  const showCreate = canEdit && createConfig !== undefined;
   const tableTitle = title || translateEntity(t, entityType, true);
 
   const table = (
@@ -224,7 +241,12 @@ export default function EditableTable<T extends object>({
                 editConfig={activeEditConfig}
                 deleteConfig={activeDeleteConfig}
                 rowActions={activeRowActions}
-                columnEditField={edit.columnEditField}
+                isEditable={rowIsEditable(row)}
+                // A frozen row shows its plain value while the rest of the
+                // column is in edit mode.
+                columnEditField={
+                  rowIsEditable(row) ? edit.columnEditField : undefined
+                }
                 columnEditValue={edit.columnEditValues.get(key)}
                 columnEditError={edit.columnEditErrors.get(key) ?? ""}
                 onColumnEditChange={(newValue) =>
