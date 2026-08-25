@@ -1,0 +1,36 @@
+Database migrations, run by Alembic.
+
+The models in backend/models.py say what the schema should be; the files in
+versions/ say how an existing database gets there. Each one records its parent,
+and the database records which one it is at (in the `alembic_version` table), so
+"upgrade" means replaying the chain from there to the newest.
+
+After changing a model:
+
+    uv run alembic revision --autogenerate -m "add is_active to player"
+    uv run alembic upgrade head
+
+Autogenerate is a first draft, not an oracle. Read the file before committing:
+it cannot see a rename (it drops the old column and adds an empty new one) and
+it never writes a data backfill -- add those by hand with op.execute() or a
+session over op.get_bind().
+
+SQLite has no ALTER COLUMN and no DROP CONSTRAINT, so anything beyond adding a
+column has to go through batch mode, which rebuilds the table and copies the
+rows over. `render_as_batch` in env.py makes autogenerate do that for you:
+
+    with op.batch_alter_table("player") as batch_op:
+        batch_op.alter_column("name", nullable=False)
+
+A NOT NULL column added to a table with rows in it needs a server_default, or
+the existing rows have nothing to hold.
+
+Other commands: `alembic current` (where a database is), `alembic history`,
+`alembic downgrade -1`, `alembic upgrade head --sql` (print the SQL instead of
+running it), `alembic stamp <rev>` (record a revision as applied without
+running it).
+
+In production the migrations run twice, harmlessly: scripts/deploy.sh runs them
+explicitly after the build so a failure aborts the deploy, and backend/db.py
+runs them again on startup. Take a backup first -- scripts/deploy.sh --backup --
+because on SQLite a batch migration is not always reversible.

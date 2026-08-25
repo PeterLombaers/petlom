@@ -38,7 +38,7 @@ To restore, stop the stack, copy the file back into the `petlom_db` volume as
 ## `deploy.sh` — deploy to production
 
 ```bash
-scripts/deploy.sh              # git pull --ff-only main, docker compose build, up -d, prune
+scripts/deploy.sh              # git pull --ff-only main, build, alembic upgrade head, up -d, prune
 scripts/deploy.sh --backup     # same, but back up the database first and abort if that fails
 scripts/deploy.sh --restart    # just recreate the containers, no pull or rebuild
 scripts/deploy.sh --branch dev
@@ -50,9 +50,11 @@ After the containers come up it waits for `backend` and `caddy` to be running, c
 either check fails. Dangling images are pruned on success (`docker image prune -f` — never
 `-a`, which would delete other stacks' images).
 
-There are no database migrations: new tables are created on startup, existing tables are
-never altered. A release that changes an existing table needs a manual migration step
-before deploying.
+Migrations run between the build and the restart, as `docker compose run --rm --no-deps
+backend uv run alembic upgrade head`, so a broken migration aborts the deploy instead of
+crash-looping the backend. The app runs them again on startup, which is then a no-op. Use
+`--backup` for a release that carries a migration: on SQLite a batch migration rewrites the
+table and is not always reversible. See `migrations/README` for writing them.
 
 The build uses Docker's layer cache. If you ever need a truly clean rebuild, do it by hand:
 

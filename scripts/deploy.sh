@@ -62,6 +62,12 @@ else
     echo "==> Building images"
     remote "docker compose build"
 
+    # Explicitly, before the new code serves traffic: a migration that fails
+    # aborts the deploy here rather than crash-looping the backend. The app runs
+    # `alembic upgrade head` on startup too, so this is a no-op second time.
+    echo "==> Migrating the database"
+    remote "docker compose run --rm --no-deps backend uv run alembic upgrade head"
+
     echo "==> Starting containers"
     remote "docker compose up -d"
 fi
