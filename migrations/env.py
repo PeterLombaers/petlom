@@ -6,8 +6,12 @@ Two things make this file project-specific:
   empty schema and cheerfully generates "drop every table".
 - SQLite cannot ``ALTER`` a column, so ``render_as_batch`` is on: Alembic
   rewrites such changes as create-new-table / copy / drop / rename.
+- That rewrite is why migrations run with foreign keys disabled; see
+  ``_foreign_keys_off``.
 """
 
+from collections.abc import Generator
+from contextlib import contextmanager
 from logging.config import fileConfig
 
 from alembic import context
@@ -52,10 +56,44 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+@contextmanager
+def _foreign_keys_off(connection: Connection) -> Generator[None]:
+    """Run migrations with referential integrity disabled.
+
+    Alembic's batch mode rebuilds a table as create-new / copy / DROP old /
+    rename, and ``backend.db`` turns ``PRAGMA foreign_keys`` on for every
+    connection. Dropping a table that others reference then either errors, or —
+    where the reference is ``ON DELETE CASCADE``, as most of ours are — silently
+    deletes every child row. Alembic's own batch documentation requires the
+    pragma to be off for exactly this reason.
+
+    SQLite ignores the pragma inside an open transaction *without raising*, so
+    this has to run before Alembic begins one, and the check is what stops that
+    ordering from regressing into silent data loss.
+
+    It goes through the raw DBAPI connection on purpose: running it through the
+    SQLAlchemy ``Connection`` would implicitly begin a transaction around it, and
+    Alembic's own transaction would then no longer be the outermost one — the
+    migration runs but is never committed.
+    """
+    dbapi_connection = connection.connection.dbapi_connection
+    dbapi_connection.execute("PRAGMA foreign_keys=OFF")
+    if dbapi_connection.execute("PRAGMA foreign_keys").fetchone()[0]:
+        raise RuntimeError(
+            "Could not disable foreign keys before migrating; a transaction was "
+            "already open. Running a batch migration now could delete rows."
+        )
+    try:
+        yield
+    finally:
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+
 def _run(connection: Connection) -> None:
-    _configure(connection=connection)
-    with context.begin_transaction():
-        context.run_migrations()
+    with _foreign_keys_off(connection):
+        _configure(connection=connection)
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 def run_migrations_online() -> None:
