@@ -26,14 +26,9 @@ export default function PlayerSelect({
   const { t } = useTranslation();
   const {
     data: dbPlayers,
-    error: mutateError,
     isPending,
     isError,
   } = $api.useQuery("get", "/players/");
-
-  if (isError) {
-    console.log(mutateError.detail);
-  }
 
   const allPlayers = dbPlayers || [];
   const filteredPlayers = filterOptions

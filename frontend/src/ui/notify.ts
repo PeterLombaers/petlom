@@ -30,10 +30,15 @@ export function describeError(error: unknown): string {
  * is callable anywhere for the same reason.
  */
 export function notifyError(error: unknown) {
+  notifyErrorMessage(describeError(error));
+}
+
+/** The same notification for a caller that already has the message to show. */
+export function notifyErrorMessage(message: string) {
   notifications.show({
     color: "red",
     title: i18n.t("common.error"),
-    message: describeError(error),
+    message,
     autoClose: 8000,
   });
 }
