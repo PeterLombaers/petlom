@@ -29,7 +29,11 @@ import i18n from "./i18n";
  * place of its content, not a message that disappears.
  */
 const mutationCache = new MutationCache({
-  onError: (error, _variables, _onMutateResult, mutation) => {
+  onError: (error, variables, _onMutateResult, mutation) => {
+    console.error("Mutation failed", mutation.options.mutationKey, {
+      error,
+      variables,
+    });
     if (mutation.meta?.silent) return;
     notifyError(error);
   },
