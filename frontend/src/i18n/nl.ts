@@ -29,6 +29,16 @@ const nl: TranslationSchema = {
     skipToContent: "Naar hoofdinhoud",
     players: "Spelers",
   },
+  errors: {
+    unexpected: "Er is iets misgegaan. Probeer het opnieuw.",
+    sessionExpired: "Je sessie is verlopen. Log opnieuw in.",
+  },
+  notifications: {
+    ratingsImported: "Ratings geïmporteerd.",
+    externalIdsMatched: "Spelers gekoppeld.",
+    playersMerged: "Spelers samengevoegd.",
+    competitionFinished: "Competitie afgesloten.",
+  },
   a11y: {
     titleSuffix: "Petlom",
   },

@@ -27,6 +27,16 @@ const en = {
     skipToContent: "Skip to main content",
     players: "Players",
   },
+  errors: {
+    unexpected: "Something went wrong. Please try again.",
+    sessionExpired: "Your session has expired. Please log in again.",
+  },
+  notifications: {
+    ratingsImported: "Ratings imported.",
+    externalIdsMatched: "Players matched.",
+    playersMerged: "Players merged.",
+    competitionFinished: "Competition finished.",
+  },
   a11y: {
     titleSuffix: "Petlom",
   },
