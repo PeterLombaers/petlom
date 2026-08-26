@@ -13,6 +13,7 @@ export function useImportExternalRatings() {
   const queryClient = useQueryClient();
 
   return $api.useMutation("post", "/external/{source}/import/", {
+    meta: { successMessage: "notifications.ratingsImported" },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: endpointKey("get", "/players/"),

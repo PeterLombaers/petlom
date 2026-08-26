@@ -14,7 +14,10 @@ export function useMatchExternalIds() {
   // `silent`: `MatchExternalIdsModal` renders the failure itself, beside the
   // run's own summary of what it matched.
   return $api.useMutation("post", "/external/{source}/match/", {
-    meta: { silent: true },
+    meta: {
+      silent: true,
+      successMessage: "notifications.externalIdsMatched",
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: endpointKey("get", "/players/"),

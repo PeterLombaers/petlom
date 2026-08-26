@@ -16,6 +16,7 @@ export function useCompetition(name: string) {
   // Finishing changes the competition itself and its row in the list, so it
   // dirties the same two caches an edit does.
   const finishMutation = $api.useMutation("patch", "/competitions/{name}", {
+    meta: { successMessage: "notifications.competitionFinished" },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: endpointKey("get", "/competitions/{name}"),

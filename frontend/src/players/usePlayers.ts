@@ -69,7 +69,10 @@ export function usePlayers() {
   // failure on screen next to the two players it was about.
   const mergeMutation = $api.useMutation("post", "/players/{id}/merge/", {
     onSuccess: onMergeSuccess,
-    meta: { silent: true },
+    meta: {
+      silent: true,
+      successMessage: "notifications.playersMerged",
+    },
   });
 
   const deleteExternalIdMutation = $api.useMutation(
