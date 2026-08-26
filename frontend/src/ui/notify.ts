@@ -10,7 +10,8 @@ type HTTPValidationError = components["schemas"]["HTTPValidationError"];
  *
  * The backend's own `detail` sentence is the best message there is, so it is shown
  * verbatim. Everything else — a network failure, a 500 with no body, a thrown
- * `Error` — has no sentence worth showing, and falls back to a translated one.
+ * `Error` — has no sentence worth showing and gets the generic one, which is kept
+ * short because this also lands in a table cell, not only in a notification.
  */
 export function describeError(error: unknown): string {
   const detail = (error as HTTPValidationError | null)?.detail;

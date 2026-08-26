@@ -1,9 +1,8 @@
-import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
+import { $api, endpointKey } from "@/client/api";
 import { components } from "@/client/schema";
 import { TableQueryResult } from "@/table/types";
 import { useQueryClient } from "@tanstack/react-query";
 
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
 
 export function useCompetition(name: string) {
@@ -25,9 +24,6 @@ export function useCompetition(name: string) {
         queryKey: endpointKey("get", "/competitions/"),
       });
     },
-    onError: (error: HTTPValidationError) => {
-      console.error(formatHTTPValidationError(error));
-    },
   });
 
   return { data, error, isPending, isError, finishMutation };
@@ -46,24 +42,19 @@ export function useCompetitions() {
     queryClient.invalidateQueries({
       queryKey: endpointKey("get", "/competitions/"),
     });
-  const onError = (error: HTTPValidationError) => {
-    const errorMessage = formatHTTPValidationError(error);
-    console.error(errorMessage);
-  };
-
+  // See `usePlayers` for why create and edit are `silent` and delete is not.
   const createMutation = $api.useMutation("post", "/competitions/", {
     onSuccess,
-    onError,
+    meta: { silent: true },
   });
 
   const editMutation = $api.useMutation("patch", "/competitions/{name}", {
     onSuccess,
-    onError,
+    meta: { silent: true },
   });
 
   const deleteMutation = $api.useMutation("delete", "/competitions/{name}", {
     onSuccess,
-    onError,
   });
 
   return {

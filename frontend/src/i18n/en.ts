@@ -28,7 +28,7 @@ const en = {
     players: "Players",
   },
   errors: {
-    unexpected: "Something went wrong. Please try again.",
+    unexpected: "Something went wrong.",
     sessionExpired: "Your session has expired. Please log in again.",
   },
   notifications: {
@@ -64,7 +64,6 @@ const en = {
   },
   table: {
     noEntitiesYet: "No {{entityType}} yet.",
-    saveFailed: "Save failed.",
   },
   competition: {
     noRoundsYet: "No rounds yet.",

@@ -214,7 +214,9 @@ describe("useTableEditState", () => {
       act(() => result.current.changeColumnEditValue(1, "Charlie"));
       await act(() => result.current.saveColumnEdit());
 
-      expect(result.current.columnEditErrors.get(1)).toBe("Save failed.");
+      expect(result.current.columnEditErrors.get(1)).toBe(
+        "Something went wrong.",
+      );
     });
   });
 });

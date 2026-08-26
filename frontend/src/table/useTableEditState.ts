@@ -1,18 +1,8 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { formatHTTPValidationError } from "@/client/api";
-import type { components } from "@/client/schema";
+import { describeError } from "@/ui/notify";
 import type { EditConfig } from "./types";
 
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
-
 export type RowKey = string | number;
-
-function formatRejection(reason: unknown): string {
-  const detail = (reason as HTTPValidationError | null)?.detail;
-  if (detail === undefined) return "";
-  return formatHTTPValidationError(reason as HTTPValidationError);
-}
 
 type UseTableEditStateArgs<T> = {
   /** Rows in display order — the set column edit operates on. */
@@ -64,7 +54,6 @@ export function useTableEditState<T extends object>({
   editConfig,
   isRowEditable,
 }: UseTableEditStateArgs<T>): TableEditState<T> {
-  const { t } = useTranslation();
   // Column edit spans "every row", which means every row it is allowed to
   // touch: a frozen one is excluded from the buffer, the validation and the
   // save alike, so it can never be counted as changed.
@@ -149,10 +138,7 @@ export function useTableEditState<T extends object>({
     const saveErrors = new Map<RowKey, string>();
     results.forEach((result, i) => {
       if (result.status === "rejected") {
-        saveErrors.set(
-          getRowKey(changedRows[i]),
-          formatRejection(result.reason) || t("table.saveFailed"),
-        );
+        saveErrors.set(getRowKey(changedRows[i]), describeError(result.reason));
       }
     });
     // Stay in column edit mode when any row failed, so the failed values are not

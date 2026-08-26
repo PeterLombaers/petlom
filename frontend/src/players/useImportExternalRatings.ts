@@ -1,8 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
-import { components } from "@/client/schema";
-
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+import { $api, endpointKey } from "@/client/api";
 
 /**
  * Import rating snapshots from an external source.
@@ -23,9 +20,6 @@ export function useImportExternalRatings() {
       queryClient.invalidateQueries({
         queryKey: endpointKey("get", "/players/{id}/"),
       });
-    },
-    onError: (error: HTTPValidationError) => {
-      console.error(formatHTTPValidationError(error));
     },
   });
 }

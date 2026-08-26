@@ -1,9 +1,8 @@
-import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
+import { $api, endpointKey } from "@/client/api";
 import { components } from "@/client/schema";
 import { TableQueryResult } from "@/table/types";
 import { useQueryClient } from "@tanstack/react-query";
 
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 type MatchPublic = components["schemas"]["MatchPublic"];
 
 export function useMatches(competitionName: string, round: number) {
@@ -28,24 +27,19 @@ export function useMatches(competitionName: string, round: number) {
       queryKey: endpointKey("post", "/competitions/{name}/ranking"),
     });
   };
-  const onError = (error: HTTPValidationError) => {
-    const errorMessage = formatHTTPValidationError(error);
-    console.error(errorMessage);
-  };
-
+  // See `usePlayers` for why create and edit are `silent` and delete is not.
   const createMutation = $api.useMutation("post", "/matches/", {
     onSuccess,
-    onError,
+    meta: { silent: true },
   });
 
   const editMutation = $api.useMutation("patch", "/matches/{id}", {
     onSuccess,
-    onError,
+    meta: { silent: true },
   });
 
   const deleteMutation = $api.useMutation("delete", "/matches/{id}", {
     onSuccess,
-    onError,
   });
 
   return {

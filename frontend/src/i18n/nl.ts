@@ -30,7 +30,7 @@ const nl: TranslationSchema = {
     players: "Spelers",
   },
   errors: {
-    unexpected: "Er is iets misgegaan. Probeer het opnieuw.",
+    unexpected: "Er is iets misgegaan.",
     sessionExpired: "Je sessie is verlopen. Log opnieuw in.",
   },
   notifications: {
@@ -66,7 +66,6 @@ const nl: TranslationSchema = {
   },
   table: {
     noEntitiesYet: "Nog geen {{entityType}}.",
-    saveFailed: "Opslaan mislukt.",
   },
   competition: {
     noRoundsYet: "Nog geen rondes.",

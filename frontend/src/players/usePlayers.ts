@@ -1,8 +1,5 @@
-import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
-import { components } from "@/client/schema";
+import { $api, endpointKey } from "@/client/api";
 import { useQueryClient } from "@tanstack/react-query";
-
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 
 /** A single player with their external ids and competition ratings. */
 export function usePlayer(id: number) {
@@ -28,24 +25,22 @@ export function usePlayers() {
       queryKey: endpointKey("get", "/players/{id}/"),
     });
   };
-  const onError = (error: HTTPValidationError) => {
-    const errorMessage = formatHTTPValidationError(error);
-    console.error(errorMessage);
-  };
-
+  // Failures are reported by the global handler in `App.tsx`. The two mutations
+  // marked `silent` are the exception: their callers render the error where the
+  // user is looking — field errors in the create dialog, a per-row error in a
+  // column edit — and a toast on top of that would only repeat it.
   const createMutation = $api.useMutation("post", "/players/", {
     onSuccess,
-    onError,
+    meta: { silent: true },
   });
 
   const editMutation = $api.useMutation("patch", "/players/{id}/", {
     onSuccess,
-    onError,
+    meta: { silent: true },
   });
 
   const deleteMutation = $api.useMutation("delete", "/players/{id}/", {
     onSuccess,
-    onError,
   });
 
   // The external ids live on their own endpoints but dirty the same player
@@ -53,7 +48,7 @@ export function usePlayers() {
   const setExternalIdMutation = $api.useMutation(
     "put",
     "/players/{id}/external-ids/{source}/",
-    { onSuccess, onError },
+    { onSuccess },
   );
 
   // A merge rewrites the merged player's matches, registrations and ratings,
@@ -70,15 +65,17 @@ export function usePlayers() {
     }
   };
 
+  // `silent` for the same reason as the others: `MergePlayerModal` keeps the
+  // failure on screen next to the two players it was about.
   const mergeMutation = $api.useMutation("post", "/players/{id}/merge/", {
     onSuccess: onMergeSuccess,
-    onError,
+    meta: { silent: true },
   });
 
   const deleteExternalIdMutation = $api.useMutation(
     "delete",
     "/players/{id}/external-ids/{source}/",
-    { onSuccess, onError },
+    { onSuccess },
   );
 
   return {

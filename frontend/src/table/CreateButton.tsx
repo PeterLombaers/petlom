@@ -2,10 +2,8 @@ import { ActionIcon, Divider, Group, Modal, Stack } from "@mantine/core";
 import { useState } from "react";
 import { IconPlus, IconCheck, IconCirclePlus } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import {
-  formatHTTPValidationError,
-  parseHTTPValidationErrors,
-} from "@/client/api";
+import { parseHTTPValidationErrors } from "@/client/api";
+import { notifyError } from "@/ui/notify";
 import { translateEntity } from "@/i18n/translateEntity";
 import { AnyMutation } from "./types";
 
@@ -90,12 +88,16 @@ export function CreateButton<T = unknown>({
           }
           resetForm(sanitizedFormData);
         },
+        // The create mutations are `silent`, so nothing else reports this: a 422
+        // lands next to the field it belongs to, and anything without a field —
+        // a conflict, a 500, a dropped connection — has to become a notification
+        // here or the dialog would just sit there.
         onError: (error) => {
           const fieldErrors = parseHTTPValidationErrors(error);
           if (Object.keys(fieldErrors).length > 0) {
             setFormErrors(fieldErrors);
           } else {
-            console.error(formatHTTPValidationError(error));
+            notifyError(error);
           }
         },
       },

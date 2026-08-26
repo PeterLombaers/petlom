@@ -1,8 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
-import { components } from "@/client/schema";
-
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+import { $api, endpointKey } from "@/client/api";
 
 /**
  * Find the external ids of players by searching a source for their names.
@@ -14,7 +11,10 @@ type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 export function useMatchExternalIds() {
   const queryClient = useQueryClient();
 
+  // `silent`: `MatchExternalIdsModal` renders the failure itself, beside the
+  // run's own summary of what it matched.
   return $api.useMutation("post", "/external/{source}/match/", {
+    meta: { silent: true },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: endpointKey("get", "/players/"),
@@ -22,9 +22,6 @@ export function useMatchExternalIds() {
       queryClient.invalidateQueries({
         queryKey: endpointKey("get", "/players/{id}/"),
       });
-    },
-    onError: (error: HTTPValidationError) => {
-      console.error(formatHTTPValidationError(error));
     },
   });
 }

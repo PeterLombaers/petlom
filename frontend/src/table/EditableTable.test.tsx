@@ -418,7 +418,7 @@ describe("EditableTable", () => {
       );
 
       expect(screen.getByTestId("name-error")).toHaveTextContent(
-        "Save failed.",
+        "Something went wrong.",
       );
     });
 

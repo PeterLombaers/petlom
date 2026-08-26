@@ -1,8 +1,5 @@
-import { $api, endpointKey, formatHTTPValidationError } from "@/client/api";
-import { components } from "@/client/schema";
+import { $api, endpointKey } from "@/client/api";
 import { useQueryClient } from "@tanstack/react-query";
-
-type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 
 export function useRegistrations(competitionName: string, roundNr: number) {
   const {
@@ -20,21 +17,16 @@ export function useRegistrations(competitionName: string, roundNr: number) {
       queryKey: endpointKey("get", "/competitions/{name}/registrations"),
     });
   };
-  const onError = (error: HTTPValidationError) => {
-    const errorMessage = formatHTTPValidationError(error);
-    console.error(errorMessage);
-  };
-
   const updateMutation = $api.useMutation(
     "patch",
     "/competitions/{name}/registrations",
-    { onSuccess, onError },
+    { onSuccess },
   );
 
   const deleteMutation = $api.useMutation(
     "delete",
     "/competitions/{name}/registrations",
-    { onSuccess, onError },
+    { onSuccess },
   );
 
   const createPairingMutation = $api.useMutation(
@@ -55,7 +47,6 @@ export function useRegistrations(competitionName: string, roundNr: number) {
           queryKey: endpointKey("get", "/competitions/{name}/registrations"),
         });
       },
-      onError,
     },
   );
 

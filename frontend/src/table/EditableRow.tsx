@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import EditableCell from "./EditableCell";
 import { EditButton } from "./EditButton";
 import DeleteButton from "./DeleteButton";
+import { notifyError } from "@/ui/notify";
 import { Column, DeleteConfig, EditConfig, RowAction } from "./types";
 import classes from "./EditableTable.module.css";
 
@@ -98,6 +99,9 @@ export default function EditableRow<T = unknown>({
           setEdits({});
           setIsEditing(false);
         },
+        // The edit mutation is `silent` for the sake of column edit, which shows
+        // a per-row error instead; a row edit has nowhere else to put it.
+        onError: notifyError,
       },
     );
   };
