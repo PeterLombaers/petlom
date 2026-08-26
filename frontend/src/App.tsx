@@ -1,5 +1,6 @@
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { theme } from "./theme";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import {
@@ -28,6 +29,7 @@ function App() {
     <>
       <ColorSchemeScript defaultColorScheme="auto" />
       <MantineProvider theme={theme} defaultColorScheme="dark">
+        <Notifications position="top-right" />
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
             <BrowserRouter>

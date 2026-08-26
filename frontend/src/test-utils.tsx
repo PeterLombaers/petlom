@@ -3,6 +3,7 @@ import {
   RenderOptions,
 } from "@testing-library/react";
 import { MantineProvider, Table } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { ReactElement } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 
@@ -53,7 +54,8 @@ type CustomRenderOptions = RenderOptions & {
 /**
  * Custom render function used across the test suite.
  *
- * Always wraps the UI in MantineProvider (env="test" disables animations).
+ * Always wraps the UI in MantineProvider (env="test" disables animations) and renders
+ * `Notifications`, so a test can assert on the notification a failing mutation shows.
  * See https://mantine.dev/guides/vitest/
  *
  * Optionally wraps the UI in an additional custom wrapper (e.g. a table
@@ -64,6 +66,7 @@ export function render(ui: ReactElement, options?: CustomRenderOptions) {
   return testingLibraryRender(ui, {
     wrapper: ({ children }) => (
       <MantineProvider env="test">
+        <Notifications />
         {CustomWrapper ? <CustomWrapper>{children}</CustomWrapper> : children}
       </MantineProvider>
     ),
