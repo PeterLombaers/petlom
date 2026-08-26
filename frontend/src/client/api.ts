@@ -1,6 +1,26 @@
 import createFetchClient from "openapi-fetch";
 import createClient from "openapi-react-query";
+import type { ParseKeys } from "i18next";
 import type { paths, components } from "./schema.js";
+
+/**
+ * What a mutation may declare about how its outcome is reported.
+ *
+ * The global `MutationCache` handlers in `App.tsx` read this: `silent` belongs to the
+ * mutations whose caller renders the error itself (a form's field errors), and
+ * `successMessage` to the few actions nothing else confirms. `ParseKeys` is the key union
+ * i18next derives from `TranslationSchema`, so a typo is a compile error like every other
+ * translation key. (`Parameters<typeof t>[0]` is not usable here — `t` is overloaded, and
+ * that widens to `string`.)
+ */
+declare module "@tanstack/react-query" {
+  interface Register {
+    mutationMeta: {
+      silent?: boolean;
+      successMessage?: ParseKeys;
+    };
+  }
+}
 
 type HTTPValidationError = components["schemas"]["HTTPValidationError"];
 type ValidationError = components["schemas"]["ValidationError"];
