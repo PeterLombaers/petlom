@@ -20,12 +20,14 @@ class BaseRating(abc.ABC):
     ) -> float:
         """Calculate the change in rating of a player based on a single result.
 
+        The algorithm should be able to handle opponents without rating.
+
         Parameters
         ----------
         player_rating : float
             Rating of the player for which the rating change should be calculated.
-        opponent_rating : float
-            Rating of the opponent.
+        opponent_rating : float | None
+            Rating of the opponent or None if the opponent has no rating.
         score : float
             The score for the player (i.e. 0, 1 or 0.5).
 

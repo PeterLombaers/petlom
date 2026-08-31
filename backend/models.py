@@ -123,10 +123,13 @@ class CompetitionRating(SQLModel, table=True):
         foreign_key="competitionratingtype.id", ondelete="CASCADE"
     )
     initial_rating: float = Field(
-        description="The initial rating for the player for this competition rating."
+        description="The rating the player entered this competition with."
     )
     current_rating: float = Field(
-        description="The current rating for the player for this competition rating."
+        description=(
+            "The player's running rating for this competition. Derived from the"
+            " initial rating and the match results. This value is only a cache"
+        )
     )
     is_manual: bool = Field(
         default=False, description="Has the initial rating been set manually?"
@@ -610,7 +613,14 @@ class RoundRegistration(SQLModel, table=True):
     round: int
     player_id: int = Field(foreign_key="player.id")
     is_bye: bool = False
-    initial_rating: float | None = None
+    initial_rating: float | None = Field(
+        default=None,
+        description=(
+            "A snapshot of the player's competition rating when they registered."
+            " Read by nothing on the backend; the live CompetitionRating is the"
+            " rating of record."
+        ),
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     player: Player = Relationship()
 
@@ -660,13 +670,42 @@ class RegistrationImportPreview(SQLModel):
 
 
 class RoundRegistrationUpdate(SQLModel):
-    """Request body of PATCH /competitions/{name}/registrations."""
+    """Request body of PATCH /competitions/{name}/registrations.
 
-    player_ids_to_add: list[int] | None = None
-    player_ids_to_remove: list[int] | None = None
-    bye_player_id: int | None = None
-    clear_bye: bool | None = None
-    initial_ratings: dict[int, float] | None = None
+    The fields are applied in a fixed order: add, then remove, then bye.
+    """
+
+    player_ids_to_add: list[int] | None = Field(
+        default=None,
+        description=(
+            "Players to register for this round. A player without a"
+            " CompetitionRating for this competition is seeded one, from"
+            " `initial_ratings` or the competition default."
+        ),
+    )
+    player_ids_to_remove: list[int] | None = Field(
+        default=None, description="Players to unregister from this round."
+    )
+    bye_player_id: int | None = Field(
+        default=None,
+        description=(
+            "The player to give the bye for this round, replacing any existing"
+            " one. They must be registered for the round, and they are left out"
+            " of the pairing."
+        ),
+    )
+    clear_bye: bool | None = Field(
+        default=None,
+        description="Remove the round's bye, leaving every registered player paired.",
+    )
+    initial_ratings: dict[int, float] | None = Field(
+        default=None,
+        description=(
+            "Initial competition ratings, by player id, for players in"
+            " `player_ids_to_add` who do not have a CompetitionRating yet. To update"
+            " this for a player, use the player-ratings endpoint."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------

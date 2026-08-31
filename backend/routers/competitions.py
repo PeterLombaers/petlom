@@ -380,6 +380,23 @@ def create_ranking(
 # ---------------------------------------------------------------------------
 # Round registration endpoints
 # ---------------------------------------------------------------------------
+#
+# A RoundRegistration is a player's intent to play one round. Sign-ups
+# arrive over days — in person, or imported from the club website — so they are
+# stored here rather than passed in when the pairing is generated.
+#
+# A bye marks the odd player out so that the round's field is even. If the number of
+# players is not even and there is no bye, you can not generate pairings from the
+# registrations.
+#
+# Manual edits to the matches do not propagate back to the round registrations. So if
+# you perform manual edits to the matches and then re-run the generation of pairings,
+# your edits are not respected.
+#
+# Registering a player also seeds their CompetitionRating for the competition:
+# one row per player per competition, holding the initial rating they entered it
+# with. The initial rating of a player together with the matches they played are enough
+# to calculate their competition rating.
 
 
 def get_round_registrations(

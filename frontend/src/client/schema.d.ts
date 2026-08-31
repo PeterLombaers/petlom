@@ -1127,17 +1127,34 @@ export interface components {
         /**
          * RoundRegistrationUpdate
          * @description Request body of PATCH /competitions/{name}/registrations.
+         *
+         *     The fields are applied in a fixed order: add, then remove, then bye.
          */
         RoundRegistrationUpdate: {
-            /** Player Ids To Add */
+            /**
+             * Player Ids To Add
+             * @description Players to register for this round. A player without a CompetitionRating for this competition is seeded one, from `initial_ratings` or the competition default.
+             */
             player_ids_to_add?: number[] | null;
-            /** Player Ids To Remove */
+            /**
+             * Player Ids To Remove
+             * @description Players to unregister from this round.
+             */
             player_ids_to_remove?: number[] | null;
-            /** Bye Player Id */
+            /**
+             * Bye Player Id
+             * @description The player to give the bye for this round, replacing any existing one. They must be registered for the round, and they are left out of the pairing.
+             */
             bye_player_id?: number | null;
-            /** Clear Bye */
+            /**
+             * Clear Bye
+             * @description Remove the round's bye, leaving every registered player paired.
+             */
             clear_bye?: boolean | null;
-            /** Initial Ratings */
+            /**
+             * Initial Ratings
+             * @description Initial competition ratings, by player id, for players in `player_ids_to_add` who do not have a CompetitionRating yet. To update this for a player, use the player-ratings endpoint.
+             */
             initial_ratings?: {
                 [key: string]: number;
             } | null;
