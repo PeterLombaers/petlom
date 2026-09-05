@@ -137,12 +137,19 @@ export type Column<T> = {
   };
 }[keyof T];
 
+/**
+ * What a data hook hands to an EditableTable.
+ *
+ * `createMutation` and `deleteMutation` are optional: a table over rows that
+ * are neither created nor deleted through it supplies only the edit mutation, and
+ * the engine then renders no Add and no Delete button.
+ */
 export type TableQueryResult<T> = {
   rows: T[] | undefined;
   isPending: boolean;
   isError: boolean;
   error: components["schemas"]["HTTPValidationError"] | null;
-  createMutation: AnyMutation;
+  createMutation?: AnyMutation;
   editMutation: AnyMutation;
-  deleteMutation: AnyMutation;
+  deleteMutation?: AnyMutation;
 };

@@ -5,6 +5,7 @@ import { formatHTTPValidationError } from "@client/api";
 import { LoadingState } from "@/ui/LoadingState";
 import { ErrorState } from "@/ui/ErrorState";
 import { PlayerName } from "@/ui/PlayerName";
+import { RatingValue } from "@/ui/RatingValue";
 import { useRegistrations } from "./useRegistrations";
 
 export default function RegisteredPlayerTable({
@@ -45,7 +46,7 @@ export default function RegisteredPlayerTable({
               />
             </Table.Td>
             <Table.Td>
-              {rp.rating != null ? Math.round(rp.rating) : "—"}
+              <RatingValue value={rp.rating} />
             </Table.Td>
             {hasBye && (
               <Table.Td>{rp.is_bye && <IconCheck size={16} />}</Table.Td>

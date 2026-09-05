@@ -175,6 +175,17 @@ class CompetitionRatingPublic(SQLModel):
     updated_at: datetime
 
 
+class CompetitionRatingUpdate(SQLModel):
+    """Request body of PATCH /competitions/{name}/player-ratings/{player_id}."""
+
+    initial_rating: float | None = Field(
+        description=(
+            "The rating the player entered this competition with. Null records"
+            " that it is unknown."
+        )
+    )
+
+
 class CompetitionRatingForPlayer(SQLModel):
     """A rating as nested in the PlayerDetail returned by GET /players/{id}/.
 

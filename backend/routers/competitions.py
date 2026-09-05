@@ -27,6 +27,7 @@ from backend.models import (
     CompetitionRatingType,
     CompetitionRatingTypePublic,
     CompetitionRatingTypeUpdate,
+    CompetitionRatingUpdate,
     CompetitionUpdate,
     ImportedRegistrationAmbiguity,
     ImportedRegistrationMatch,
@@ -198,6 +199,40 @@ def retrieve_player_ratings(
         )
         for rating in ratings
     ]
+
+
+@router.patch("/{name}/player-ratings/{player_id}")
+def update_player_rating(
+    name: str,
+    player_id: int,
+    update: CompetitionRatingUpdate,
+    session: SessionDep,
+    _: ModeratorDep,
+) -> CompetitionRatingPublic:
+    """Set or correct the rating a player entered this competition with."""
+    competition = find_competition(name, session)
+    ensure_competition_open(competition)
+    rating = session.exec(
+        select(CompetitionRating)
+        .where(CompetitionRating.rating_type_id == competition.rating_type.id)
+        .where(CompetitionRating.player_id == player_id)
+    ).first()
+    if not rating:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Player {player_id} has no rating in competition '{name}'.",
+        )
+    rating.initial_rating = update.initial_rating
+    rating.is_manual = True
+    rating.source_external_rating_id = None
+    rating.updated_at = datetime.now(UTC)
+    session.add(rating)
+    session.commit()
+    session.refresh(rating)
+    derived = current_ratings(competition, session)
+    return CompetitionRatingPublic.model_validate(
+        rating, update={"current_rating": derived.get(player_id)}
+    )
 
 
 # ---------------------------------------------------------------------------

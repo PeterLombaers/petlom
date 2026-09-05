@@ -1122,6 +1122,124 @@ def test_swapping_in_an_unregistered_player(
     assert ratings[white.id] == 1500.0
 
 
+def set_initial_rating(
+    client: TestClient, competition: Competition, player: Player, rating: float | None
+):
+    return client.patch(
+        f"/competitions/{competition.name}/player-ratings/{player.id}",
+        json={"initial_rating": rating},
+    )
+
+
+def test_filling_in_an_unknown_initial_rating(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    match_factory: Callable[..., Match],
+    auth_client: TestClient,
+    session: Session,
+):
+    """The unknown rating is the one the moderator fills in afterwards."""
+    white, black = player_factory(), player_factory()
+    seed_competition_ratings(competition, [white], session)
+    for round_nr in (1, 2):
+        match_factory(
+            competition=competition,
+            player_white=white,
+            player_black=black,
+            round=round_nr,
+            result=Result.WHITE_WIN,
+        )
+    session.add(
+        CompetitionRating(player_id=black.id, rating_type_id=competition.rating_type.id)
+    )
+    session.commit()
+    # Neither side moves while one of them is unrated.
+    assert ranking_ratings(auth_client, competition) == {
+        white.id: 1500.0,
+        black.id: None,
+    }
+
+    res = set_initial_rating(auth_client, competition, black, 1400.0)
+    res.raise_for_status()
+    body = res.json()
+    assert body["initial_rating"] == 1400.0
+    assert body["is_manual"] is True
+    assert body["source_external_rating_id"] is None
+
+    ratings = ranking_ratings(auth_client, competition)
+    assert ratings[black.id] < 1400.0
+    assert ratings[white.id] > 1500.0
+
+
+def test_correcting_an_initial_rating_changes_the_ranking(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+):
+    competition, players, _ = simkro_setup
+    seed_competition_ratings(competition, players, session)
+    player = players[0]
+    before = ranking_ratings(auth_client, competition)
+
+    res = set_initial_rating(auth_client, competition, player, 1800.0)
+    res.raise_for_status()
+
+    after = ranking_ratings(auth_client, competition)
+    assert after[player.id] > before[player.id]
+    # The correction reaches the players they met, not just themselves.
+    assert any(after[p.id] != before[p.id] for p in players[1:])
+
+
+def test_clearing_an_initial_rating(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    session: Session,
+):
+    player = player_factory()
+    seed_competition_ratings(competition, [player], session)
+
+    res = set_initial_rating(auth_client, competition, player, None)
+    res.raise_for_status()
+    assert res.json()["initial_rating"] is None
+    assert reported_ratings(auth_client, competition) == {player.id: None}
+
+
+def test_set_initial_rating_errors(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    session: Session,
+):
+    player = player_factory()
+    seed_competition_ratings(competition, [player], session)
+
+    # A player with no rating row in this competition is not in its roster.
+    stranger = player_factory()
+    assert (
+        set_initial_rating(auth_client, competition, stranger, 1500.0).status_code
+        == 404
+    )
+
+    auth_client.patch(
+        f"/competitions/{competition.name}", json={"is_finished": True}
+    ).raise_for_status()
+    assert (
+        set_initial_rating(auth_client, competition, player, 1500.0).status_code == 409
+    )
+
+
+def test_set_initial_rating_requires_auth(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    client: TestClient,
+    session: Session,
+):
+    player = player_factory()
+    seed_competition_ratings(competition, [player], session)
+    assert set_initial_rating(client, competition, player, 1500.0).status_code == 401
+
+
 def test_round_registrations_add_remove(
     competition: Competition,
     player_factory: Callable[..., Player],

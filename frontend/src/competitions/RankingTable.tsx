@@ -7,6 +7,7 @@ import { components } from "@/client/schema";
 import { ErrorState } from "@/ui/ErrorState";
 import { LoadingState } from "@/ui/LoadingState";
 import { PlayerName } from "@/ui/PlayerName";
+import { RatingValue } from "@/ui/RatingValue";
 import { useRanking } from "./useRanking";
 
 type SimkroRank = components["schemas"]["SimkroRank"];
@@ -28,8 +29,7 @@ const COLUMNS: { key: ParseKeys; render: (rank: SimkroRank) => ReactNode }[] = [
   { key: "ranking.losses", render: (rank) => rank.losses },
   {
     key: "ranking.rating",
-    render: (rank) =>
-      rank.current_rating != null ? Math.round(rank.current_rating) : "—",
+    render: (rank) => <RatingValue value={rank.current_rating} />,
   },
 ];
 

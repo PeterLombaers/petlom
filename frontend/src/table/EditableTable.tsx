@@ -133,7 +133,7 @@ export default function EditableTable<T extends object>({
   const activeEditConfig: EditConfig<T> | undefined =
     canEdit && editConfig ? { ...editConfig, editMutation } : undefined;
   const activeDeleteConfig: DeleteConfig<T> | undefined =
-    canEdit && deleteConfig
+    canEdit && deleteConfig && deleteMutation
       ? {
           getEntityName: deleteConfig.getEntityName,
           entityType,
@@ -164,7 +164,7 @@ export default function EditableTable<T extends object>({
   // The Actions column exists as soon as something can be rendered in it.
   const hasActions = Boolean(activeEditConfig || activeRowActions?.length);
   const nCols = visibleColumns.length + (hasActions ? 1 : 0);
-  const showCreate = canEdit && createConfig !== undefined;
+  const showCreate = canEdit && createConfig !== undefined && createMutation;
   const tableTitle = title || translateEntity(t, entityType, true);
 
   const table = (
@@ -271,8 +271,8 @@ export default function EditableTable<T extends object>({
 
   const isBusy =
     editMutation.isPending ||
-    deleteMutation.isPending ||
-    createMutation.isPending;
+    Boolean(deleteMutation?.isPending) ||
+    Boolean(createMutation?.isPending);
 
   return (
     <Paper withBorder aria-busy={isBusy}>

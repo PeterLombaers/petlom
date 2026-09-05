@@ -18,6 +18,7 @@ import { MatchTable } from "@/matches/MatchTable";
 import RankingTable from "@/competitions/RankingTable";
 import RegistrationEditor from "@/competitions/RegistrationEditor";
 import RegisteredPlayerTable from "@/competitions/RegisteredPlayerTable";
+import PlayerRatingTable from "@/competitions/PlayerRatingTable";
 import NotFoundPage from "./NotFoundPage";
 import { useAuth } from "@/auth";
 import { useDocumentTitle } from "@/pages/useDocumentTitle";
@@ -212,6 +213,7 @@ function RoundView({
   const { isModerator } = useAuth();
   const { t } = useTranslation();
   const [playersVisible, setPlayersVisible] = useState(false);
+  const [ratingsVisible, setRatingsVisible] = useState(false);
 
   const nextRound = nRounds + 1;
   const backUrl = `/competitions/${name}`;
@@ -243,6 +245,11 @@ function RoundView({
             ? t("competition.hidePlayers")
             : t("competition.showPlayers")}
         </Button>
+        <Button onClick={() => setRatingsVisible((v) => !v)}>
+          {ratingsVisible
+            ? t("competition.hideRatings")
+            : t("competition.showRatings")}
+        </Button>
         {isModerator && !isFinished && isLatestRound && (
           <Button
             onClick={() => navigate(`/competitions/${name}/round/${nextRound}`)}
@@ -254,6 +261,9 @@ function RoundView({
 
       <Collapse expanded={playersVisible}>
         <RegisteredPlayerTable competitionName={name} roundNr={currentRound} />
+      </Collapse>
+      <Collapse expanded={ratingsVisible}>
+        <PlayerRatingTable competitionName={name} readOnly={isFinished} />
       </Collapse>
       <MatchTable
         competitionName={name}

@@ -110,6 +110,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/competitions/{name}/player-ratings/{player_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Player Rating
+         * @description Set or correct the rating a player entered this competition with.
+         */
+        patch: operations["update_player_rating_competitions__name__player_ratings__player_id__patch"];
+        trace?: never;
+    };
     "/competitions/{name}/pairing": {
         parameters: {
             query?: never;
@@ -621,6 +641,17 @@ export interface components {
             algorithm_config?: Record<string, never> | null;
             /** Default Initial Rating */
             default_initial_rating?: number | null;
+        };
+        /**
+         * CompetitionRatingUpdate
+         * @description Request body of PATCH /competitions/{name}/player-ratings/{player_id}.
+         */
+        CompetitionRatingUpdate: {
+            /**
+             * Initial Rating
+             * @description The rating the player entered this competition with. Null records that it is unknown.
+             */
+            initial_rating: number | null;
         };
         /**
          * CompetitionType
@@ -1508,6 +1539,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompetitionRatingPublic"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_player_rating_competitions__name__player_ratings__player_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+                player_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompetitionRatingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionRatingPublic"];
                 };
             };
             /** @description Validation Error */

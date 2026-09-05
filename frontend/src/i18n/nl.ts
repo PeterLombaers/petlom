@@ -73,6 +73,8 @@ const nl: TranslationSchema = {
     createPairingRoundN: "Indeling maken voor ronde {{nextRound}}",
     showPlayers: "Spelers tonen",
     hidePlayers: "Spelers verbergen",
+    showRatings: "Ratings tonen",
+    hideRatings: "Ratings verbergen",
     roundLabel: "Ronde {{currentRound}}",
     createdDate: "Aangemaakt op",
     updatedDate: "Bijgewerkt op",
@@ -126,6 +128,9 @@ const nl: TranslationSchema = {
     externalSourceLabel: "Ratingbron",
     listDateLabel: "Ratinglijst (JJJJ-MM)",
     listDateInvalid: "Gebruik het formaat JJJJ-MM",
+    unknown: "Geen rating",
+    playerRatingsTitle: "Spelersratings",
+    mustNotBeNegative: "Rating mag niet negatief zijn",
   },
   externalSource: {
     fide: "FIDE",
@@ -219,6 +224,8 @@ const nl: TranslationSchema = {
     competition_plural: "competities",
     match: "partij",
     match_plural: "partijen",
+    rating: "rating",
+    rating_plural: "ratings",
   },
 };
 

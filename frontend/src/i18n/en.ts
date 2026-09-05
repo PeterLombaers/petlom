@@ -71,6 +71,8 @@ const en = {
     createPairingRoundN: "Create pairing for round {{nextRound}}",
     showPlayers: "Show players",
     hidePlayers: "Hide players",
+    showRatings: "Show ratings",
+    hideRatings: "Hide ratings",
     roundLabel: "Round {{currentRound}}",
     createdDate: "Created Date",
     updatedDate: "Updated Date",
@@ -124,6 +126,9 @@ const en = {
     externalSourceLabel: "Rating source",
     listDateLabel: "Rating list (YYYY-MM)",
     listDateInvalid: "Use the YYYY-MM format",
+    unknown: "No rating",
+    playerRatingsTitle: "Player ratings",
+    mustNotBeNegative: "Rating must not be negative",
   },
   externalSource: {
     fide: "FIDE",
@@ -217,6 +222,8 @@ const en = {
     competition_plural: "competitions",
     match: "match",
     match_plural: "matches",
+    rating: "rating",
+    rating_plural: "ratings",
   },
 };
 
