@@ -8,7 +8,6 @@ competition types (e.g. `backend.competitions.simkro`).
 """
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
@@ -78,21 +77,9 @@ def compute_ranking(
     return ranking
 
 
-def refresh_ratings_cache(competition: Competition, session: Session) -> None:
-    """Refresh the stored `current_rating` of every player in the competition.
-
-    Call this from every write that can change a rating. The session is left
-    dirty, not committed; the caller commits.
-    """
-    comp_ratings = _competition_ratings(competition, session)
+def current_ratings(competition: Competition, session: Session) -> dict[int, float]:
+    """The latest derived rating per player. Absent when the initial rating is unknown."""
     matches = session.exec(select(Match).where(Match.competition == competition)).all()
-    new_ratings = _ratings_after(competition, comp_ratings, matches)
-
-    for cr in comp_ratings:
-        # A player with an unknown initial rating is absent from `new_ratings`,
-        # and their current rating is cleared rather than left stale.
-        new_rating = new_ratings.get(cr.player_id)
-        if cr.current_rating != new_rating:
-            cr.current_rating = new_rating
-            cr.updated_at = datetime.now(UTC)
-            session.add(cr)
+    return _ratings_after(
+        competition, _competition_ratings(competition, session), matches
+    )

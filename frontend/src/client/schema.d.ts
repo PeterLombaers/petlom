@@ -516,6 +516,8 @@ export interface components {
          *
          *     Seen from the player's side: it keeps the rating type (which names the
          *     competition) and drops the player. Its sibling is CompetitionRatingPublic.
+         *
+         *     `current_rating` has no column behind it; the router fills it in.
          */
         CompetitionRatingForPlayer: {
             /** Id */
@@ -537,6 +539,8 @@ export interface components {
          *     Seen from the competition's side: it keeps the player and drops the rating
          *     type, which is the same for every row. Its sibling is
          *     CompetitionRatingForPlayer.
+         *
+         *     `current_rating` has no column behind it; the router fills it in.
          */
         CompetitionRatingPublic: {
             /** Id */
@@ -1161,7 +1165,7 @@ export interface components {
         };
         /**
          * SimkroRank
-         * @description A ranking row as returned by GET|POST /competitions/{name}/ranking.
+         * @description A ranking row as returned by GET /competitions/{name}/ranking.
          */
         SimkroRank: {
             /** Position */

@@ -8,7 +8,7 @@ from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
 from backend.club_site import ClubSiteError, fetch_registered_names
-from backend.competitions.ranking import compute_ranking, refresh_ratings_cache
+from backend.competitions.ranking import compute_ranking, current_ratings
 from backend.competitions.simkro import create_matchups
 from backend.config import settings
 from backend.dependencies import (
@@ -191,7 +191,13 @@ def retrieve_player_ratings(
             CompetitionRating.rating_type_id == competition.rating_type.id
         )
     ).all()
-    return ratings
+    derived = current_ratings(competition, session)
+    return [
+        CompetitionRatingPublic.model_validate(
+            rating, update={"current_rating": derived.get(rating.player_id)}
+        )
+        for rating in ratings
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -294,9 +300,6 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
         session.delete(m)
     competition.updated_at = datetime.now(UTC)
     session.add(competition)
-    # Dropping a round drops its results with it.
-    session.flush()
-    refresh_ratings_cache(competition, session)
     session.commit()
     return {"ok": True}
 
@@ -380,7 +383,6 @@ def get_or_create_competition_rating(
         player_id=player.id,
         rating_type_id=rating_type.id,
         initial_rating=rating,
-        current_rating=rating,
         is_manual=is_manual,
     )
     session.add(comp_rating)
@@ -414,6 +416,9 @@ def add_round_registrations(
     already_added = {
         reg.player_id for reg in get_round_registrations(competition, round_nr, session)
     }
+    # A player seeded below is not in here yet, so their snapshot falls back to
+    # the initial rating they are being seeded with.
+    derived_ratings = current_ratings(competition, session)
 
     for player_id in player_ids:
         if player_id in already_added:
@@ -430,14 +435,12 @@ def add_round_registrations(
                 competition_id=competition.id,
                 round=round_nr,
                 player_id=player_id,
-                initial_rating=comp_rating.current_rating,
+                initial_rating=derived_ratings.get(
+                    player_id, comp_rating.initial_rating
+                ),
             )
         )
         already_added.add(player_id)
-
-    # A newly seeded CompetitionRating starts at its initial rating; the games
-    # already played in this competition still have to be applied to it.
-    refresh_ratings_cache(competition, session)
 
 
 def remove_round_registrations(

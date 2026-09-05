@@ -114,7 +114,11 @@ class CompetitionRatingTypeUpdate(SQLModel):
 
 
 class CompetitionRating(SQLModel, table=True):
-    """The competition rating of a player."""
+    """What a player entered a competition with.
+
+    Inputs only. The current rating is derived from these and the match results
+    by `backend.competitions.ranking`, and is never stored.
+    """
 
     __table_args__ = (UniqueConstraint("player_id", "rating_type_id"),)
     id: int | None = Field(default=None, primary_key=True)
@@ -127,14 +131,6 @@ class CompetitionRating(SQLModel, table=True):
         description=(
             "The rating the player entered this competition with, or None if it is"
             " unknown."
-        ),
-    )
-    current_rating: float | None = Field(
-        default=None,
-        description=(
-            "The player's running rating for this competition. Derived from the"
-            " initial rating and the match results. This value is only a cache."
-            " None when the initial rating is unknown."
         ),
     )
     is_manual: bool = Field(
@@ -163,6 +159,8 @@ class CompetitionRatingPublic(SQLModel):
     Seen from the competition's side: it keeps the player and drops the rating
     type, which is the same for every row. Its sibling is
     CompetitionRatingForPlayer.
+
+    `current_rating` has no column behind it; the router fills it in.
     """
 
     id: int
@@ -182,6 +180,8 @@ class CompetitionRatingForPlayer(SQLModel):
 
     Seen from the player's side: it keeps the rating type (which names the
     competition) and drops the player. Its sibling is CompetitionRatingPublic.
+
+    `current_rating` has no column behind it; the router fills it in.
     """
 
     id: int

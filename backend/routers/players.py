@@ -7,12 +7,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
+from backend.competitions.ranking import current_ratings
 from backend.dependencies import MAX_PAGE_LENGTH, SessionDep, find_object
 from backend.enums import ExternalRatingSource, PlayerStatus
 from backend.models import (
     LIST_DATE_PATTERN,
     Competition,
     CompetitionRating,
+    CompetitionRatingForPlayer,
     ExternalRating,
     ExternalRatingPublic,
     Match,
@@ -102,8 +104,40 @@ def retrieve_player(
     player = find_object(model=Player, identifier=id, session=session)
     ratings = selected_ratings([player.id], list_date, session)
     return PlayerDetail.model_validate(
-        player, update={"external_ids": _external_ids_public(player, ratings)}
+        player,
+        update={
+            "external_ids": _external_ids_public(player, ratings),
+            "competition_ratings": _competition_ratings_for_player(player, session),
+        },
     )
+
+
+def _competition_ratings_for_player(
+    player: Player, session: SessionDep
+) -> list[CompetitionRatingForPlayer]:
+    """The player's competition ratings, with the current rating derived per competition.
+
+    One recompute per competition the player is in, not one per row.
+    """
+    derived_per_competition: dict[int, dict[int, float]] = {}
+    result = []
+    for comp_rating in player.competition_ratings:
+        competition = comp_rating.rating_type.competition
+        if competition.id not in derived_per_competition:
+            derived_per_competition[competition.id] = current_ratings(
+                competition, session
+            )
+        result.append(
+            CompetitionRatingForPlayer.model_validate(
+                comp_rating,
+                update={
+                    "current_rating": derived_per_competition[competition.id].get(
+                        player.id
+                    )
+                },
+            )
+        )
+    return result
 
 
 def selected_ratings(
