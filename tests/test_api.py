@@ -1052,6 +1052,76 @@ def test_player_detail_reports_the_derived_rating(
         assert [r["current_rating"] for r in ratings] == [ranking[player.id]]
 
 
+def competition_rating(
+    competition: Competition, player: Player, session: Session
+) -> CompetitionRating | None:
+    return session.scalars(
+        select(CompetitionRating)
+        .where(CompetitionRating.rating_type_id == competition.rating_type.id)
+        .where(CompetitionRating.player_id == player.id)
+    ).one_or_none()
+
+
+def test_create_match_creates_missing_rating_rows(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    session: Session,
+):
+    white, black = player_factory(), player_factory()
+    res = auth_client.post(
+        "/matches/",
+        json={
+            "competition_name": competition.name,
+            "player_white_id": white.id,
+            "player_black_id": black.id,
+            "round": 1,
+            "board": 1,
+        },
+    )
+    res.raise_for_status()
+
+    for player in (white, black):
+        comp_rating = competition_rating(competition, player, session)
+        assert comp_rating is not None
+        assert comp_rating.initial_rating is None
+
+
+def test_swapping_in_an_unregistered_player(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    match_factory: Callable[..., Match],
+    auth_client: TestClient,
+    session: Session,
+):
+    """An unrated player joins by a match edit, and nobody's rating moves for it."""
+    white, black = player_factory(), player_factory()
+    match_obj = match_factory(
+        competition=competition,
+        player_white=white,
+        player_black=black,
+        round=1,
+        result=Result.WHITE_WIN,
+    )
+    seed_competition_ratings(competition, [white, black], session)
+    assert ranking_ratings(auth_client, competition)[white.id] > 1500.0
+
+    newcomer = player_factory()
+    res = auth_client.patch(
+        f"/matches/{match_obj.id}/", json={"player_black_id": newcomer.id}
+    )
+    res.raise_for_status()
+
+    comp_rating = competition_rating(competition, newcomer, session)
+    assert comp_rating is not None
+    assert comp_rating.initial_rating is None
+
+    ratings = ranking_ratings(auth_client, competition)
+    assert ratings[newcomer.id] is None
+    # White's only game is now against an unknown rating, which moves nothing.
+    assert ratings[white.id] == 1500.0
+
+
 def test_round_registrations_add_remove(
     competition: Competition,
     player_factory: Callable[..., Player],

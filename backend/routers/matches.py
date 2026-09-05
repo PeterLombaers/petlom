@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -13,7 +14,14 @@ from backend.dependencies import (
     find_competition,
     find_object,
 )
-from backend.models import Competition, Match, MatchCreate, MatchPublic, MatchUpdate
+from backend.models import (
+    Competition,
+    CompetitionRating,
+    Match,
+    MatchCreate,
+    MatchPublic,
+    MatchUpdate,
+)
 
 router = APIRouter(prefix="/matches", tags=["matches"])
 
@@ -37,6 +45,36 @@ def touch_open_competition(session: SessionDep, competition_id: int):
         session.add(competition)
 
 
+def ensure_competition_ratings(
+    session: SessionDep, competition_id: int, player_ids: Iterable[int]
+):
+    """Give every player of a match a rating row, unknown if we have nothing better.
+
+    A match edit can bring a player into a competition they never registered
+    for, and every player in a competition needs a `CompetitionRating` row: a
+    missing row makes `calculate_ratings` drop their games from their
+    opponents' calculations too. There is no UI at this point to ask for a
+    rating with, so the row is created with `initial_rating = None` and stays
+    correctable afterwards. The registration path deliberately does the
+    opposite and rejects the request (`get_or_create_competition_rating` in
+    `routers/competitions.py`) because `SeedRatingsModal` is right there to ask.
+    """
+    competition = session.get(Competition, competition_id)
+    if competition is None:
+        return
+    rating_type_id = competition.rating_type.id
+    wanted = set(player_ids)
+    existing = session.exec(
+        select(CompetitionRating.player_id)
+        .where(CompetitionRating.rating_type_id == rating_type_id)
+        .where(col(CompetitionRating.player_id).in_(wanted))
+    ).all()
+    for player_id in wanted - set(existing):
+        session.add(
+            CompetitionRating(player_id=player_id, rating_type_id=rating_type_id)
+        )
+
+
 @router.post("/")
 def create_match(
     match_obj: MatchCreate, session: SessionDep, _: ModeratorDep
@@ -50,6 +88,11 @@ def create_match(
     try:
         session.add(db_match)
         touch_open_competition(session, db_match.competition_id)
+        ensure_competition_ratings(
+            session,
+            db_match.competition_id,
+            (db_match.player_white_id, db_match.player_black_id),
+        )
         session.commit()
         session.refresh(db_match)
     except IntegrityError:
@@ -102,6 +145,11 @@ def update_match(
     try:
         session.add(db_match)
         touch_open_competition(session, db_match.competition_id)
+        ensure_competition_ratings(
+            session,
+            db_match.competition_id,
+            (db_match.player_white_id, db_match.player_black_id),
+        )
         session.commit()
         session.refresh(db_match)
     except IntegrityError:
