@@ -16,7 +16,7 @@ class BaseRating(abc.ABC):
 
     @abc.abstractmethod
     def calculate_change(
-        self, player_rating: float, opponent_rating: float, score: float
+        self, player_rating: float, opponent_rating: float | None, score: float
     ) -> float:
         """Calculate the change in rating of a player based on a single result.
 
@@ -39,7 +39,10 @@ class BaseRating(abc.ABC):
         raise NotImplementedError()
 
     def calculate_change_list(
-        self, player_rating: float, opponent_ratings: list[float], scores: list[float]
+        self,
+        player_rating: float,
+        opponent_ratings: list[float | None],
+        scores: list[float],
     ) -> float:
         """Calculate the change in rating of a player based on a list of results.
 
@@ -47,8 +50,9 @@ class BaseRating(abc.ABC):
         ----------
         player_rating : float
             Rating of the player for which the rating change should be calculated.
-        opponent_ratings : list[float]
-            List of ratings of the opponents. Should be the same size as `scores`.
+        opponent_ratings : list[float | None]
+            List of ratings of the opponents, `None` for an opponent without a rating.
+            Should be the same size as `scores`.
         scores : list[float]
             The scores for the player (i.e. 0, 1 or 0.5). Should be the same size as
             `opponent_ratings`.

@@ -122,14 +122,20 @@ class CompetitionRating(SQLModel, table=True):
     rating_type_id: int = Field(
         foreign_key="competitionratingtype.id", ondelete="CASCADE"
     )
-    initial_rating: float = Field(
-        description="The rating the player entered this competition with."
+    initial_rating: float | None = Field(
+        default=None,
+        description=(
+            "The rating the player entered this competition with, or None if it is"
+            " unknown."
+        ),
     )
-    current_rating: float = Field(
+    current_rating: float | None = Field(
+        default=None,
         description=(
             "The player's running rating for this competition. Derived from the"
-            " initial rating and the match results. This value is only a cache"
-        )
+            " initial rating and the match results. This value is only a cache."
+            " None when the initial rating is unknown."
+        ),
     )
     is_manual: bool = Field(
         default=False, description="Has the initial rating been set manually?"
@@ -163,8 +169,8 @@ class CompetitionRatingPublic(SQLModel):
     player_id: int
     player: "PlayerRef"
     rating_type_id: int
-    initial_rating: float
-    current_rating: float
+    initial_rating: float | None
+    current_rating: float | None
     is_manual: bool
     source_external_rating_id: int | None
     created_at: datetime
@@ -179,8 +185,8 @@ class CompetitionRatingForPlayer(SQLModel):
     """
 
     id: int
-    initial_rating: float
-    current_rating: float
+    initial_rating: float | None
+    current_rating: float | None
     is_manual: bool
     source_external_rating_id: int | None
     rating_type: CompetitionRatingTypePublic

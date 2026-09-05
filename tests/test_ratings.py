@@ -1,6 +1,7 @@
 import pytest
 
 from backend.ratings import calculate_ratings
+from backend.ratings.fide import FideRating
 from backend.ratings.simkro import SimkroRating
 
 
@@ -48,6 +49,36 @@ def test_player_not_in_ratings_not_in_output():
     result = calculate_ratings(ratings, matches, SimkroRating())
     assert 2 not in result
     assert 3 not in result
+
+
+def test_player_without_rating_not_in_output():
+    ratings = {1: 1500.0, 2: None}
+    matches = [(1, 2, 1.0)]
+    result = calculate_ratings(ratings, matches, SimkroRating())
+    assert 2 not in result
+
+
+def test_unrated_opponent_leaves_rating_unchanged():
+    ratings = {1: 1500.0, 2: None}
+    matches = [(1, 2, 1.0)]
+    result = calculate_ratings(ratings, matches, SimkroRating())
+    assert result[1] == 1500.0
+
+
+def test_only_rated_opponents_contribute():
+    # Player 1 beats a rated and an unrated opponent; only the rated game counts.
+    ratings = {1: 1500.0, 2: 1500.0, 3: None}
+    single = calculate_ratings({1: 1500.0, 2: 1500.0}, [(1, 2, 1.0)], SimkroRating())
+    mixed = calculate_ratings(ratings, [(1, 2, 1.0), (1, 3, 1.0)], SimkroRating())
+    assert mixed[1] == pytest.approx(single[1])
+
+
+def test_simkro_unrated_opponent_gives_no_change():
+    assert SimkroRating().calculate_change(1500.0, None, 1.0) == 0.0
+
+
+def test_fide_unrated_opponent_gives_no_change():
+    assert FideRating(k_factor=20).calculate_change(1500.0, None, 1.0) == 0.0
 
 
 def test_multiple_matches_accumulate():

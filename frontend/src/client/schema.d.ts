@@ -521,9 +521,9 @@ export interface components {
             /** Id */
             id: number;
             /** Initial Rating */
-            initial_rating: number;
+            initial_rating: number | null;
             /** Current Rating */
-            current_rating: number;
+            current_rating: number | null;
             /** Is Manual */
             is_manual: boolean;
             /** Source External Rating Id */
@@ -547,9 +547,9 @@ export interface components {
             /** Rating Type Id */
             rating_type_id: number;
             /** Initial Rating */
-            initial_rating: number;
+            initial_rating: number | null;
             /** Current Rating */
-            current_rating: number;
+            current_rating: number | null;
             /** Is Manual */
             is_manual: boolean;
             /** Source External Rating Id */

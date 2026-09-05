@@ -16,8 +16,10 @@ class SimkroRating(BaseRating):
     def calculate_change(
         self,
         player_rating: float,
-        opponent_rating: float,
+        opponent_rating: float | None,
         score: float,
     ) -> float:
+        if opponent_rating is None:
+            return 0.0
         rating_diff = opponent_rating - player_rating
         return self.k_factor * (score - 1 / (1 + 10 ** (rating_diff / 400)))

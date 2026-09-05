@@ -335,8 +335,16 @@ function CompetitionsSection({
                         {rating.rating_type.competition_name}
                       </Anchor>
                     </Table.Td>
-                    <Table.Td>{Math.round(rating.initial_rating)}</Table.Td>
-                    <Table.Td>{Math.round(rating.current_rating)}</Table.Td>
+                    <Table.Td>
+                      {rating.initial_rating != null
+                        ? Math.round(rating.initial_rating)
+                        : "—"}
+                    </Table.Td>
+                    <Table.Td>
+                      {rating.current_rating != null
+                        ? Math.round(rating.current_rating)
+                        : "—"}
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>

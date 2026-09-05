@@ -257,8 +257,10 @@ class FideRating(BaseRating):
         )
 
     def calculate_change(
-        self, player_rating: float, opponent_rating: float, score: float
+        self, player_rating: float, opponent_rating: float | None, score: float
     ) -> float:
+        if opponent_rating is None:
+            return 0.0
         # We round the ratings to integers. This should not matter because FIDE
         # calculates rating change based on the official published ratings, which are
         # integers.

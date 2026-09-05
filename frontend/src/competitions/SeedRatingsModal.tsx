@@ -95,7 +95,9 @@ export default function SeedRatingsModal({
     const rating = (competitionRatings ?? []).find(
       (r) => r.player_id === playerId,
     );
-    return rating ? Math.round(rating.current_rating) : null;
+    return rating?.current_rating != null
+      ? Math.round(rating.current_rating)
+      : null;
   };
 
   const valueFrom = (playerId: number, source: SeedSource) => {
