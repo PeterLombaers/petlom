@@ -213,9 +213,7 @@ export default function RegistrationEditor({
                 />
               </Table.Td>
               <Table.Td>
-                {rp.initial_rating != null
-                  ? Math.round(rp.initial_rating)
-                  : "—"}
+                {rp.rating != null ? Math.round(rp.rating) : "—"}
               </Table.Td>
               {isOdd && (
                 <Table.Td>

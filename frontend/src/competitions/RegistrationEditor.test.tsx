@@ -45,7 +45,7 @@ const CAROL = { id: 3, name: "Carol", is_active: true, external_ids: [] };
 const option = (player: typeof ALICE) => `${player.name} (—)`;
 
 function makeRegistration(id: number, player: typeof ALICE, is_bye = false) {
-  return { id, player, is_bye, initial_rating: null };
+  return { id, player, is_bye, rating: null };
 }
 
 function setupMocks({

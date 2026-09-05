@@ -352,6 +352,22 @@ def get_round_registrations(
     ).all()
 
 
+def public_round_registrations(
+    competition: Competition, round_nr: int, session: SessionDep
+) -> list[RoundRegistrationPublic]:
+    """The round's registrations, each with the player's derived current rating."""
+    ratings = current_ratings(competition, session)
+    return [
+        RoundRegistrationPublic(
+            id=reg.id,
+            player=reg.player,
+            is_bye=reg.is_bye,
+            rating=ratings.get(reg.player_id),
+        )
+        for reg in get_round_registrations(competition, round_nr, session)
+    ]
+
+
 def get_or_create_competition_rating(
     player: Player,
     rating_type: CompetitionRatingType,
@@ -416,14 +432,11 @@ def add_round_registrations(
     already_added = {
         reg.player_id for reg in get_round_registrations(competition, round_nr, session)
     }
-    # A player seeded below is not in here yet, so their snapshot falls back to
-    # the initial rating they are being seeded with.
-    derived_ratings = current_ratings(competition, session)
 
     for player_id in player_ids:
         if player_id in already_added:
             continue
-        comp_rating = get_or_create_competition_rating(
+        get_or_create_competition_rating(
             players_by_id[player_id],
             rating_type,
             initial_ratings.get(player_id),
@@ -435,9 +448,6 @@ def add_round_registrations(
                 competition_id=competition.id,
                 round=round_nr,
                 player_id=player_id,
-                initial_rating=derived_ratings.get(
-                    player_id, comp_rating.initial_rating
-                ),
             )
         )
         already_added.add(player_id)
@@ -486,7 +496,7 @@ def retrieve_round_registrations(
     name: str, round_nr: int, session: SessionDep
 ) -> list[RoundRegistrationPublic]:
     competition = find_competition(name, session)
-    return get_round_registrations(competition, round_nr, session)
+    return public_round_registrations(competition, round_nr, session)
 
 
 @router.get("/{name}/registrations/import-preview")
@@ -562,7 +572,7 @@ def update_round_registrations(
 
     session.commit()
 
-    return get_round_registrations(competition, round_nr, session)
+    return public_round_registrations(competition, round_nr, session)
 
 
 @router.delete("/{name}/registrations")

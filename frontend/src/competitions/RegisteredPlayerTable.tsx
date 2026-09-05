@@ -45,7 +45,7 @@ export default function RegisteredPlayerTable({
               />
             </Table.Td>
             <Table.Td>
-              {rp.initial_rating != null ? Math.round(rp.initial_rating) : "—"}
+              {rp.rating != null ? Math.round(rp.rating) : "—"}
             </Table.Td>
             {hasBye && (
               <Table.Td>{rp.is_bye && <IconCheck size={16} />}</Table.Td>

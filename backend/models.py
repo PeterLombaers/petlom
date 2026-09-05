@@ -619,14 +619,6 @@ class RoundRegistration(SQLModel, table=True):
     round: int
     player_id: int = Field(foreign_key="player.id")
     is_bye: bool = False
-    initial_rating: float | None = Field(
-        default=None,
-        description=(
-            "A snapshot of the player's competition rating when they registered."
-            " Read by nothing on the backend; the live CompetitionRating is the"
-            " rating of record."
-        ),
-    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     player: Player = Relationship()
 
@@ -637,7 +629,12 @@ class RoundRegistrationPublic(SQLModel):
     id: int
     player: PlayerRef
     is_bye: bool
-    initial_rating: float | None
+    rating: float | None = Field(
+        description=(
+            "The player's current competition rating, derived from their initial"
+            " rating and the matches they played. None when it is unknown."
+        )
+    )
 
 
 class ImportedRegistrationMatch(SQLModel):

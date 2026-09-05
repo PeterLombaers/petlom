@@ -1125,8 +1125,11 @@ export interface components {
             player: components["schemas"]["PlayerRef"];
             /** Is Bye */
             is_bye: boolean;
-            /** Initial Rating */
-            initial_rating: number | null;
+            /**
+             * Rating
+             * @description The player's current competition rating, derived from their initial rating and the matches they played. None when it is unknown.
+             */
+            rating: number | null;
         };
         /**
          * RoundRegistrationUpdate
