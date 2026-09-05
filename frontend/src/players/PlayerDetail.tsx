@@ -291,8 +291,8 @@ function ExternalIdRow({ externalId }: { externalId: PlayerExternalIdPublic }) {
 /**
  * The competitions the player has a rating in, most recent first.
  *
- * No rank column: rank only comes from POST /competitions/{name}/ranking, which
- * recomputes and persists ratings and must not fire from a read-only page.
+ * No rank column: rank comes from GET /competitions/{name}/ranking, one request
+ * per competition the player appears in, for a single row out of each.
  */
 function CompetitionsSection({
   ratings,

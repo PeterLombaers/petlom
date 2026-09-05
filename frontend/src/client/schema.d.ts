@@ -136,10 +136,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Retrieve Ranking */
+        get: operations["retrieve_ranking_competitions__name__ranking_get"];
         put?: never;
-        /** Create Ranking */
-        post: operations["create_ranking_competitions__name__ranking_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1615,7 +1615,7 @@ export interface operations {
             };
         };
     };
-    create_ranking_competitions__name__ranking_post: {
+    retrieve_ranking_competitions__name__ranking_get: {
         parameters: {
             query?: {
                 round_nr?: number | null;

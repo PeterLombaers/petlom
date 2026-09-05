@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
+from backend.competitions.ranking import refresh_ratings_cache
 from backend.dependencies import (
     MAX_PAGE_LENGTH,
     SessionDep,
@@ -24,17 +25,34 @@ MATCH_CONFLICT_DETAIL = (
 )
 
 
+def ensure_open_by_id(session: SessionDep, competition_id: int) -> None:
+    """Reject the write up front if the competition is finished.
+
+    Separate from `touch_open_competition` because the guard has to run before
+    the match is changed, while the recompute has to run after it.
+    """
+    competition = session.get(Competition, competition_id)
+    if competition:
+        ensure_competition_open(competition)
+
+
 def touch_open_competition(session: SessionDep, competition_id: int):
-    """Bump `updated_at`, rejecting the write if the competition is finished.
+    """Bump `updated_at` and refresh the ratings, rejecting a finished competition.
 
     Bumping a frozen competition is exactly what must not happen, so the guard
-    lives here rather than in each caller.
+    lives here rather than in each caller. Every match write goes through here,
+    and every match write can change a rating, so the recompute belongs here too.
+    Call this *after* the match change, so the recompute sees it.
     """
     competition = session.get(Competition, competition_id)
     if competition:
         ensure_competition_open(competition)
         competition.updated_at = datetime.now(UTC)
         session.add(competition)
+        # The pending match change has to reach the database before the
+        # recompute queries for it.
+        session.flush()
+        refresh_ratings_cache(competition, session)
 
 
 @router.post("/")
@@ -79,8 +97,10 @@ def retrieve_match(id: int, session: SessionDep) -> MatchPublic:
 @router.delete("/{id}")
 def delete_match(id: int, session: SessionDep, _: ModeratorDep):
     match_obj = find_object(model=Match, identifier=id, session=session)
-    touch_open_competition(session, match_obj.competition_id)
+    competition_id = match_obj.competition_id
+    ensure_open_by_id(session, competition_id)
     session.delete(match_obj)
+    touch_open_competition(session, competition_id)
     session.commit()
     return {"ok": True}
 
@@ -96,11 +116,15 @@ def update_match(
     if new_name is not None:
         update_data["competition_id"] = find_competition(new_name, session).id
     # Moving a match touches both sides, so both have to be open.
-    touch_open_competition(session, old_competition_id)
+    ensure_open_by_id(session, old_competition_id)
+    ensure_open_by_id(session, update_data.get("competition_id", old_competition_id))
     db_match.sqlmodel_update(update_data)
     db_match.updated_at = datetime.now(UTC)
     try:
         session.add(db_match)
+        # Both sides recompute, or the competition the match left keeps stale
+        # ratings.
+        touch_open_competition(session, old_competition_id)
         touch_open_competition(session, db_match.competition_id)
         session.commit()
         session.refresh(db_match)

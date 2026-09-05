@@ -720,7 +720,7 @@ class RoundRegistrationUpdate(SQLModel):
 
 
 class SimkroRank(SQLModel):
-    """A ranking row as returned by GET|POST /competitions/{name}/ranking."""
+    """A ranking row as returned by GET /competitions/{name}/ranking."""
 
     position: int
     player: PlayerRef

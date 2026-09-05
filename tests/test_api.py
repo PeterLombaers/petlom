@@ -919,18 +919,140 @@ def test_competition_ranking(
 ):
     competition, players, _ = simkro_setup
     # Without round_nr defaults to latest round (all players).
-    res = client.post(f"/competitions/{competition.name}/ranking")
+    res = client.get(f"/competitions/{competition.name}/ranking")
     res.raise_for_status()
     ranking = res.json()
     assert len(ranking) == len(players)
 
     # Last two players did not play in the first round.
-    res = client.post(
+    res = client.get(
         f"/competitions/{competition.name}/ranking", params={"round_nr": 1}
     )
     res.raise_for_status()
     ranking = res.json()
     assert len(ranking) == len(players) - 2
+
+
+def seed_competition_ratings(
+    competition: Competition, players: list[Player], session: Session
+) -> None:
+    for player in players:
+        session.add(
+            CompetitionRating(
+                player_id=player.id,
+                rating_type_id=competition.rating_type.id,
+                initial_rating=1500.0,
+                current_rating=1500.0,
+            )
+        )
+    session.commit()
+
+
+def stored_ratings(competition: Competition, session: Session) -> dict[int, float]:
+    session.expire_all()
+    return {
+        cr.player_id: cr.current_rating
+        for cr in session.scalars(
+            select(CompetitionRating).where(
+                CompetitionRating.rating_type_id == competition.rating_type.id
+            )
+        ).all()
+    }
+
+
+def ranking_ratings(
+    client: TestClient, competition: Competition, round_nr: int | None = None
+) -> dict[int, float]:
+    """The derived ratings, straight from the pure ranking endpoint."""
+    res = client.get(
+        f"/competitions/{competition.name}/ranking",
+        params={"round_nr": round_nr} if round_nr is not None else None,
+    )
+    res.raise_for_status()
+    return {rank["player"]["id"]: rank["current_rating"] for rank in res.json()}
+
+
+def test_ranking_is_a_pure_read(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    client: TestClient,
+    session: Session,
+):
+    """Viewing a historical ranking must not rewind the stored ratings."""
+    competition, players, _ = simkro_setup
+    seed_competition_ratings(competition, players, session)
+
+    res = client.get(f"/competitions/{competition.name}/ranking")
+    res.raise_for_status()
+    latest = {rank["player"]["id"]: rank["current_rating"] for rank in res.json()}
+    before = stored_ratings(competition, session)
+
+    res = client.get(
+        f"/competitions/{competition.name}/ranking", params={"round_nr": 1}
+    )
+    res.raise_for_status()
+    round_one = {rank["player"]["id"]: rank["current_rating"] for rank in res.json()}
+
+    assert stored_ratings(competition, session) == before
+    # The round-1 ranking really is a different set of ratings, so this is not
+    # passing by the two being identical.
+    assert round_one != {pid: latest[pid] for pid in round_one}
+
+
+def test_match_result_edit_updates_stored_ratings(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+):
+    competition, players, matches = simkro_setup
+    seed_competition_ratings(competition, players, session)
+
+    match_id = matches[0].id
+    white_id, black_id = matches[0].player_white_id, matches[0].player_black_id
+    before = ranking_ratings(auth_client, competition)
+
+    res = auth_client.patch(f"/matches/{match_id}/", json={"result": "0-1"})
+    res.raise_for_status()
+
+    after = stored_ratings(competition, session)
+    # The stored ratings are the cache; the write refreshed them to the value
+    # the ranking derives.
+    assert after == ranking_ratings(auth_client, competition)
+    assert after[white_id] < before[white_id]
+    assert after[black_id] > before[black_id]
+
+
+def test_moving_a_match_recomputes_both_competitions(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    competition_factory: Callable[..., Competition],
+    auth_client: TestClient,
+    session: Session,
+):
+    source, players, matches = simkro_setup
+    target = competition_factory(name="interne_2025")
+    seed_competition_ratings(source, players, session)
+    seed_competition_ratings(target, players, session)
+
+    match_id = matches[0].id
+    white_id = matches[0].player_white_id
+    source_before = ranking_ratings(auth_client, source)
+
+    res = auth_client.patch(
+        f"/matches/{match_id}/", json={"competition_name": target.name}
+    )
+    res.raise_for_status()
+
+    # Both sides recomputed: the match left the source, where its result no
+    # longer counts, and arrived in the target, where it now does.
+    source_after = stored_ratings(source, session)
+    assert source_after == ranking_ratings(auth_client, source)
+    assert source_after[white_id] < source_before[white_id]
+
+    target_after = stored_ratings(target, session)
+    assert target_after[white_id] > 1500.0
+    # Only the two players who played appear in the target's ranking; the rest
+    # keep their seeded rating.
+    target_ranking = ranking_ratings(auth_client, target)
+    assert {pid: target_after[pid] for pid in target_ranking} == target_ranking
 
 
 def test_round_registrations_add_remove(
@@ -1384,6 +1506,6 @@ def test_finished_competition_can_still_be_deleted(
 def test_finished_competition_ranking_still_renders(
     finished_competition: Competition, auth_client: TestClient
 ):
-    res = auth_client.post(f"/competitions/{finished_competition.name}/ranking")
+    res = auth_client.get(f"/competitions/{finished_competition.name}/ranking")
     res.raise_for_status()
     assert res.json()

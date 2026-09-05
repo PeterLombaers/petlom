@@ -8,7 +8,8 @@ from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
 from backend.club_site import ClubSiteError, fetch_registered_names
-from backend.competitions.simkro import calculate_ranking, create_matchups
+from backend.competitions.ranking import compute_ranking, refresh_ratings_cache
+from backend.competitions.simkro import create_matchups
 from backend.config import settings
 from backend.dependencies import (
     MAX_PAGE_LENGTH,
@@ -16,7 +17,6 @@ from backend.dependencies import (
     ensure_competition_open,
     find_competition,
 )
-from backend.enums import Result
 from backend.models import (
     Competition,
     CompetitionCreate,
@@ -40,7 +40,6 @@ from backend.models import (
     RoundRegistrationUpdate,
     SimkroRank,
 )
-from backend.ratings import calculate_ratings
 from backend.registration_import import match_names
 
 router = APIRouter(prefix="/competitions", tags=["competitions"])
@@ -295,6 +294,9 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
         session.delete(m)
     competition.updated_at = datetime.now(UTC)
     session.add(competition)
+    # Dropping a round drops its results with it.
+    session.flush()
+    refresh_ratings_cache(competition, session)
     session.commit()
     return {"ok": True}
 
@@ -304,77 +306,14 @@ def delete_pairing(name: str, round_nr: int, session: SessionDep, _: ModeratorDe
 # ---------------------------------------------------------------------------
 
 
-def update_ratings(
-    competition: Competition,
-    matches: Sequence[Match],
-    ranking: list[SimkroRank],
-    session: SessionDep,
-) -> None:
-    """Recalculate the competition ratings from the matches.
-
-    Updates the stored `CompetitionRating` rows and annotates the ranking with the
-    new ratings.
-    """
-    rating_type = competition.rating_type
-    comp_ratings_list = session.exec(
-        select(CompetitionRating).where(
-            CompetitionRating.rating_type_id == rating_type.id
-        )
-    ).all()
-
-    initial_ratings = {cr.player_id: cr.initial_rating for cr in comp_ratings_list}
-    match_tuples = [
-        (
-            m.player_white_id,
-            m.player_black_id,
-            1.0
-            if m.result == Result.WHITE_WIN
-            else 0.5
-            if m.result == Result.DRAW
-            else 0.0,
-        )
-        for m in sorted(
-            (m for m in matches if m.result is not None),
-            key=lambda m: (m.round, m.board),
-        )
-    ]
-
-    new_ratings = calculate_ratings(
-        initial_ratings, match_tuples, rating_type.build_rating_algorithm()
-    )
-
-    for cr in comp_ratings_list:
-        new_rating = new_ratings.get(cr.player_id)
-        if new_rating is not None:
-            cr.current_rating = new_rating
-            cr.updated_at = datetime.now(UTC)
-            session.add(cr)
-
-    ratings_by_player = {cr.player_id: cr.current_rating for cr in comp_ratings_list}
-    for rank in ranking:
-        current = ratings_by_player.get(rank.player.id)
-        if current is not None:
-            rank.current_rating = current
-
-
-@router.post("/{name}/ranking")
-def create_ranking(
+@router.get("/{name}/ranking")
+def retrieve_ranking(
     name: str, session: SessionDep, round_nr: int | None = None
 ) -> list[SimkroRank]:
     competition = find_competition(name, session)
     if round_nr is None:
         round_nr = get_latest_round_nr(competition, session)
-    matches = session.exec(
-        select(Match)
-        .where(Match.round <= round_nr)
-        .where(Match.competition == competition)
-    ).all()
-    ranking = calculate_ranking(matches)
-
-    update_ratings(competition, matches, ranking, session)
-
-    session.commit()
-    return ranking
+    return compute_ranking(competition, round_nr, session)
 
 
 # ---------------------------------------------------------------------------
@@ -495,6 +434,10 @@ def add_round_registrations(
             )
         )
         already_added.add(player_id)
+
+    # A newly seeded CompetitionRating starts at its initial rating; the games
+    # already played in this competition still have to be applied to it.
+    refresh_ratings_cache(competition, session)
 
 
 def remove_round_registrations(

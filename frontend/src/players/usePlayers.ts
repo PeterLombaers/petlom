@@ -51,19 +51,12 @@ export function usePlayers() {
     { onSuccess },
   );
 
-  // A merge rewrites the merged player's matches, registrations and ratings,
-  // so it dirties every cache that nests a player, not just the player caches.
-  const onMergeSuccess = () => {
-    onSuccess();
-    for (const key of [
-      endpointKey("get", "/competitions/{name}/pairing"),
-      endpointKey("get", "/competitions/{name}/registrations"),
-      endpointKey("get", "/competitions/{name}/player-ratings"),
-      endpointKey("post", "/competitions/{name}/ranking"),
-    ]) {
-      queryClient.invalidateQueries({ queryKey: key });
-    }
-  };
+  // A merge rewrites the merged player's matches, registrations and ratings, so
+  // it dirties every cache that nests a player — which is very nearly all of
+  // them. Listing those endpoints only invited the list to go stale as new ones
+  // appeared, and a merge is rare enough that refetching everything is cheaper
+  // than getting that list wrong.
+  const onMergeSuccess = () => queryClient.invalidateQueries();
 
   // `silent` for the same reason as the others: `MergePlayerModal` keeps the
   // failure on screen next to the two players it was about.

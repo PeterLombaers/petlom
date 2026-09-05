@@ -24,7 +24,7 @@ export function useMatches(competitionName: string, round: number) {
       queryKey: endpointKey("get", "/competitions/"),
     });
     queryClient.invalidateQueries({
-      queryKey: endpointKey("post", "/competitions/{name}/ranking"),
+      queryKey: endpointKey("get", "/competitions/{name}/ranking"),
     });
   };
   // See `usePlayers` for why create and edit are `silent` and delete is not.
