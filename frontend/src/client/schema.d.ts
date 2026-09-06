@@ -934,12 +934,13 @@ export interface components {
         /**
          * PairingCreate
          * @description Request body of POST /competitions/{name}/pairing.
+         *
+         *     The field is taken from the round's registrations, so the round number is
+         *     all the request carries.
          */
         PairingCreate: {
             /** Round Nr */
             round_nr: number;
-            /** Player Ids */
-            player_ids: number[];
         };
         /**
          * PlayerCreate

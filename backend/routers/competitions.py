@@ -9,6 +9,7 @@ from sqlmodel import col, select
 from backend.auth import ModeratorDep
 from backend.club_site import ClubSiteError, fetch_registered_names
 from backend.competitions.ranking import compute_ranking, current_ratings
+from backend.competitions.registry import round_field
 from backend.competitions.simkro import create_matchups
 from backend.config import settings
 from backend.dependencies import (
@@ -261,7 +262,6 @@ def create_pairing(
     competition = find_competition(name, session)
     ensure_competition_open(competition)
     round_nr = pairing.round_nr
-    player_ids = pairing.player_ids
 
     # Check if the previous round exists and the current or later rounds do not exist.
     if round_nr > 1:
@@ -293,16 +293,7 @@ def create_pairing(
             ),
         )
 
-    # Check if the players all exist.
-    db_players = session.exec(select(Player).where(Player.id.in_(player_ids))).all()
-    db_player_ids = {db_player.id for db_player in db_players}
-    non_existing_player_ids = [
-        player_id for player_id in player_ids if player_id not in db_player_ids
-    ]
-    if non_existing_player_ids:
-        raise HTTPException(
-            status_code=404, detail=f"Player ids not found: {non_existing_player_ids}"
-        )
+    players = round_field(competition, round_nr, session)
 
     previous_matches = session.exec(
         select(Match)
@@ -311,7 +302,7 @@ def create_pairing(
     ).all()
     matches = create_matchups(
         matches=previous_matches,
-        players=db_players,
+        players=players,
         round_nr=round_nr,
         competition=competition,
     )

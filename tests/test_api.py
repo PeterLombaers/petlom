@@ -802,6 +802,24 @@ def test_retrieve_pairing_latest(
     assert {m["id"] for m in res_matches} == {m.id for m in latest_round_matches}
 
 
+def register_for_round(
+    auth_client: TestClient,
+    competition: Competition,
+    round_nr: int,
+    players: list[Player],
+    bye_player: Player | None = None,
+) -> None:
+    body: dict = {"player_ids_to_add": [p.id for p in players]}
+    if bye_player is not None:
+        body["bye_player_id"] = bye_player.id
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": round_nr},
+        json=body,
+    )
+    res.raise_for_status()
+
+
 def test_create_pairing(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     player_factory: Callable[..., Player],
@@ -813,29 +831,33 @@ def test_create_pairing(
     players += [player_factory() for _ in range(20)]
     player_ids = [player.id for player in players]
     max_round_nr = max(m.round for m in matches)
+    correct_round_nr = max_round_nr + 1
 
     # Create data in other competition to check it does not interfere with current
     # competition.
     other_competition = competition_factory(name="other")
     other_match = match_factory(competition=other_competition, round=max_round_nr + 1)
     match_factory(competition=other_competition, round=max_round_nr + 2)
+
+    for round_nr in (*range(1, max_round_nr + 1), correct_round_nr, max_round_nr + 2):
+        register_for_round(auth_client, competition, round_nr, players)
+
     # Check only the next round can be created.
     for round_nr in range(1, max_round_nr + 1):
         res = auth_client.post(
             f"/competitions/{competition.name}/pairing",
-            json={"round_nr": round_nr, "player_ids": player_ids},
+            json={"round_nr": round_nr},
         )
         assert res.status_code == 400
     res = auth_client.post(
         f"/competitions/{competition.name}/pairing",
-        json={"round_nr": max_round_nr + 2, "player_ids": player_ids},
+        json={"round_nr": max_round_nr + 2},
     )
     assert res.status_code == 400
 
-    correct_round_nr = max_round_nr + 1
     res = auth_client.post(
         f"/competitions/{competition.name}/pairing",
-        json={"round_nr": correct_round_nr, "player_ids": player_ids},
+        json={"round_nr": correct_round_nr},
     )
     res.raise_for_status()
     created_matches = res.json()
@@ -855,15 +877,64 @@ def test_create_pairing_odd_number_of_players(
     auth_client: TestClient,
 ):
     (competition, players, matches) = simkro_setup
-    player_ids = [player.id for player in players][:-1]
-    assert len(player_ids) % 2 == 1
+    next_round_nr = max(m.round for m in matches) + 1
+    odd_field = players[:-1]
+    assert len(odd_field) % 2 == 1
+    register_for_round(auth_client, competition, next_round_nr, odd_field)
 
     res = auth_client.post(
         f"/competitions/{competition.name}/pairing",
-        json={"round_nr": max(m.round for m in matches) + 1, "player_ids": player_ids},
+        json={"round_nr": next_round_nr},
     )
     assert res.status_code == 422
     assert "even" in res.text
+
+
+def test_create_pairing_odd_number_of_players_with_bye(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+):
+    """The bye player is left out, so the remaining even field is paired."""
+    (competition, players, matches) = simkro_setup
+    next_round_nr = max(m.round for m in matches) + 1
+    odd_field = players[:-1]
+    assert len(odd_field) % 2 == 1
+    register_for_round(
+        auth_client, competition, next_round_nr, odd_field, bye_player=odd_field[0]
+    )
+
+    res = auth_client.post(
+        f"/competitions/{competition.name}/pairing",
+        json={"round_nr": next_round_nr},
+    )
+    res.raise_for_status()
+    created_matches = res.json()
+    assert len(created_matches) == len(odd_field) // 2
+    paired_ids = {m["player_white_id"] for m in created_matches} | {
+        m["player_black_id"] for m in created_matches
+    }
+    assert paired_ids == {p.id for p in odd_field[1:]}
+    assert odd_field[0].id not in paired_ids
+
+
+def test_create_pairing_deleted_player(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+):
+    (competition, players, matches) = simkro_setup
+    next_round_nr = max(m.round for m in matches) + 1
+    register_for_round(auth_client, competition, next_round_nr, players)
+    players[0].is_active = False
+    session.add(players[0])
+    session.commit()
+
+    res = auth_client.post(
+        f"/competitions/{competition.name}/pairing",
+        json={"round_nr": next_round_nr},
+    )
+    assert res.status_code == 422
+    assert players[0].name in res.text
 
 
 def test_create_pairing_no_players(
@@ -874,24 +945,32 @@ def test_create_pairing_no_players(
 
     res = auth_client.post(
         f"/competitions/{competition.name}/pairing",
-        json={"round_nr": max(m.round for m in matches) + 1, "player_ids": []},
+        json={"round_nr": max(m.round for m in matches) + 1},
     )
     assert res.status_code == 422
 
 
-def test_create_pairing_duplicate_players(
+def test_create_pairing_ignores_unregistered_players(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
+    player_factory: Callable[..., Player],
     auth_client: TestClient,
 ):
     (competition, players, matches) = simkro_setup
-    player_ids = [player.id for player in players] + [players[0].id, players[1].id]
+    next_round_nr = max(m.round for m in matches) + 1
+    outsider = player_factory()
+    register_for_round(auth_client, competition, next_round_nr, players)
 
     res = auth_client.post(
         f"/competitions/{competition.name}/pairing",
-        json={"round_nr": max(m.round for m in matches) + 1, "player_ids": player_ids},
+        json={"round_nr": next_round_nr},
     )
-    assert res.status_code == 422
-    assert "unique" in res.text
+    res.raise_for_status()
+    created_matches = res.json()
+    paired_ids = {m["player_white_id"] for m in created_matches} | {
+        m["player_black_id"] for m in created_matches
+    }
+    assert paired_ids == {p.id for p in players}
+    assert outsider.id not in paired_ids
 
 
 def test_delete_pairing(
@@ -1598,11 +1677,11 @@ def test_finished_competition_rejects_pairing(
     simkro_setup: tuple[Competition, list[Player], list[Match]],
     auth_client: TestClient,
 ):
-    (_, players, matches) = simkro_setup
+    (_, _, matches) = simkro_setup
     next_round = max(m.round for m in matches) + 1
     res = auth_client.post(
         f"/competitions/{finished_competition.name}/pairing",
-        json={"round_nr": next_round, "player_ids": [p.id for p in players]},
+        json={"round_nr": next_round},
     )
     assert res.status_code == 409
 

@@ -161,13 +161,10 @@ export default function RegistrationEditor({
   };
 
   const handleGeneratePairing = () => {
-    const playerIds = registrations
-      .filter((rp) => !rp.is_bye)
-      .map((rp) => rp.player.id);
     createPairingMutation.mutate(
       {
         params: { path: { name: competitionName } },
-        body: { round_nr: roundNr, player_ids: playerIds },
+        body: { round_nr: roundNr },
       },
       { onSuccess: onPairingCreated },
     );
