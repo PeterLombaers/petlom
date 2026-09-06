@@ -181,7 +181,13 @@ export interface paths {
         delete: operations["delete_round_registrations_competitions__name__registrations_delete"];
         options?: never;
         head?: never;
-        /** Update Round Registrations */
+        /**
+         * Update Round Registrations
+         * @description Add to, remove from and set the bye of one round's registrations.
+         *
+         *     The three fields are applied in that fixed order, so a single request can
+         *     move a player out of the round and hand the bye to someone else.
+         */
         patch: operations["update_round_registrations_competitions__name__registrations_patch"];
         trace?: never;
     };
@@ -1182,14 +1188,9 @@ export interface components {
             player_ids_to_remove?: number[] | null;
             /**
              * Bye Player Id
-             * @description The player to give the bye for this round, replacing any existing one. They must be registered for the round, and they are left out of the pairing.
+             * @description The player to give the bye for this round, replacing any existing one. They must be registered for the round, and they are left out of the pairing. Send `null` to clear the round's bye; omit the field to leave the bye as it is.
              */
             bye_player_id?: number | null;
-            /**
-             * Clear Bye
-             * @description Remove the round's bye, leaving every registered player paired.
-             */
-            clear_bye?: boolean | null;
             /**
              * Initial Ratings
              * @description Initial competition ratings, by player id, for players in `player_ids_to_add` who do not have a CompetitionRating yet. To update this for a player, use the player-ratings endpoint.

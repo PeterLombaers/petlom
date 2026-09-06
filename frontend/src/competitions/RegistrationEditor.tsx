@@ -157,7 +157,7 @@ export default function RegistrationEditor({
   };
 
   const handleClearBye = () => {
-    updateMutation.mutate({ ...roundParams, body: { clear_bye: true } });
+    updateMutation.mutate({ ...roundParams, body: { bye_player_id: null } });
   };
 
   const handleGeneratePairing = () => {

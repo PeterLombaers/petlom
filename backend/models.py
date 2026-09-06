@@ -695,12 +695,9 @@ class RoundRegistrationUpdate(SQLModel):
         description=(
             "The player to give the bye for this round, replacing any existing"
             " one. They must be registered for the round, and they are left out"
-            " of the pairing."
+            " of the pairing. Send `null` to clear the round's bye; omit the"
+            " field to leave the bye as it is."
         ),
-    )
-    clear_bye: bool | None = Field(
-        default=None,
-        description="Remove the round's bye, leaving every registered player paired.",
     )
     initial_ratings: dict[int, float] | None = Field(
         default=None,

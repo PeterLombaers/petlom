@@ -437,13 +437,23 @@ def add_round_registrations(
     round_nr: int,
     player_ids: list[int],
     initial_ratings: dict[int, float],
+    registrations: list[RoundRegistration],
     session: SessionDep,
 ) -> None:
-    db_players = session.exec(select(Player).where(Player.id.in_(player_ids))).all()
+    """Register `player_ids` for the round, appending to `registrations`."""
+    db_players = session.exec(
+        select(Player).where(col(Player.id).in_(player_ids))
+    ).all()
     players_by_id = {p.id: p for p in db_players}
     missing = [pid for pid in player_ids if pid not in players_by_id]
     if missing:
         raise HTTPException(status_code=404, detail=f"Player ids not found: {missing}")
+    inactive = [pid for pid, p in players_by_id.items() if not p.is_active]
+    if inactive:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Deleted players can not be registered: {sorted(inactive)}",
+        )
 
     rating_type = competition.rating_type
     existing_ratings: dict[int, CompetitionRating] = {
@@ -451,14 +461,23 @@ def add_round_registrations(
         for cr in session.exec(
             select(CompetitionRating).where(
                 CompetitionRating.rating_type_id == rating_type.id,
-                CompetitionRating.player_id.in_(player_ids),
+                col(CompetitionRating.player_id).in_(player_ids),
             )
         ).all()
     }
-    already_added = {
-        reg.player_id for reg in get_round_registrations(competition, round_nr, session)
-    }
+    already_rated = sorted(set(initial_ratings) & set(existing_ratings))
+    if already_rated:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "These players already have an initial rating for this"
+                f" competition: {already_rated}. Use PATCH"
+                f" /competitions/{competition.name}/player-ratings/{{player_id}}"
+                " to change it."
+            ),
+        )
 
+    already_added = {reg.player_id for reg in registrations}
     for player_id in player_ids:
         if player_id in already_added:
             continue
@@ -469,37 +488,42 @@ def add_round_registrations(
             existing_ratings,
             session,
         )
-        session.add(
-            RoundRegistration(
-                competition_id=competition.id,
-                round=round_nr,
-                player_id=player_id,
-            )
+        registration = RoundRegistration(
+            competition_id=competition.id,
+            round=round_nr,
+            player_id=player_id,
         )
+        session.add(registration)
+        registrations.append(registration)
         already_added.add(player_id)
 
 
 def remove_round_registrations(
-    competition: Competition,
-    round_nr: int,
     player_ids: list[int],
+    registrations: list[RoundRegistration],
     session: SessionDep,
 ) -> None:
+    """Unregister `player_ids` from the round, dropping them from `registrations`.
+
+    Their CompetitionRating is deliberately left in place: it is the rating the
+    player entered the competition with, possibly typed by hand, and an
+    accidental removal should not discard it.
+    """
     to_remove = set(player_ids)
-    for reg in get_round_registrations(competition, round_nr, session):
+    for reg in list(registrations):
         if reg.player_id in to_remove:
             session.delete(reg)
+            registrations.remove(reg)
 
 
 def update_bye(
-    competition: Competition,
-    round_nr: int,
     bye_player_id: int | None,
+    registrations: list[RoundRegistration],
     session: SessionDep,
 ) -> None:
     """Clear any existing bye and, if given, assign the bye to `bye_player_id`."""
     new_bye_player = None
-    for reg in get_round_registrations(competition, round_nr, session):
+    for reg in registrations:
         if reg.is_bye:
             reg.is_bye = False
             session.add(reg)
@@ -573,28 +597,48 @@ def preview_registration_import(
 @router.patch("/{name}/registrations")
 def update_round_registrations(
     name: str,
-    round_nr: int,
+    round_nr: Annotated[int, Query(ge=1)],
     update: RoundRegistrationUpdate,
     session: SessionDep,
     _: ModeratorDep,
 ) -> list[RoundRegistrationPublic]:
+    """Add to, remove from and set the bye of one round's registrations.
+
+    The three fields are applied in that fixed order, so a single request can
+    move a player out of the round and hand the bye to someone else.
+    """
     competition = find_competition(name, session)
     ensure_competition_open(competition)
 
-    if update.player_ids_to_add:
+    to_add = update.player_ids_to_add or []
+    to_remove = update.player_ids_to_remove or []
+    initial_ratings = update.initial_ratings or {}
+    both = sorted(set(to_add) & set(to_remove))
+    if both:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Players are both added and removed: {both}",
+        )
+    unregistered_ratings = sorted(set(initial_ratings) - set(to_add))
+    if unregistered_ratings:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Initial ratings were given for players that are not being"
+                f" registered: {unregistered_ratings}"
+            ),
+        )
+
+    registrations = list(get_round_registrations(competition, round_nr, session))
+    if to_add:
         add_round_registrations(
-            competition,
-            round_nr,
-            update.player_ids_to_add,
-            update.initial_ratings or {},
-            session,
+            competition, round_nr, to_add, initial_ratings, registrations, session
         )
-    if update.player_ids_to_remove:
-        remove_round_registrations(
-            competition, round_nr, update.player_ids_to_remove, session
-        )
-    if update.clear_bye or update.bye_player_id is not None:
-        update_bye(competition, round_nr, update.bye_player_id, session)
+    if to_remove:
+        remove_round_registrations(to_remove, registrations, session)
+    # An omitted `bye_player_id` leaves the bye alone; an explicit null clears it.
+    if "bye_player_id" in update.model_fields_set:
+        update_bye(update.bye_player_id, registrations, session)
 
     session.commit()
 

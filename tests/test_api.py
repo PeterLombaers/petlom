@@ -1404,11 +1404,146 @@ def test_round_registrations_bye(
     res = auth_client.patch(
         f"/competitions/{competition.name}/registrations",
         params={"round_nr": 1},
-        json={"clear_bye": True},
+        json={"bye_player_id": None},
     )
     res.raise_for_status()
     players = res.json()
     assert all(not rp["is_bye"] for rp in players)
+
+
+def test_round_registrations_reject_inactive_player(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+):
+    active, deleted = player_factory(), player_factory(is_active=False)
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [active.id, deleted.id]},
+    )
+    assert res.status_code == 422
+    assert str(deleted.id) in str(res.json()["detail"])
+
+    # The whole request is refused, so nobody is registered.
+    res = auth_client.get(
+        f"/competitions/{competition.name}/registrations", params={"round_nr": 1}
+    )
+    res.raise_for_status()
+    assert res.json() == []
+
+
+def test_round_registrations_reject_round_nr_below_one(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+):
+    player = player_factory()
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 0},
+        json={"player_ids_to_add": [player.id]},
+    )
+    assert res.status_code == 422
+
+
+def test_round_registrations_reject_add_and_remove_of_same_player(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    session: Session,
+):
+    player = player_factory()
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={
+            "player_ids_to_add": [player.id],
+            "player_ids_to_remove": [player.id],
+        },
+    )
+    assert res.status_code == 422
+    # No CompetitionRating is created as a side effect of the refused request.
+    assert session.exec(select(CompetitionRating)).all() == []
+
+
+def test_round_registrations_reject_stray_initial_ratings(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    session: Session,
+):
+    p1, p2 = player_factory(), player_factory()
+
+    # A rating for a player who is not being registered.
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={
+            "player_ids_to_add": [p1.id],
+            "initial_ratings": {str(p2.id): 1500.0},
+        },
+    )
+    assert res.status_code == 422
+
+    # A rating for a player who already has one, rather than silently ignoring it.
+    seed_competition_ratings(competition, [p1], session)
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={
+            "player_ids_to_add": [p1.id],
+            "initial_ratings": {str(p1.id): 1900.0},
+        },
+    )
+    assert res.status_code == 422
+    assert "player-ratings" in str(res.json()["detail"])
+    assert reported_ratings(auth_client, competition) == {p1.id: 1500.0}
+
+
+def test_round_registrations_keep_rating_after_removal(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+):
+    player = player_factory()
+    auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [player.id], "initial_ratings": {player.id: 1700.0}},
+    ).raise_for_status()
+    auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={"player_ids_to_remove": [player.id]},
+    ).raise_for_status()
+
+    assert reported_ratings(auth_client, competition) == {player.id: 1700.0}
+
+
+def test_round_registrations_remove_then_move_bye(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+):
+    p1, p2, p3 = player_factory(), player_factory(), player_factory()
+    auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={"player_ids_to_add": [p1.id, p2.id, p3.id], "bye_player_id": p3.id},
+    ).raise_for_status()
+
+    # Add, remove and bye are applied in that order, so the player being removed
+    # can hand the bye to someone else in one request.
+    res = auth_client.patch(
+        f"/competitions/{competition.name}/registrations",
+        params={"round_nr": 1},
+        json={"player_ids_to_remove": [p3.id], "bye_player_id": p2.id},
+    )
+    res.raise_for_status()
+    players = res.json()
+    assert {rp["player"]["id"] for rp in players} == {p1.id, p2.id}
+    assert [rp["player"]["id"] for rp in players if rp["is_bye"]] == [p2.id]
 
 
 def test_delete_round_registrations(
