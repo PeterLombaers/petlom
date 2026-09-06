@@ -217,6 +217,10 @@ const nl: TranslationSchema = {
     black: "Zwart",
     roundTitle: "{{competitionName}} — Ronde {{round}}",
   },
+  export: {
+    csv: "Exporteer CSV",
+    failed: "De export kon niet gedownload worden.",
+  },
   entityType: {
     player: "speler",
     player_plural: "spelers",

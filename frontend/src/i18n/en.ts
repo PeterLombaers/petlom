@@ -215,6 +215,10 @@ const en = {
     black: "Black",
     roundTitle: "{{competitionName}} — Round {{round}}",
   },
+  export: {
+    csv: "Export CSV",
+    failed: "The export could not be downloaded.",
+  },
   entityType: {
     player: "player",
     player_plural: "players",

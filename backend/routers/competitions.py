@@ -1,8 +1,10 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy import func
 from sqlmodel import col, select
 
@@ -12,6 +14,7 @@ from backend.competitions.ranking import compute_ranking, current_ratings
 from backend.competitions.registry import round_field
 from backend.competitions.simkro import create_matchups
 from backend.config import settings
+from backend.csv_export import matches_csv, ranking_csv
 from backend.dependencies import (
     MAX_PAGE_LENGTH,
     SessionDep,
@@ -45,6 +48,32 @@ from backend.models import (
 from backend.registration_import import match_names
 
 router = APIRouter(prefix="/competitions", tags=["competitions"])
+
+
+class CsvResponse(Response):
+    """A CSV download.
+
+    Declaring it as a route's `response_class` is what keeps `application/json`
+    out of the generated OpenAPI schema, so the frontend client types these
+    endpoints as a file rather than a model.
+    """
+
+    media_type = "text/csv"
+
+
+CSV_ROUTE_KWARGS = {"response_model": None, "response_class": CsvResponse}
+
+
+def csv_response(content: str, filename: str) -> Response:
+    return CsvResponse(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        # A competition name is free text, so the filename goes out
+        # percent-encoded in the RFC 5987 form rather than raw.
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"
+        },
+    )
 
 
 def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
@@ -241,6 +270,16 @@ def update_player_rating(
 # ---------------------------------------------------------------------------
 
 
+def get_round_matches(
+    competition: Competition, round_nr: int, session: SessionDep
+) -> Sequence[Match]:
+    return session.exec(
+        select(Match)
+        .where(Match.competition_id == competition.id)
+        .where(Match.round == round_nr)
+    ).all()
+
+
 @router.get("/{name}/pairing")
 def retrieve_pairing(
     name: str, session: SessionDep, round_nr: int | None = None
@@ -248,11 +287,21 @@ def retrieve_pairing(
     competition = find_competition(name, session)
     if round_nr is None:
         round_nr = get_latest_round_nr(competition, session)
-    return session.exec(
-        select(Match)
-        .where(Match.competition_id == competition.id)
-        .where(Match.round == round_nr)
-    ).all()
+    return get_round_matches(competition, round_nr, session)
+
+
+@router.get("/{name}/pairing/export", **CSV_ROUTE_KWARGS)
+def export_pairing(
+    name: str, session: SessionDep, _: ModeratorDep, round_nr: int | None = None
+) -> Response:
+    """The round's match results as a CSV file."""
+    competition = find_competition(name, session)
+    if round_nr is None:
+        round_nr = get_latest_round_nr(competition, session)
+    return csv_response(
+        matches_csv(get_round_matches(competition, round_nr, session)),
+        f"{competition.name}_ronde_{round_nr}_uitslagen.csv",
+    )
 
 
 @router.post("/{name}/pairing")
@@ -343,6 +392,20 @@ def retrieve_ranking(
     if round_nr is None:
         round_nr = get_latest_round_nr(competition, session)
     return compute_ranking(competition, round_nr, session)
+
+
+@router.get("/{name}/ranking/export", **CSV_ROUTE_KWARGS)
+def export_ranking(
+    name: str, session: SessionDep, _: ModeratorDep, round_nr: int | None = None
+) -> Response:
+    """The ranking after the round as a CSV file."""
+    competition = find_competition(name, session)
+    if round_nr is None:
+        round_nr = get_latest_round_nr(competition, session)
+    return csv_response(
+        ranking_csv(compute_ranking(competition, round_nr, session)),
+        f"{competition.name}_ronde_{round_nr}_stand.csv",
+    )
 
 
 # ---------------------------------------------------------------------------

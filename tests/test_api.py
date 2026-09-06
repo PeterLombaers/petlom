@@ -1,3 +1,5 @@
+import csv
+import io
 from collections.abc import Callable
 
 import pytest
@@ -1009,6 +1011,98 @@ def test_competition_ranking(
     res.raise_for_status()
     ranking = res.json()
     assert len(ranking) == len(players) - 2
+
+
+def read_csv_export(res) -> list[list[str]]:
+    """The rows of a CSV export response, decoded the way the client would."""
+    return list(csv.reader(io.StringIO(res.content.decode("utf-8"))))
+
+
+def test_export_pairing(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    match_factory: Callable[..., Match],
+):
+    competition, players, _ = simkro_setup
+    # An unplayed board, to check that its Uitslag cell comes out empty.
+    match_factory(
+        player_white=players[6],
+        player_black=players[7],
+        result=None,
+        competition=competition,
+        round=1,
+        board=4,
+    )
+    res = auth_client.get(
+        f"/competitions/{competition.name}/pairing/export", params={"round_nr": 1}
+    )
+    res.raise_for_status()
+    assert res.headers["content-type"].startswith("text/csv")
+    assert res.headers["content-disposition"].startswith("attachment;")
+
+    rows = read_csv_export(res)
+    assert rows[0] == ["Nr", "Witspeler", "Zwartspeler", "Uitslag"]
+    assert [row[0] for row in rows[1:]] == ["1", "2", "3", "4"]
+    assert [row[3] for row in rows[1:]] == ["1-0", "½-½", "0-1", ""]
+    assert rows[1][1:3] == [players[0].name, players[1].name]
+
+
+def test_export_pairing_latest_round(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+):
+    competition, _, matches = simkro_setup
+    latest = max(m.round for m in matches)
+    res = auth_client.get(f"/competitions/{competition.name}/pairing/export")
+    res.raise_for_status()
+    rows = read_csv_export(res)
+    assert len(rows) - 1 == len([m for m in matches if m.round == latest])
+
+
+def test_export_ranking(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+):
+    competition, players, _ = simkro_setup
+    # Without a CompetitionRating there is nothing to derive a rating from.
+    res = auth_client.get(
+        f"/competitions/{competition.name}/ranking/export", params={"round_nr": 1}
+    )
+    res.raise_for_status()
+    rows = read_csv_export(res)
+    assert rows[0] == ["Nr", "Naam", "Pnt", "Prt", "Sal", "Ks", "w", "r", "v", "Rat"]
+    assert all(row[9] == "" for row in rows[1:])
+
+    ranking = auth_client.get(
+        f"/competitions/{competition.name}/ranking", params={"round_nr": 1}
+    ).json()
+    assert len(rows) - 1 == len(ranking)
+    assert [row[0] for row in rows[1:]] == [str(r["position"]) for r in ranking]
+    assert [row[1] for row in rows[1:]] == [r["player"]["name"] for r in ranking]
+
+    seed_competition_ratings(competition, players, session)
+    res = auth_client.get(
+        f"/competitions/{competition.name}/ranking/export", params={"round_nr": 1}
+    )
+    res.raise_for_status()
+    rated = read_csv_export(res)
+    assert all(row[9].lstrip("-").isdigit() for row in rated[1:])
+
+
+@pytest.mark.parametrize("endpoint", ["pairing/export", "ranking/export"])
+def test_export_requires_moderator(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    client: TestClient,
+    endpoint: str,
+):
+    competition, _, _ = simkro_setup
+    assert client.get(f"/competitions/{competition.name}/{endpoint}").status_code == 401
+
+
+@pytest.mark.parametrize("endpoint", ["pairing/export", "ranking/export"])
+def test_export_unknown_competition(auth_client: TestClient, endpoint: str):
+    assert auth_client.get(f"/competitions/nope/{endpoint}").status_code == 404
 
 
 def seed_competition_ratings(

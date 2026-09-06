@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Group, Paper, Table, Text } from "@mantine/core";
 import EditableRow from "./EditableRow";
 import { EditButton } from "./EditButton";
@@ -38,6 +39,7 @@ type EditableTableProps<T extends object> = {
   editConfig?: TableEditConfig<T>;
   deleteConfig?: TableDeleteConfig<T>;
   rowActions?: RowAction<T>[];
+  headerActions?: ReactNode;
   readOnly?: boolean;
   isRowEditable?: (row: T) => boolean;
 };
@@ -86,6 +88,11 @@ type EditableTableProps<T extends object> = {
  *   renders the buttons; each action supplies an icon, a label and an `onClick` that
  *   receives the row, and the caller mounts whatever dialog the action opens.
  *
+ * @param headerActions - Extra controls for the title row, rendered next to the Add
+ * button. Unlike `rowActions` these are not gated on `canEdit`: they act on the table
+ * as a whole rather than on a row, and a read-only action (a CSV export) belongs on a
+ * frozen table too. An action that needs the moderator gate applies it itself.
+ *
  * @param readOnly - Renders the table as view-only even for a moderator. Use it when the
  *   data itself is frozen (e.g. the matches of a finished competition) rather than when
  *   the user lacks the rights, which `useAuth` already handles.
@@ -107,6 +114,7 @@ export default function EditableTable<T extends object>({
   createConfig,
   editConfig,
   rowActions,
+  headerActions,
   readOnly = false,
   isRowEditable,
 }: EditableTableProps<T>) {
@@ -176,13 +184,16 @@ export default function EditableTable<T extends object>({
               <Text style={title ? undefined : { textTransform: "capitalize" }}>
                 {tableTitle}
               </Text>
-              {showCreate && (
-                <CreateButton
-                  entityType={entityType}
-                  mutation={createMutation}
-                  dialogConfig={createConfig}
-                />
-              )}
+              <Group gap="xs">
+                {headerActions}
+                {showCreate && (
+                  <CreateButton
+                    entityType={entityType}
+                    mutation={createMutation}
+                    dialogConfig={createConfig}
+                  />
+                )}
+              </Group>
             </Group>
           </Table.Td>
         </Table.Tr>

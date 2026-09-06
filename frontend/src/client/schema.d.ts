@@ -149,6 +149,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/competitions/{name}/pairing/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Pairing
+         * @description The round's match results as a CSV file.
+         */
+        get: operations["export_pairing_competitions__name__pairing_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/competitions/{name}/ranking": {
         parameters: {
             query?: never;
@@ -158,6 +178,26 @@ export interface paths {
         };
         /** Retrieve Ranking */
         get: operations["retrieve_ranking_competitions__name__ranking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competitions/{name}/ranking/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Ranking
+         * @description The ranking after the round as a CSV file.
+         */
+        get: operations["export_ranking_competitions__name__ranking_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1691,6 +1731,39 @@ export interface operations {
             };
         };
     };
+    export_pairing_competitions__name__pairing_export_get: {
+        parameters: {
+            query?: {
+                round_nr?: number | null;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     retrieve_ranking_competitions__name__ranking_get: {
         parameters: {
             query?: {
@@ -1711,6 +1784,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SimkroRank"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_ranking_competitions__name__ranking_export_get: {
+        parameters: {
+            query?: {
+                round_nr?: number | null;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
             /** @description Validation Error */

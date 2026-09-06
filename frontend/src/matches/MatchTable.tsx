@@ -5,6 +5,7 @@ import EditableTable from "@/table/EditableTable";
 import { createNumberCell } from "@/table/cells";
 import { CreateDialogConfig } from "@/table/CreateButton";
 import PlayerSelect from "@/players/PlayerSelect";
+import { CsvExportButton } from "@/export/CsvExportButton";
 import { playerSelectCell, resultToggleCell } from "./cells";
 import { useMatches } from "./useMatches";
 
@@ -148,6 +149,14 @@ export const MatchTable = ({
         },
       ]}
       title={t("match.roundTitle", { competitionName, round })}
+      headerActions={
+        <CsvExportButton
+          path="/competitions/{name}/pairing/export"
+          competitionName={competitionName}
+          roundNr={round}
+          fallbackFilename={`${competitionName}_ronde_${round}_uitslagen.csv`}
+        />
+      }
       createConfig={createDialogConfig}
       editConfig={{ validateData, sanitizeData, getRequestBody }}
       deleteConfig={{

@@ -1,4 +1,4 @@
-import { Paper, Table, Text } from "@mantine/core";
+import { Group, Paper, Table, Text } from "@mantine/core";
 import type { ParseKeys } from "i18next";
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import { ErrorState } from "@/ui/ErrorState";
 import { LoadingState } from "@/ui/LoadingState";
 import { PlayerName } from "@/ui/PlayerName";
 import { RatingValue } from "@/ui/RatingValue";
+import { CsvExportButton } from "@/export/CsvExportButton";
 import { useRanking } from "./useRanking";
 
 type SimkroRank = components["schemas"]["SimkroRank"];
@@ -58,11 +59,23 @@ export default function RankingTable({
           <Table.Thead>
             <Table.Tr>
               <Table.Td colSpan={COLUMNS.length}>
-                <Text>
-                  {roundNr !== undefined
-                    ? t("ranking.titleAfterRound", { roundNr })
-                    : t("ranking.title")}
-                </Text>
+                <Group justify="space-between">
+                  <Text>
+                    {roundNr !== undefined
+                      ? t("ranking.titleAfterRound", { roundNr })
+                      : t("ranking.title")}
+                  </Text>
+                  <CsvExportButton
+                    path="/competitions/{name}/ranking/export"
+                    competitionName={competitionName}
+                    roundNr={roundNr}
+                    fallbackFilename={
+                      roundNr !== undefined
+                        ? `${competitionName}_ronde_${roundNr}_stand.csv`
+                        : `${competitionName}_stand.csv`
+                    }
+                  />
+                </Group>
               </Table.Td>
             </Table.Tr>
             <Table.Tr>
