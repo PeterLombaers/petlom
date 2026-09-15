@@ -102,6 +102,7 @@ const nl: TranslationSchema = {
     draws: "R",
     losses: "V",
     rating: "Rating",
+    performanceRating: "TPR",
     noData: "Nog geen klassementsgegevens.",
   },
   rating: {

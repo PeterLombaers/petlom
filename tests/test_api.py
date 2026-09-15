@@ -1013,6 +1013,39 @@ def test_competition_ranking(
     assert len(ranking) == len(players) - 2
 
 
+def test_ranking_reports_performance_rating(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    client: TestClient,
+    session: Session,
+    player_factory: Callable[..., Player],
+    match_factory: Callable[..., Match],
+):
+    competition, players, _ = simkro_setup
+    seed_competition_ratings(competition, players, session)
+
+    res = client.get(f"/competitions/{competition.name}/ranking")
+    res.raise_for_status()
+    ranking = res.json()
+    assert all(isinstance(rank["performance_rating"], float) for rank in ranking)
+
+    # A newcomer whose only match has not been played yet ranks, but has no result to
+    # derive a performance rating from. The endpoint must answer with null, not fail.
+    newcomer = player_factory()
+    seed_competition_ratings(competition, [newcomer], session)
+    match_factory(
+        player_white=newcomer,
+        player_black=players[0],
+        result=None,
+        competition=competition,
+        round=5,
+        board=1,
+    )
+    res = client.get(f"/competitions/{competition.name}/ranking")
+    res.raise_for_status()
+    rows = {rank["player"]["id"]: rank for rank in res.json()}
+    assert rows[newcomer.id]["performance_rating"] is None
+
+
 def read_csv_export(res) -> list[list[str]]:
     """The rows of a CSV export response, decoded the way the client would."""
     return list(csv.reader(io.StringIO(res.content.decode("utf-8"))))
@@ -1071,8 +1104,22 @@ def test_export_ranking(
     )
     res.raise_for_status()
     rows = read_csv_export(res)
-    assert rows[0] == ["Nr", "Naam", "Pnt", "Prt", "Sal", "Ks", "w", "r", "v", "Rat"]
+    assert rows[0] == [
+        "Nr",
+        "Naam",
+        "Pnt",
+        "Prt",
+        "Sal",
+        "Ks",
+        "w",
+        "r",
+        "v",
+        "Rat",
+        "TPR",
+    ]
     assert all(row[9] == "" for row in rows[1:])
+    # Without ratings there is no opponent rating to derive a performance from either.
+    assert all(row[10] == "" for row in rows[1:])
 
     ranking = auth_client.get(
         f"/competitions/{competition.name}/ranking", params={"round_nr": 1}
@@ -1088,6 +1135,14 @@ def test_export_ranking(
     res.raise_for_status()
     rated = read_csv_export(res)
     assert all(row[9].lstrip("-").isdigit() for row in rated[1:])
+    # Everyone in the round 1 ranking played a rated game, so all have a performance.
+    assert all(row[10].lstrip("-").isdigit() for row in rated[1:])
+    rated_ranking = auth_client.get(
+        f"/competitions/{competition.name}/ranking", params={"round_nr": 1}
+    ).json()
+    assert [row[10] for row in rated[1:]] == [
+        str(round(r["performance_rating"])) for r in rated_ranking
+    ]
 
 
 @pytest.mark.parametrize("endpoint", ["pairing/export", "ranking/export"])

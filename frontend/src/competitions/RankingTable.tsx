@@ -32,6 +32,11 @@ const COLUMNS: { key: ParseKeys; render: (rank: SimkroRank) => ReactNode }[] = [
     key: "ranking.rating",
     render: (rank) => <RatingValue value={rank.current_rating} />,
   },
+  {
+    key: "ranking.performanceRating",
+    // Empty means "no rated game yet", not "rating unknown", so no badge here.
+    render: (rank) => <RatingValue value={rank.performance_rating} fallback="—" />,
+  },
 ];
 
 export default function RankingTable({
@@ -54,7 +59,7 @@ export default function RankingTable({
 
   return (
     <Paper withBorder>
-      <Table.ScrollContainer minWidth={700} type="native">
+      <Table.ScrollContainer minWidth={760} type="native">
         <Table>
           <Table.Thead>
             <Table.Tr>

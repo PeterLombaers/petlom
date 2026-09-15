@@ -14,7 +14,7 @@ from backend.enums import Result
 from backend.models import Match, SimkroRank
 
 MATCH_HEADERS = ["Nr", "Witspeler", "Zwartspeler", "Uitslag"]
-RANKING_HEADERS = ["Nr", "Naam", "Pnt", "Prt", "Sal", "Ks", "w", "r", "v", "Rat"]
+RANKING_HEADERS = ["Nr", "Naam", "Pnt", "Prt", "Sal", "Ks", "w", "r", "v", "Rat", "TPR"]
 
 RESULT_TEXT = {
     Result.WHITE_WIN: "1-0",
@@ -64,9 +64,10 @@ def ranking_csv(ranking: Sequence[SimkroRank]) -> str:
                 rank.wins,
                 rank.draws,
                 rank.losses,
-                # Rounded like the frontend shows it; empty when the player's
-                # initial rating is unknown, so nothing can be derived.
                 round(rank.current_rating) if rank.current_rating is not None else "",
+                round(rank.performance_rating)
+                if rank.performance_rating is not None
+                else "",
             ]
             for rank in ranking
         ],

@@ -14,7 +14,7 @@ from sqlmodel import Session, select
 from backend.competitions.simkro import calculate_ranking
 from backend.enums import Result
 from backend.models import Competition, CompetitionRating, Match, SimkroRank
-from backend.ratings import calculate_ratings
+from backend.ratings import calculate_ratings, performance_ratings
 
 
 def _score_tuples(matches: Sequence[Match]) -> list[tuple[int, int, float]]:
@@ -58,6 +58,24 @@ def _ratings_after(
     )
 
 
+def _performance_ratings_after(
+    competition: Competition,
+    comp_ratings: Sequence[CompetitionRating],
+    matches: Sequence[Match],
+) -> dict[int, float]:
+    """The performance rating per player, against the opponents' initial ratings.
+
+    The opponents count at their `initial_rating`, like `_ratings_after` uses. Their
+    current rating would make every player's performance a function of every other
+    player's, and would not replay the same way for an earlier round.
+    """
+    return performance_ratings(
+        {cr.player_id: cr.initial_rating for cr in comp_ratings},
+        _score_tuples(matches),
+        competition.rating_type.build_rating_algorithm(),
+    )
+
+
 def compute_ranking(
     competition: Competition, round_nr: int, session: Session
 ) -> list[SimkroRank]:
@@ -69,11 +87,12 @@ def compute_ranking(
     ).all()
     ranking = calculate_ranking(matches)
 
-    ratings = _ratings_after(
-        competition, _competition_ratings(competition, session), matches
-    )
+    comp_ratings = _competition_ratings(competition, session)
+    ratings = _ratings_after(competition, comp_ratings, matches)
+    performances = _performance_ratings_after(competition, comp_ratings, matches)
     for rank in ranking:
         rank.current_rating = ratings.get(rank.player.id)
+        rank.performance_rating = performances.get(rank.player.id)
     return ranking
 
 

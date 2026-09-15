@@ -1263,6 +1263,8 @@ export interface components {
             losses: number;
             /** Current Rating */
             current_rating?: number | null;
+            /** Performance Rating */
+            performance_rating?: number | null;
         };
         /** ValidationError */
         ValidationError: {

@@ -100,6 +100,7 @@ const en = {
     draws: "D",
     losses: "L",
     rating: "Rating",
+    performanceRating: "TPR",
     noData: "No ranking data yet.",
   },
   rating: {

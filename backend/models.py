@@ -727,6 +727,7 @@ class SimkroRank(SQLModel):
     draws: int
     losses: int
     current_rating: float | None = None
+    performance_rating: float | None = None
 
 
 # ---------------------------------------------------------------------------

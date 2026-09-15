@@ -1,8 +1,9 @@
-"""See https://handbook.fide.com/chapter/B022024"""
+"""See rating regulations (RR) https://handbook.fide.com/chapter/B022024 and
+title regulations (TR) https://handbook.fide.com/chapter/B012024"""
 
 from backend.ratings.base import BaseRating
 
-# Section 8.1.1: Fractional score (p) to rating difference (dp)
+# RR Section 8.1.1: Fractional score (p) to rating difference (dp)
 SCORE_TO_RATING_DIFF = {
     1.00: 800,
     0.99: 677,
@@ -106,6 +107,10 @@ SCORE_TO_RATING_DIFF = {
     0.01: -677,
     0.00: -800,
 }
+
+# TR Section 1.4.6d: Unrated opponents count for 1400 in performance rating
+# calculations.
+UNRATED_PERFORMANCE_VALUE = 1400
 
 # Section 8.1.2: Rating difference (D) to scoring probability (PD)
 # Keys are (lower_bound, upper_bound) tuples for the rating difference range.
@@ -256,14 +261,77 @@ class FideRating(BaseRating):
             "All positive integers should be covered by `RATING_DIFF_TO_PROB`"
         )
 
+    def expected_score(self, player_rating: float, opponent_rating: float) -> float:
+        # We round the ratings to integers. This should not matter because FIDE
+        # calculates rating change based on the official published ratings, which are
+        # integers.
+        rating_diff = self.get_rating_diff(round(player_rating), round(opponent_rating))
+        return self.get_win_prob(rating_diff)
+
     def calculate_change(
         self, player_rating: float, opponent_rating: float | None, score: float
     ) -> float:
         if opponent_rating is None:
             return 0.0
-        # We round the ratings to integers. This should not matter because FIDE
-        # calculates rating change based on the official published ratings, which are
-        # integers.
-        rating_diff = self.get_rating_diff(round(player_rating), round(opponent_rating))
-        win_prob = self.get_win_prob(rating_diff)
-        return (score - win_prob) * self.k_factor
+        expected = self.expected_score(player_rating, opponent_rating)
+        return (score - expected) * self.k_factor
+
+    def performance_rating(
+        self, opponent_ratings: list[float | None], scores: list[float]
+    ) -> float:
+        """Performance rating as `Rp = Ra + dp`.
+
+        `Ra` is the average rating of the opponents and `dp` follows from the fractional
+        score through `SCORE_TO_RATING_DIFF` (RR 8.1.1). Opponents without a rating count
+        as `UNRATED_PERFORMANCE_VALUE` (TR 1.4.6d), unlike `calculate_change`, which
+        ignores those games, and unlike the base implementation, which drops them. See
+        https://handbook.fide.com/chapter/B012024
+
+        The base class inverts `expected_score` by bisection, which this class cannot
+        use: `get_win_prob` is a step function and `get_rating_diff` caps the difference
+        at 400 points, so the expectancy here is discontinuous and flat outside a narrow
+        band. `SCORE_TO_RATING_DIFF` is FIDE's own inversion of it. The base class's
+        promise that the result lies within 800 points of `Ra` still holds, because the
+        table is capped at +-800.
+
+        Parameters
+        ----------
+        opponent_ratings : list[float | None]
+            List of ratings of the opponents, `None` for an opponent without a rating.
+            Should be the same size as `scores`.
+        scores : list[float]
+            The scores for the player (i.e. 0, 1 or 0.5). Should be the same size as
+            `opponent_ratings`.
+
+        Returns
+        -------
+        float
+            The performance rating over these results.
+
+        Raises
+        ------
+        ValueError
+            If the two lists differ in length, or if there are no opponents at all.
+
+        Examples
+        --------
+        >>> r = FideRating(k_factor=20)
+        >>> r.performance_rating([1600, 1600, 1600, 1600], [1.0, 1.0, 1.0, 0.0])
+        1793.0
+        >>> r.performance_rating([1600, None], [1.0, 0.0])
+        1500.0
+        """
+        if len(opponent_ratings) != len(scores):
+            raise ValueError(
+                "number of opponent ratings should be equal to number of scores."
+            )
+        if not opponent_ratings:
+            raise ValueError("a performance rating needs at least one opponent.")
+        total_rating = sum(
+            UNRATED_PERFORMANCE_VALUE if rating is None else rating
+            for rating in opponent_ratings
+        )
+        average_rating = total_rating / len(opponent_ratings)
+        # Every `round(p, 2)` for p in [0, 1] is a key of the table.
+        fractional_score = round(sum(scores) / len(scores), 2)
+        return average_rating + SCORE_TO_RATING_DIFF[fractional_score]
