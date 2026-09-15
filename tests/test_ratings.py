@@ -232,6 +232,37 @@ def test_fide_performance_rating_counts_unrated_opponents_as_1400():
     ) == pytest.approx(1500.0)
 
 
+def test_fide_performance_rating_breaks_a_score_tie_upwards():
+    # 0.5 out of 4 is p = 1/8, exactly between two rows of the table. FIDE rounds up to
+    # 0.13 (dp -322); Python's `round` would pick the even 0.12 (dp -336).
+    assert FideRating(k_factor=20).performance_rating(
+        [1500.0] * 4, [0.5, 0.0, 0.0, 0.0]
+    ) == pytest.approx(1500.0 - 322)
+
+
+def test_fide_performance_rating_breaks_a_score_tie_upwards_above_half():
+    # 2.5 out of 4 is p = 5/8 -> 0.63 (dp 95), not the even 0.62 (dp 87).
+    assert FideRating(k_factor=20).performance_rating(
+        [1500.0] * 4, [1.0, 1.0, 0.5, 0.0]
+    ) == pytest.approx(1500.0 + 95)
+
+
+def test_fide_performance_rating_keeps_a_tie_that_float_division_would_lose():
+    # 1.5 out of 20 is exactly 0.075, but 0.075 has no exact binary representation and
+    # lands just under the halfway point. Dividing in float first would round it to
+    # 0.07 (dp -422) even with a half-up rule; the exact value gives 0.08 (dp -401).
+    scores = [1.0, 0.5] + [0.0] * 18
+    assert FideRating(k_factor=20).performance_rating(
+        [1500.0] * 20, scores
+    ) == pytest.approx(1500.0 - 401)
+
+
+def test_fide_expected_score_breaks_a_rating_tie_upwards():
+    # A rating of exactly 1400.5 counts as 1401, which crosses a row of the probability
+    # table. The built-in `round` would pick the even 1400 and give 0.45.
+    assert FideRating(k_factor=20).expected_score(1400.5, 1433.0) == 0.46
+
+
 def test_fide_performance_rating_uses_the_table():
     # p = 0.75 gives dp = 193 (RR 8.1.1).
     assert FideRating(k_factor=20).performance_rating(

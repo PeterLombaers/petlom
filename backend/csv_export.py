@@ -12,6 +12,7 @@ from collections.abc import Sequence
 
 from backend.enums import Result
 from backend.models import Match, SimkroRank
+from backend.rounding import round_half_up
 
 MATCH_HEADERS = ["Nr", "Witspeler", "Zwartspeler", "Uitslag"]
 RANKING_HEADERS = ["Nr", "Naam", "Pnt", "Prt", "Sal", "Ks", "w", "r", "v", "Rat", "TPR"]
@@ -64,8 +65,10 @@ def ranking_csv(ranking: Sequence[SimkroRank]) -> str:
                 rank.wins,
                 rank.draws,
                 rank.losses,
-                round(rank.current_rating) if rank.current_rating is not None else "",
-                round(rank.performance_rating)
+                round_half_up(rank.current_rating)
+                if rank.current_rating is not None
+                else "",
+                round_half_up(rank.performance_rating)
                 if rank.performance_rating is not None
                 else "",
             ]

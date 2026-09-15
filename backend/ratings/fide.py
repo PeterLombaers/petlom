@@ -1,7 +1,10 @@
 """See rating regulations (RR) https://handbook.fide.com/chapter/B022024 and
 title regulations (TR) https://handbook.fide.com/chapter/B012024"""
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from backend.ratings.base import BaseRating
+from backend.rounding import round_half_up
 
 # RR Section 8.1.1: Fractional score (p) to rating difference (dp)
 SCORE_TO_RATING_DIFF = {
@@ -264,8 +267,11 @@ class FideRating(BaseRating):
     def expected_score(self, player_rating: float, opponent_rating: float) -> float:
         # We round the ratings to integers. This should not matter because FIDE
         # calculates rating change based on the official published ratings, which are
-        # integers.
-        rating_diff = self.get_rating_diff(round(player_rating), round(opponent_rating))
+        # integers. A rating of exactly x.5 rounds up, the way FIDE breaks a tie
+        # (8.3.4), not towards even the way the built-in `round` would.
+        rating_diff = self.get_rating_diff(
+            round_half_up(player_rating), round_half_up(opponent_rating)
+        )
         return self.get_win_prob(rating_diff)
 
     def calculate_change(
@@ -332,6 +338,20 @@ class FideRating(BaseRating):
             for rating in opponent_ratings
         )
         average_rating = total_rating / len(opponent_ratings)
-        # Every `round(p, 2)` for p in [0, 1] is a key of the table.
-        fractional_score = round(sum(scores) / len(scores), 2)
+        # The fractional score is divided in Decimal rather than in float, and the tie
+        # is broken upwards. Both matter, because the table is in steps of 0.01 and a
+        # step is worth up to 21 rating points:
+        #   - `round(p, 2)` breaks a tie towards even, so 1/8 would give 0.12 where FIDE
+        #     wants 0.13. Scores like 1 out of 8 are ordinary, not exotic.
+        #   - Dividing in float first loses the tie for a score such as 1.5 out of 20:
+        #     0.075 is not representable in binary and lands just under the halfway
+        #     point, so rounding it up afterwards still gives 0.07 instead of 0.08.
+        # Every score is a multiple of 0.5 and so exact in binary, which makes
+        # `Decimal(sum(scores))` lossless and the division exact where it can be.
+        fractional_score = float(
+            (Decimal(sum(scores)) / len(scores)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        )
+        # Every two decimal value in [0, 1] is a key of the table.
         return average_rating + SCORE_TO_RATING_DIFF[fractional_score]
