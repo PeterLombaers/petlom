@@ -9,7 +9,7 @@ from sqlalchemy.types import JSON
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 from backend.competitions import CompetitionType
-from backend.enums import ExternalRatingSource, Result
+from backend.enums import ExternalRatingSource, Result, Role
 from backend.ratings import BaseRating, SimkroRating
 
 # ---------------------------------------------------------------------------
@@ -739,6 +739,11 @@ class Moderator(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     hashed_password: str
+    # The server default keeps the rows that predate the column readable. It is
+    # the member *name*, which is what sa.Enum stores.
+    role: Role = Field(
+        default=Role.MODERATOR, sa_column_kwargs={"server_default": Role.MODERATOR.name}
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
@@ -747,3 +752,16 @@ class ModeratorPublic(SQLModel):
 
     id: int
     username: str
+    role: Role
+
+
+class LoginResponse(SQLModel):
+    """The response of POST /auth/login.
+
+    Spelled out rather than returned as a bare dict because the frontend reads
+    `role` from it to decide what to render.
+    """
+
+    access_token: str
+    token_type: str
+    role: Role

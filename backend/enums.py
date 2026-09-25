@@ -12,6 +12,17 @@ class ExternalRatingSource(str, Enum):
     KNSB = "knsb"
 
 
+class Role(str, Enum):
+    """What a logged-in account is allowed to do.
+
+    `RESULT_KEEPER` may only set the result of an existing match; every other
+    write endpoint is `MODERATOR`-only. Enforced in `backend/auth.py`.
+    """
+
+    MODERATOR = "moderator"
+    RESULT_KEEPER = "result_keeper"
+
+
 class PlayerStatus(str, Enum):
     """Which side of the soft-delete flag a player listing asks for."""
 

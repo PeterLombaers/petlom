@@ -35,7 +35,9 @@ const COLUMNS: { key: ParseKeys; render: (rank: SimkroRank) => ReactNode }[] = [
   {
     key: "ranking.performanceRating",
     // Empty means "no rated game yet", not "rating unknown", so no badge here.
-    render: (rank) => <RatingValue value={rank.performance_rating} fallback="—" />,
+    render: (rank) => (
+      <RatingValue value={rank.performance_rating} fallback="—" />
+    ),
   },
 ];
 

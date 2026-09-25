@@ -5,11 +5,11 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/auth";
 
 export function AuthControls() {
-  const { isModerator, username, logout } = useAuth();
+  const { isAuthenticated, username, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  if (isModerator) {
+  if (isAuthenticated) {
     return (
       <Menu shadow="md" width={150}>
         <Menu.Target>

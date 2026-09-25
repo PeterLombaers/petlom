@@ -42,7 +42,14 @@ type EditableTableProps<T extends object> = {
   headerActions?: ReactNode;
   readOnly?: boolean;
   isRowEditable?: (row: T) => boolean;
+  columnEditOnlyFields?: (keyof T)[];
 };
+
+/** What this table lets the current user do. */
+type EditMode<T> =
+  | { kind: "full" }
+  | { kind: "columnsOnly"; fields: (keyof T)[] }
+  | { kind: "none" };
 
 /**
  * Generic data table with optional inline editing, row deletion, and entity creation.
@@ -73,7 +80,8 @@ type EditableTableProps<T extends object> = {
  *   the create form (initial values, validation, rendering, and request body). When
  *   absent, no Add button is rendered.
  *
- * @param editConfig - Enables inline row editing for moderators. Provides
+ * @param editConfig - Enables inline row editing for moderators, and column edit for a
+ *   user restricted to `columnEditOnlyFields`. Provides
  *   `validateData`, `sanitizeData`, and `getRequestBody`. When absent, no Edit button
  *   is rendered and the Actions column is hidden entirely.
  *
@@ -97,6 +105,14 @@ type EditableTableProps<T extends object> = {
  *   data itself is frozen (e.g. the matches of a finished competition) rather than when
  *   the user lacks the rights, which `useAuth` already handles.
  *
+ * @param columnEditOnlyFields - Fields a user with a lesser capability than a moderator
+ *   may edit, by column edit only. Who qualifies is the caller's business, not the
+ *   engine's: pass the list when the current user has that capability and `undefined`
+ *   otherwise (see `MatchTable`, which passes `["result"]` for a result keeper). Ignored
+ *   for a full moderator and for a `readOnly` table. Such a table is the anonymous table
+ *   plus one thing: the column-edit button on exactly these columns. No Add, no Delete, no
+ *   row Edit, no row actions — the Actions column is not rendered at all.
+ *
  * @param isRowEditable - Per-row version of `readOnly`, for a table where only some rows
  *   are frozen (e.g. a finished competition in the competition list). A row it returns
  *   `false` for loses its Edit button and is left out of column edit entirely — not
@@ -117,9 +133,18 @@ export default function EditableTable<T extends object>({
   headerActions,
   readOnly = false,
   isRowEditable,
+  columnEditOnlyFields,
 }: EditableTableProps<T>) {
   const { isModerator } = useAuth();
-  const canEdit = isModerator && !readOnly;
+  const editMode: EditMode<T> = readOnly
+    ? { kind: "none" }
+    : isModerator
+      ? { kind: "full" }
+      : columnEditOnlyFields?.length
+        ? { kind: "columnsOnly", fields: columnEditOnlyFields }
+        : { kind: "none" };
+  const canEdit = editMode.kind === "full";
+  const isRestricted = editMode.kind === "columnsOnly";
   const { t } = useTranslation();
 
   const {
@@ -139,7 +164,9 @@ export default function EditableTable<T extends object>({
   const getRowKey = (row: T) => row[entityIdField] as string | number;
 
   const activeEditConfig: EditConfig<T> | undefined =
-    canEdit && editConfig ? { ...editConfig, editMutation } : undefined;
+    editMode.kind !== "none" && editConfig
+      ? { ...editConfig, editMutation }
+      : undefined;
   const activeDeleteConfig: DeleteConfig<T> | undefined =
     canEdit && deleteConfig && deleteMutation
       ? {
@@ -169,8 +196,11 @@ export default function EditableTable<T extends object>({
     edit.columnEditField === col.field && col.editWidth !== undefined
       ? col.editWidth
       : col.width;
-  // The Actions column exists as soon as something can be rendered in it.
-  const hasActions = Boolean(activeEditConfig || activeRowActions?.length);
+  // The Actions column exists as soon as something can be rendered in it. The
+  // restricted mode renders no per-row button, so the column would be empty.
+  const hasActions = Boolean(
+    (activeEditConfig && !isRestricted) || activeRowActions?.length,
+  );
   const nCols = visibleColumns.length + (hasActions ? 1 : 0);
   const showCreate = canEdit && createConfig !== undefined && createMutation;
   const tableTitle = title || translateEntity(t, entityType, true);
@@ -203,6 +233,8 @@ export default function EditableTable<T extends object>({
             const showColumnEditButton =
               activeEditConfig &&
               col.isEditable &&
+              (editMode.kind !== "columnsOnly" ||
+                editMode.fields.includes(col.field)) &&
               (!edit.isColumnEditing || isThisColumnEditing);
             return (
               <Table.Th
@@ -249,7 +281,7 @@ export default function EditableTable<T extends object>({
                 }
                 columns={visibleColumns}
                 entityIdField={entityIdField}
-                editConfig={activeEditConfig}
+                editConfig={isRestricted ? undefined : activeEditConfig}
                 deleteConfig={activeDeleteConfig}
                 rowActions={activeRowActions}
                 isEditable={rowIsEditable(row)}

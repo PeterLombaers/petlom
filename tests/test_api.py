@@ -730,6 +730,116 @@ def test_update_match(match_obj: Match, auth_client: TestClient, session: Sessio
     assert competition.updated_at > old_updated_at
 
 
+def test_result_keeper_sets_result(
+    match_obj: Match, result_keeper_client: TestClient, session: Session
+):
+    competition = match_obj.competition
+    old_updated_at = competition.updated_at
+    res = result_keeper_client.patch(
+        f"/matches/{match_obj.id}/", json={"result": "1-0"}
+    )
+    res.raise_for_status()
+    session.refresh(match_obj)
+    session.refresh(competition)
+    assert match_obj.result == Result.WHITE_WIN
+    assert competition.updated_at > old_updated_at
+
+
+def test_result_keeper_clears_result(
+    match_factory: Callable[..., Match],
+    result_keeper_client: TestClient,
+    session: Session,
+):
+    """Clearing a result is still updating the result."""
+    match_obj = match_factory(result=Result.WHITE_WIN)
+    res = result_keeper_client.patch(f"/matches/{match_obj.id}/", json={"result": None})
+    res.raise_for_status()
+    session.refresh(match_obj)
+    assert match_obj.result is None
+
+
+def test_result_keeper_cannot_change_board(
+    match_obj: Match, result_keeper_client: TestClient, session: Session
+):
+    old_board, old_result = match_obj.board, match_obj.result
+    res = result_keeper_client.patch(
+        f"/matches/{match_obj.id}/", json={"result": "1-0", "board": old_board + 9}
+    )
+    assert res.status_code == 403
+    # Nothing was written: the check has to precede the mutation.
+    session.refresh(match_obj)
+    assert match_obj.board == old_board
+    assert match_obj.result == old_result
+
+
+def test_result_keeper_cannot_change_players(
+    match_obj: Match,
+    player_factory: Callable[..., Player],
+    result_keeper_client: TestClient,
+    session: Session,
+):
+    other = player_factory()
+    old_white = match_obj.player_white_id
+    res = result_keeper_client.patch(
+        f"/matches/{match_obj.id}/", json={"player_white_id": other.id}
+    )
+    assert res.status_code == 403
+    session.refresh(match_obj)
+    assert match_obj.player_white_id == old_white
+
+
+def test_result_keeper_cannot_move_match(
+    match_obj: Match,
+    competition_factory: Callable[..., Competition],
+    result_keeper_client: TestClient,
+    session: Session,
+):
+    """Pins that the check runs before `competition_name` is popped."""
+    other = competition_factory(name="other")
+    old_competition_id = match_obj.competition_id
+    res = result_keeper_client.patch(
+        f"/matches/{match_obj.id}/", json={"competition_name": other.name}
+    )
+    assert res.status_code == 403
+    session.refresh(match_obj)
+    assert match_obj.competition_id == old_competition_id
+
+
+def test_result_keeper_empty_body(match_obj: Match, result_keeper_client: TestClient):
+    res = result_keeper_client.patch(f"/matches/{match_obj.id}/", json={})
+    res.raise_for_status()
+
+
+def test_result_keeper_finished_competition(
+    match_obj: Match, result_keeper_client: TestClient, session: Session
+):
+    """A frozen competition beats the role: 409, not 403 and not 200."""
+    match_obj.competition.is_finished = True
+    session.add(match_obj.competition)
+    session.commit()
+    res = result_keeper_client.patch(
+        f"/matches/{match_obj.id}/", json={"result": "1-0"}
+    )
+    assert res.status_code == 409
+
+
+def test_result_keeper_cannot_create_or_delete_match(
+    match_obj: Match, result_keeper_client: TestClient
+):
+    assert result_keeper_client.delete(f"/matches/{match_obj.id}/").status_code == 403
+    created = result_keeper_client.post(
+        "/matches/",
+        json={
+            "competition_name": match_obj.competition.name,
+            "round": match_obj.round,
+            "board": match_obj.board + 1,
+            "player_white_id": match_obj.player_white_id,
+            "player_black_id": match_obj.player_black_id,
+        },
+    )
+    assert created.status_code == 403
+
+
 def test_delete_match(match_obj: Match, auth_client: TestClient, session: Session):
     competition = match_obj.competition
     old_updated_at = competition.updated_at

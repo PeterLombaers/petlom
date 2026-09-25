@@ -2,11 +2,11 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
-from backend.auth import ModeratorDep
+from backend.auth import ModeratorDep, ResultEditorDep
 from backend.dependencies import (
     MAX_PAGE_LENGTH,
     SessionDep,
@@ -14,6 +14,7 @@ from backend.dependencies import (
     find_competition,
     find_object,
 )
+from backend.enums import Role
 from backend.models import (
     Competition,
     CompetitionRating,
@@ -130,10 +131,15 @@ def delete_match(id: int, session: SessionDep, _: ModeratorDep):
 
 @router.patch("/{id}")
 def update_match(
-    id: int, match_obj: MatchUpdate, session: SessionDep, _: ModeratorDep
+    id: int, match_obj: MatchUpdate, session: SessionDep, account: ResultEditorDep
 ) -> MatchPublic:
     db_match = find_object(model=Match, identifier=id, session=session)
     update_data = match_obj.model_dump(exclude_unset=True)
+    if account.role is Role.RESULT_KEEPER and set(update_data) - {"result"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account may only update the result of a match.",
+        )
     old_competition_id = db_match.competition_id
     new_name = update_data.pop("competition_name", None)
     if new_name is not None:

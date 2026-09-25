@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select
 
-from backend.auth import ModeratorDep, create_access_token, verify_password
+from backend.auth import AccountDep, create_access_token, verify_password
 from backend.dependencies import SessionDep
-from backend.models import Moderator, ModeratorPublic
+from backend.models import LoginResponse, Moderator, ModeratorPublic
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: SessionDep,
-) -> dict:
+) -> LoginResponse:
     mod = session.exec(
         select(Moderator).where(Moderator.username == form_data.username)
     ).first()
@@ -26,9 +26,9 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     token = create_access_token({"sub": mod.username})
-    return {"access_token": token, "token_type": "bearer"}
+    return LoginResponse(access_token=token, token_type="bearer", role=mod.role)
 
 
 @router.get("/me")
-def me(current_mod: ModeratorDep) -> ModeratorPublic:
-    return current_mod
+def me(current_account: AccountDep) -> ModeratorPublic:
+    return current_account

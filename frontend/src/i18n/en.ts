@@ -4,7 +4,7 @@ const en = {
     players: "Players",
   },
   auth: {
-    moderatorLogin: "Moderator login",
+    moderatorLogin: "Sign in",
     username: "Username",
     password: "Password",
     login: "Login",

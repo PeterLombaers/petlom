@@ -41,10 +41,14 @@ The first run downloads base images and builds the containers — this takes a f
 **4. Create your moderator account** *(do this once)*
 
 ```bash
-docker compose exec backend uv run python -m backend.create_moderator <username> <password>
+docker compose exec backend uv run python -m backend.create_account <username> <password>
 ```
 
 Replace `<username>` and `<password>` with your chosen credentials.
+
+To hand someone result entry and nothing else, add `--role result_keeper`. They can fill
+in the results of a round, but cannot change pairings, players or competitions. See
+`scripts/README.md`.
 
 **5. Open the app**
 

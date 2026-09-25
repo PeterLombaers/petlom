@@ -4,7 +4,12 @@ import EditableTable from "@/table/EditableTable";
 import { render, makeMockMutation } from "@/test-utils";
 import type { Column } from "./types";
 
-vi.mock("@/auth", () => ({ useAuth: () => ({ isModerator: true }) }));
+const mockIsModerator = vi.fn(() => true);
+vi.mock("@/auth", () => ({
+  useAuth: () => ({ isModerator: mockIsModerator() }),
+}));
+
+afterEach(() => mockIsModerator.mockReturnValue(true));
 
 type TestEntity = { id: number; name: string };
 
@@ -588,6 +593,109 @@ describe("EditableTable", () => {
       expect(
         screen.getAllByRole("textbox", { name: "name-edit" }),
       ).toHaveLength(1);
+    });
+  });
+
+  describe("columnEditOnlyFields", () => {
+    const renderRestricted = (
+      overrides: Partial<
+        React.ComponentProps<typeof EditableTable<TestEntity>>
+      > = {},
+    ) => {
+      mockIsModerator.mockReturnValue(false);
+      return renderColumnTable({
+        columnEditOnlyFields: ["name"],
+        createConfig: {
+          getInitialFormData: () => ({ name: "" }),
+          validateForm: () => ({}),
+          sanitizeForm: (d: { name: string }) => d,
+          getRequestBody: (d: { name: string }) => d,
+          renderContent: () => <div />,
+        },
+        deleteConfig: { getEntityName: (d: TestEntity) => d.name },
+        ...overrides,
+      });
+    };
+
+    it("offers column edit on a listed field", () => {
+      renderRestricted();
+      expect(
+        within(screen.getByRole("columnheader", { name: /Name/ })).getByRole(
+          "button",
+          { name: "Edit" },
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("offers nothing else: no Add, no Delete, no row Edit, no Actions column", () => {
+      renderRestricted();
+      expect(
+        screen.queryByRole("button", { name: /Add/ }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Delete/ }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("columnheader", { name: "Actions" }),
+      ).not.toBeInTheDocument();
+      // The only Edit button anywhere is the column one in the header.
+      expect(screen.getAllByRole("button", { name: "Edit" })).toHaveLength(1);
+    });
+
+    it("leaves an editable column that is not listed alone", () => {
+      renderRestricted({ columnEditOnlyFields: [] });
+      expect(
+        screen.queryByRole("button", { name: "Edit" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("stays frozen when the table is readOnly", () => {
+      renderRestricted({ readOnly: true });
+      expect(
+        screen.queryByRole("button", { name: "Edit" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("does not restrict a moderator", () => {
+      // The prop is ignored for a full moderator: readOnly-then-moderator
+      // ordering is what keeps this true.
+      renderColumnTable({ columnEditOnlyFields: [] });
+      expect(
+        screen.getByRole("columnheader", { name: "Actions" }),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("columnheader", { name: /Name/ })).getByRole(
+          "button",
+          { name: "Edit" },
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("saves a restricted column edit through the edit mutation", async () => {
+      const user = userEvent.setup();
+      const editMutation = makeMockMutation();
+      renderRestricted({
+        queryResult: { ...baseQueryResult, editMutation },
+      });
+
+      await user.click(
+        within(screen.getByRole("columnheader", { name: /Name/ })).getByRole(
+          "button",
+          { name: "Edit" },
+        ),
+      );
+      const [aliceInput] = screen.getAllByRole("textbox", {
+        name: "name-edit",
+      });
+      await user.clear(aliceInput);
+      await user.type(aliceInput, "Alicia");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(editMutation.mutateAsync).toHaveBeenCalledTimes(1);
+      expect(editMutation.mutateAsync).toHaveBeenCalledWith({
+        body: { id: 1, name: "Alicia" },
+        params: { path: { id: 1 } },
+      });
     });
   });
 });

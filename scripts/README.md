@@ -62,6 +62,30 @@ The build uses Docker's layer cache. If you ever need a truly clean rebuild, do 
 ssh <host> "cd petlom && docker compose build --no-cache && docker compose up -d"
 ```
 
+## Accounts
+
+Accounts exist only through these two scripts — there is no sign-up page and no account
+management in the app. Run them from the repository root, or inside the backend container
+on a deployed instance (`docker compose exec backend ...`).
+
+```bash
+uv run python -m backend.create_account <username> <password>
+uv run python -m backend.create_account <username> <password> --role result_keeper
+uv run python -m backend.delete_account <username>
+```
+
+There are two roles:
+
+- **`moderator`** (the default) — full access: players, competitions, pairings, ratings,
+  registrations and exports.
+- **`result_keeper`** — may only fill in the result of an existing match, and only while
+  the competition is open. Everything else is rejected with a 403, and the app shows them
+  the same read-only pages an anonymous visitor sees, plus an editable result column on a
+  round. Useful for handing out result entry on a club evening without handing out the
+  rest.
+
+An account's role cannot be changed after the fact: delete it and create it again.
+
 ## Importing a season from the club website
 
 Three PEP 723 scripts, run with `uv run` (dependencies are declared inline, no install

@@ -1,6 +1,6 @@
-"""Bootstrap script to delete a moderator account.
+"""Bootstrap script to delete an account.
 
-Usage: uv run python -m backend.delete_moderator <username>
+Usage: uv run python -m backend.delete_account <username>
 """
 
 import sys
@@ -13,7 +13,7 @@ from backend.models import Moderator
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: uv run python -m backend.delete_moderator <username>")
+        print("Usage: uv run python -m backend.delete_account <username>")
         sys.exit(1)
 
     username = sys.argv[1]
@@ -25,12 +25,12 @@ def main():
             select(Moderator).where(Moderator.username == username)
         ).first()
         if not moderator:
-            print(f"Error: moderator '{username}' does not exist.")
+            print(f"Error: account '{username}' does not exist.")
             sys.exit(1)
 
         session.delete(moderator)
         session.commit()
-        print(f"Moderator '{username}' deleted.")
+        print(f"Account '{username}' deleted.")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ import { createNumberCell } from "@/table/cells";
 import { CreateDialogConfig } from "@/table/CreateButton";
 import PlayerSelect from "@/players/PlayerSelect";
 import { CsvExportButton } from "@/export/CsvExportButton";
+import { useAuth } from "@/auth";
 import { playerSelectCell, resultToggleCell } from "./cells";
 import { useMatches } from "./useMatches";
 
@@ -29,19 +30,14 @@ const emptyPlayer: PlayerRef = { id: 0, name: "", is_active: true };
 
 const sanitizeData = (match: MatchPublic) => match;
 
-const getRequestBody = (match: MatchPublic) => ({
-  player_white_id: match.player_white.id,
-  player_black_id: match.player_black.id,
-  board: match.board,
-  result: match.result,
-});
-
 export const MatchTable = ({
   competitionName,
   round,
   readOnly = false,
 }: MatchTableProps) => {
   const { t } = useTranslation();
+  const { role } = useAuth();
+  const isResultKeeper = role === "result_keeper";
   const queryResult = useMatches(competitionName, round);
   const matchList = queryResult.rows ?? [];
   const maxBoard =
@@ -54,6 +50,16 @@ export const MatchTable = ({
     if (!match.board || match.board < 1) errors.board = t("match.boardMin");
     return errors;
   };
+
+  const getRequestBody = (match: MatchPublic) =>
+    isResultKeeper
+      ? { result: match.result }
+      : {
+          player_white_id: match.player_white.id,
+          player_black_id: match.player_black.id,
+          board: match.board,
+          result: match.result,
+        };
 
   const createDialogConfig: CreateDialogConfig<MatchFormData> = {
     getInitialFormData: () => ({
@@ -167,6 +173,7 @@ export const MatchTable = ({
         requireTypedConfirmation: false,
       }}
       readOnly={readOnly}
+      columnEditOnlyFields={isResultKeeper ? ["result"] : undefined}
     />
   );
 };

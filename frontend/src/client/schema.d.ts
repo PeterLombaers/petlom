@@ -903,6 +903,20 @@ export interface components {
             already_registered: boolean;
         };
         /**
+         * LoginResponse
+         * @description The response of POST /auth/login.
+         *
+         *     Spelled out rather than returned as a bare dict because the frontend reads
+         *     `role` from it to decide what to render.
+         */
+        LoginResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Token Type */
+            token_type: string;
+            role: components["schemas"]["Role"];
+        };
+        /**
          * MatchCreate
          * @description Request body of POST /matches/.
          */
@@ -976,6 +990,7 @@ export interface components {
             id: number;
             /** Username */
             username: string;
+            role: components["schemas"]["Role"];
         };
         /**
          * PairingCreate
@@ -1194,6 +1209,15 @@ export interface components {
          */
         Result: "1-0" | "1/2-1/2" | "0-1";
         /**
+         * Role
+         * @description What a logged-in account is allowed to do.
+         *
+         *     `RESULT_KEEPER` may only set the result of an existing match; every other
+         *     write endpoint is `MODERATOR`-only. Enforced in `backend/auth.py`.
+         * @enum {string}
+         */
+        Role: "moderator" | "result_keeper";
+        /**
          * RoundRegistrationPublic
          * @description A round registration as returned by GET /competitions/{name}/registrations.
          */
@@ -1303,7 +1327,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
             /** @description Validation Error */

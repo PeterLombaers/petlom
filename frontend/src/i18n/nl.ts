@@ -6,7 +6,7 @@ const nl: TranslationSchema = {
     players: "Spelers",
   },
   auth: {
-    moderatorLogin: "Moderator login",
+    moderatorLogin: "Inloggen",
     username: "Gebruikersnaam",
     password: "Wachtwoord",
     login: "Inloggen",

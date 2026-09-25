@@ -12,7 +12,7 @@ from sqlmodel.pool import StaticPool
 from backend.auth import create_access_token, hash_password
 from backend.competitions import CompetitionType
 from backend.dependencies import get_session
-from backend.enums import ExternalRatingSource
+from backend.enums import ExternalRatingSource, Role
 from backend.main import app
 from backend.models import (
     Competition,
@@ -98,6 +98,31 @@ def moderator(session: Session, moderator_password_hash: str) -> Moderator:
 @pytest.fixture
 def auth_client(client: TestClient, moderator: Moderator) -> TestClient:
     token = create_access_token({"sub": moderator.username})
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client
+
+
+@pytest.fixture
+def result_keeper(session: Session, moderator_password_hash: str) -> Moderator:
+    mod = Moderator(
+        username="testkeeper",
+        hashed_password=moderator_password_hash,
+        role=Role.RESULT_KEEPER,
+    )
+    session.add(mod)
+    session.commit()
+    session.refresh(mod)
+    return mod
+
+
+@pytest.fixture
+def result_keeper_client(client: TestClient, result_keeper: Moderator) -> TestClient:
+    """A client logged in as a result keeper.
+
+    Mutually exclusive with `auth_client`: both set `Authorization` on the same
+    `TestClient`, so a test asks for one or the other.
+    """
+    token = create_access_token({"sub": result_keeper.username})
     client.headers.update({"Authorization": f"Bearer {token}"})
     return client
 

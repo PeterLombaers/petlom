@@ -10,6 +10,7 @@ from sqlmodel import select
 
 from backend.config import settings
 from backend.dependencies import SessionDep
+from backend.enums import Role
 from backend.models import Moderator
 
 SECRET_KEY = settings.jwt_secret_key
@@ -38,7 +39,7 @@ def decode_token(token: str) -> dict:
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
 
-def get_current_moderator(
+def get_current_account(
     token: Annotated[str, Depends(oauth2_scheme)],
     session: SessionDep,
 ) -> Moderator:
@@ -60,4 +61,42 @@ def get_current_moderator(
     return mod
 
 
+AccountDep = Annotated[Moderator, Depends(get_current_account)]
+
+
+def _require_role(account: Moderator, *allowed: Role) -> Moderator:
+    """403, not 401, for a valid token with the wrong role.
+
+    401 would be wrong twice over: the caller *is* authenticated, and the
+    frontend logs the user out on any 401 (`petlom:unauthorized`), so a result
+    keeper who touched a moderator-only endpoint would lose their session
+    instead of seeing an error.
+    """
+    if account.role not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not allowed to perform this action.",
+        )
+    return account
+
+
+def get_current_moderator(account: AccountDep) -> Moderator:
+    """A full moderator: the guard for every write endpoint but one."""
+    return _require_role(account, Role.MODERATOR)
+
+
+def get_current_result_editor(account: AccountDep) -> Moderator:
+    """Anyone who may set a match result: a moderator, or a result keeper.
+
+    A result keeper is additionally restricted to a request body that sets
+    nothing but `result`; that check lives in `update_match`, because it is
+    about the request rather than the caller.
+
+    Spelled out rather than aliased to `AccountDep` so that a third role added
+    later is denied by default instead of silently inheriting result editing.
+    """
+    return _require_role(account, Role.MODERATOR, Role.RESULT_KEEPER)
+
+
 ModeratorDep = Annotated[Moderator, Depends(get_current_moderator)]
+ResultEditorDep = Annotated[Moderator, Depends(get_current_result_editor)]
