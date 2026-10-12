@@ -38,6 +38,7 @@ const nl: TranslationSchema = {
     externalIdsMatched: "Spelers gekoppeld.",
     playersMerged: "Spelers samengevoegd.",
     competitionFinished: "Competitie afgesloten.",
+    roundPublished: "Gepubliceerd op de clubwebsite.",
   },
   a11y: {
     titleSuffix: "Petlom",
@@ -221,6 +222,22 @@ const nl: TranslationSchema = {
   export: {
     csv: "Exporteer CSV",
     failed: "De export kon niet gedownload worden.",
+  },
+  clubSite: {
+    publish: "Publiceren",
+    viewPost: "Bekijk op de clubwebsite",
+    confirmTitle: "Ronde {{roundNr}} publiceren op de clubwebsite?",
+    publishPairings: "De indeling van ronde {{roundNr}} wordt gepubliceerd.",
+    publishResults:
+      "De uitslagen van ronde {{roundNr}} en de stand daarna worden gepubliceerd.",
+    partialResults:
+      "{{count}} van de {{total}} uitslagen zijn bekend en worden getoond. De stand volgt zodra alle uitslagen binnen zijn.",
+    createsPost: "Dit maakt een nieuw bericht aan op de clubwebsite.",
+    replacesPost:
+      "Dit vervangt het bericht dat op {{publishedAt}} is gepubliceerd.",
+    noCategories:
+      "Deze competitie heeft geen websitecategorieën, dus het bericht komt in de standaardcategorie van de website.",
+    categories: "Websitecategorieën",
   },
   entityType: {
     player: "speler",

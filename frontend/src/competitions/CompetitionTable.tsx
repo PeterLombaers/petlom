@@ -15,6 +15,8 @@ import {
   createNonEmptyStringValidator,
 } from "@/table/cells";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/auth";
+import { clubSiteCategoriesCell } from "@/clubSite/cells";
 import { useCompetitions } from "./useCompetitions";
 
 type CompetitionPublic = components["schemas"]["CompetitionPublic"];
@@ -36,6 +38,7 @@ type CompetitionFormData = {
 
 export default function CompetitionTable() {
   const { t } = useTranslation();
+  const { isModerator } = useAuth();
   const queryResult = useCompetitions();
 
   const validateCompetitionName = createNonEmptyStringValidator(
@@ -172,6 +175,16 @@ export default function CompetitionTable() {
           header: t("competition.status"),
           width: 120,
         },
+        // Only a moderator publishes, so only a moderator needs to see them.
+        ...(isModerator
+          ? [
+              {
+                field: "club_site_category_ids" as const,
+                cell: clubSiteCategoriesCell,
+                header: t("clubSite.categories"),
+              },
+            ]
+          : []),
       ]}
       sort={(a, b) => b.updated_at.localeCompare(a.updated_at)}
       createConfig={createDialogConfig}

@@ -7,6 +7,9 @@ services:
       - DATABASE_FP=/data/petlom.db
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - ALLOWED_ORIGINS=[]
+      - CLUB_SITE_USERNAME=${CLUB_SITE_USERNAME:-}
+      - CLUB_SITE_APP_PASSWORD=${CLUB_SITE_APP_PASSWORD:-}
+      - CLUB_SITE_POST_STATUS=${CLUB_SITE_POST_STATUS:-publish}
     volumes:
       - petlom_db:/data
     restart: unless-stopped

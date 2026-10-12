@@ -36,6 +36,7 @@ const en = {
     externalIdsMatched: "Players matched.",
     playersMerged: "Players merged.",
     competitionFinished: "Competition finished.",
+    roundPublished: "Published to the club website.",
   },
   a11y: {
     titleSuffix: "Petlom",
@@ -219,6 +220,21 @@ const en = {
   export: {
     csv: "Export CSV",
     failed: "The export could not be downloaded.",
+  },
+  clubSite: {
+    publish: "Publish",
+    viewPost: "View on the club website",
+    confirmTitle: "Publish round {{roundNr}} to the club website?",
+    publishPairings: "The pairings of round {{roundNr}} will be published.",
+    publishResults:
+      "The results of round {{roundNr}} and the ranking after it will be published.",
+    partialResults:
+      "{{count}} of {{total}} results are in and will be shown. The ranking follows once every result is in.",
+    createsPost: "This creates a new post on the club website.",
+    replacesPost: "This replaces the post published on {{publishedAt}}.",
+    noCategories:
+      "This competition has no website categories, so the post lands in the website's default category.",
+    categories: "Website categories",
   },
   entityType: {
     player: "player",

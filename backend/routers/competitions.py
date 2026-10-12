@@ -80,6 +80,7 @@ def to_competition_response(
         created_at=competition.created_at,
         updated_at=competition.updated_at,
         is_finished=competition.is_finished,
+        club_site_category_ids=competition.club_site_category_ids,
         n_rounds=get_latest_round_nr(competition, session),
         rating_type=competition.rating_type,
     )
@@ -156,8 +157,10 @@ def update_competition(
     db_competition = find_competition(name, session)
     update_data = competition.model_dump(exclude_unset=True)
     # Flipping `is_finished` is always allowed; that is how a competition is
-    # reopened. Any other field is a write to a possibly frozen competition.
-    if set(update_data) - {"is_finished"}:
+    # reopened. So are the club website categories, because a finished
+    # competition can still be published. Any other field is a write to a
+    # possibly frozen competition.
+    if set(update_data) - {"is_finished", "club_site_category_ids"}:
         ensure_competition_open(db_competition)
     db_competition.sqlmodel_update(update_data)
     db_competition.updated_at = datetime.now(UTC)

@@ -231,30 +231,6 @@ export interface paths {
         patch: operations["update_round_registrations_competitions__name__registrations_patch"];
         trace?: never;
     };
-    "/competitions/{name}/registrations/import-preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Preview Registration Import
-         * @description Report what signing up on the club website would add to this round.
-         *
-         *     Read-only on purpose: the names come from a form people type into, so the
-         *     moderator gets to see what was matched to whom before anything is
-         *     registered.
-         */
-        get: operations["preview_registration_import_competitions__name__registrations_import_preview_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/players/": {
         parameters: {
             query?: never;
@@ -499,6 +475,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/competitions/{name}/registrations/import-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Registration Import
+         * @description Report what signing up on the club website would add to this round.
+         *
+         *     Read-only on purpose: the names come from a form people type into, so the
+         *     moderator gets to see what was matched to whom before anything is
+         *     registered.
+         */
+        get: operations["preview_registration_import_competitions__name__registrations_import_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competitions/{name}/publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieve Publication
+         * @description Where and when the round was last published to the club website.
+         */
+        get: operations["retrieve_publication_competitions__name__publication_get"];
+        put?: never;
+        /**
+         * Publish Round
+         * @description Publish the round to the club website, creating or replacing its post.
+         *
+         *     Always the round as it is now: its pairings, any results entered so far
+         *     and, once every result is in, the ranking after it. Publishing again
+         *     replaces the post's content, so this is also how a correction is
+         *     published. Allowed on a finished competition, since nothing in Petlom
+         *     changes but the record of the post.
+         */
+        post: operations["publish_round_competitions__name__publication_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/club-site/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Club Site Categories
+         * @description The club website's post categories, to choose a competition's from.
+         */
+        get: operations["list_club_site_categories_club_site_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -522,6 +572,18 @@ export interface components {
             client_secret?: string | null;
         };
         /**
+         * ClubSiteCategory
+         * @description A post category on the club website, as returned by GET /club-site/categories.
+         */
+        ClubSiteCategory: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Parent */
+            parent: number;
+        };
+        /**
          * CompetitionCreate
          * @description Request body of POST /competitions/.
          */
@@ -530,6 +592,11 @@ export interface components {
             name: string;
             type: components["schemas"]["CompetitionType"];
             rating_type: components["schemas"]["CompetitionRatingTypeCreate"];
+            /**
+             * Club Site Category Ids
+             * @default []
+             */
+            club_site_category_ids: number[];
         };
         /**
          * CompetitionDetail
@@ -551,6 +618,8 @@ export interface components {
             updated_at: string;
             /** Is Finished */
             is_finished: boolean;
+            /** Club Site Category Ids */
+            club_site_category_ids: number[];
             /** N Rounds */
             n_rounds: number;
             rating_type: components["schemas"]["CompetitionRatingTypePublic"];
@@ -575,6 +644,8 @@ export interface components {
             updated_at: string;
             /** Is Finished */
             is_finished: boolean;
+            /** Club Site Category Ids */
+            club_site_category_ids: number[];
         };
         /**
          * CompetitionRatingForPlayer
@@ -714,6 +785,8 @@ export interface components {
             type?: components["schemas"]["CompetitionType"] | null;
             /** Is Finished */
             is_finished?: boolean | null;
+            /** Club Site Category Ids */
+            club_site_category_ids?: number[] | null;
         };
         /**
          * ExternalIdMatchPublic
@@ -1217,6 +1290,28 @@ export interface components {
          * @enum {string}
          */
         Role: "moderator" | "result_keeper";
+        /**
+         * RoundPublication
+         * @description A round's post on the club website, as returned by .../publication.
+         */
+        RoundPublication: {
+            /**
+             * Enabled
+             * @description Whether publishing to the club website is configured at all.
+             */
+            enabled: boolean;
+            /** Round Nr */
+            round_nr: number;
+            /** Url */
+            url?: string | null;
+            /** Published At */
+            published_at?: string | null;
+            /**
+             * With Results
+             * @description Whether the last publish included the results and the ranking. None when the round was never published.
+             */
+            with_results?: boolean | null;
+        };
         /**
          * RoundRegistrationPublic
          * @description A round registration as returned by GET /competitions/{name}/registrations.
@@ -1959,39 +2054,6 @@ export interface operations {
             };
         };
     };
-    preview_registration_import_competitions__name__registrations_import_preview_get: {
-        parameters: {
-            query: {
-                round_nr: number;
-            };
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegistrationImportPreview"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_players_players__get: {
         parameters: {
             query?: {
@@ -2557,6 +2619,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_registration_import_competitions__name__registrations_import_preview_get: {
+        parameters: {
+            query: {
+                round_nr: number;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retrieve_publication_competitions__name__publication_get: {
+        parameters: {
+            query?: {
+                round_nr?: number | null;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundPublication"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_round_competitions__name__publication_post: {
+        parameters: {
+            query?: {
+                round_nr?: number | null;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundPublication"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_club_site_categories_club_site_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubSiteCategory"][];
                 };
             };
         };

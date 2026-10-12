@@ -488,6 +488,13 @@ class Competition(CompetitionBase, table=True):
     rating_type: CompetitionRatingType = Relationship(
         back_populates="competition", cascade_delete=True
     )
+    # The club website's post categories (WordPress term ids) a round of this
+    # competition is published under. Kept per competition because one of them
+    # is the season. The server default keeps older rows readable.
+    club_site_category_ids: list[int] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False, server_default="[]"),
+    )
 
 
 class CompetitionPublic(CompetitionBase):
@@ -496,12 +503,14 @@ class CompetitionPublic(CompetitionBase):
     created_at: datetime
     updated_at: datetime
     is_finished: bool
+    club_site_category_ids: list[int]
 
 
 class CompetitionCreate(CompetitionBase):
     """Request body of POST /competitions/."""
 
     rating_type: CompetitionRatingTypeCreate
+    club_site_category_ids: list[int] = []
 
 
 class CompetitionDetail(CompetitionPublic):
@@ -527,6 +536,7 @@ class CompetitionUpdate(SQLModel):
     name: str | None = None
     type: CompetitionType | None = None
     is_finished: bool | None = None
+    club_site_category_ids: list[int] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -728,6 +738,58 @@ class SimkroRank(SQLModel):
     losses: int
     current_rating: float | None = None
     performance_rating: float | None = None
+
+
+# ---------------------------------------------------------------------------
+# Club website
+# ---------------------------------------------------------------------------
+
+
+class ClubSitePost(SQLModel, table=True):
+    """The post on the club website a round of a competition is published to.
+
+    One per round: the first publish creates the post and every later one
+    replaces its content, so this row is how the same post is found again. It
+    outlives the round's pairing being deleted and generated anew, so the new
+    pairing is published to the same post.
+    """
+
+    __table_args__ = (UniqueConstraint("competition_id", "round"),)
+    id: int | None = Field(default=None, primary_key=True)
+    competition_id: int = Field(foreign_key="competition.id", ondelete="CASCADE")
+    round: int
+    # The WordPress post id.
+    post_id: int
+    url: str
+    # Whether the last publish included the results and the ranking.
+    with_results: bool
+    published_at: datetime
+
+
+class RoundPublication(SQLModel):
+    """A round's post on the club website, as returned by .../publication."""
+
+    enabled: bool = Field(
+        description="Whether publishing to the club website is configured at all."
+    )
+    round_nr: int
+    url: str | None = None
+    published_at: datetime | None = None
+    with_results: bool | None = Field(
+        default=None,
+        description=(
+            "Whether the last publish included the results and the ranking."
+            " None when the round was never published."
+        ),
+    )
+
+
+class ClubSiteCategory(SQLModel):
+    """A post category on the club website, as returned by GET /club-site/categories."""
+
+    id: int
+    name: str
+    parent: int
 
 
 # ---------------------------------------------------------------------------

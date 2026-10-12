@@ -1,30 +1,20 @@
-"""CSV renderings of a competition round, for club administration.
-
-The column headers are the club's own report format, so they are Dutch here
-regardless of the language the frontend is showing. Everything in this module is
-pure: it takes the models it is handed and returns a string, so the router stays
-a lookup plus a response.
-"""
+"""CSV renderings of a competition round, for club administration."""
 
 import csv
 import io
 from collections.abc import Sequence
 
-from backend.enums import Result
 from backend.models import Match, SimkroRank
-from backend.rounding import round_half_up
-
-MATCH_HEADERS = ["Nr", "Witspeler", "Zwartspeler", "Uitslag"]
-RANKING_HEADERS = ["Nr", "Naam", "Pnt", "Prt", "Sal", "Ks", "w", "r", "v", "Rat", "TPR"]
-
-RESULT_TEXT = {
-    Result.WHITE_WIN: "1-0",
-    Result.DRAW: "½-½",
-    Result.BLACK_WIN: "0-1",
-}
+from backend.round_report import (
+    MATCH_HEADERS,
+    RANKING_HEADERS,
+    Row,
+    match_rows,
+    ranking_rows,
+)
 
 
-def _render(headers: Sequence[str], rows: Sequence[Sequence[object]]) -> str:
+def _render(headers: Sequence[str], rows: Sequence[Row]) -> str:
     buffer = io.StringIO()
     # RFC 4180 line endings; the default would be the platform's.
     writer = csv.writer(buffer, lineterminator="\r\n")
@@ -35,43 +25,9 @@ def _render(headers: Sequence[str], rows: Sequence[Sequence[object]]) -> str:
 
 def matches_csv(matches: Sequence[Match]) -> str:
     """The match results of one round, by board number."""
-    return _render(
-        MATCH_HEADERS,
-        [
-            [
-                match.board,
-                match.player_white.name,
-                match.player_black.name,
-                # A match that has not been played yet leaves the cell empty.
-                RESULT_TEXT[match.result] if match.result is not None else "",
-            ]
-            for match in sorted(matches, key=lambda m: m.board)
-        ],
-    )
+    return _render(MATCH_HEADERS, match_rows(matches))
 
 
 def ranking_csv(ranking: Sequence[SimkroRank]) -> str:
-    """The ranking after a round, in the order `compute_ranking` produced."""
-    return _render(
-        RANKING_HEADERS,
-        [
-            [
-                rank.position,
-                rank.player.name,
-                rank.points,
-                rank.games_played,
-                rank.saldo,
-                rank.color_saldo,
-                rank.wins,
-                rank.draws,
-                rank.losses,
-                round_half_up(rank.current_rating)
-                if rank.current_rating is not None
-                else "",
-                round_half_up(rank.performance_rating)
-                if rank.performance_rating is not None
-                else "",
-            ]
-            for rank in ranking
-        ],
-    )
+    """The ranking after the round, in the order `compute_ranking` produced."""
+    return _render(RANKING_HEADERS, ranking_rows(ranking))

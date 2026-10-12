@@ -15,6 +15,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useCompetition } from "@/competitions/useCompetitions";
 import { MatchTable } from "@/matches/MatchTable";
+import { PublishButton } from "@/clubSite/PublishButton";
 import RankingTable from "@/competitions/RankingTable";
 import RegistrationEditor from "@/competitions/RegistrationEditor";
 import RegisteredPlayerTable from "@/competitions/RegisteredPlayerTable";
@@ -89,6 +90,7 @@ function CompetitionDetail({
         currentRound={currentRound}
         nRounds={nRounds}
         isFinished={isFinished}
+        clubSiteCategoryIds={competition.club_site_category_ids}
       />
     );
   }
@@ -203,11 +205,13 @@ function RoundView({
   currentRound,
   nRounds,
   isFinished,
+  clubSiteCategoryIds,
 }: {
   name: string;
   currentRound: number;
   nRounds: number;
   isFinished: boolean;
+  clubSiteCategoryIds: number[];
 }) {
   const navigate = useNavigate();
   const { isModerator } = useAuth();
@@ -257,6 +261,11 @@ function RoundView({
             {t("competition.createPairingRoundN", { nextRound })}
           </Button>
         )}
+        <PublishButton
+          competitionName={name}
+          roundNr={currentRound}
+          categoryIds={clubSiteCategoryIds}
+        />
       </Group>
 
       <Collapse expanded={playersVisible}>

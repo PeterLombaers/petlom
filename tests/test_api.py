@@ -1,17 +1,22 @@
 import csv
 import io
+import json
 from collections.abc import Callable
+from datetime import UTC, datetime
 
+import httpx
 import pytest
 import respx
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from sqlmodel import Session, select
 
 from backend.competitions import CompetitionType
 from backend.config import settings
 from backend.enums import ExternalRatingSource
 from backend.models import (
+    ClubSitePost,
     Competition,
     CompetitionPublic,
     CompetitionRating,
@@ -2167,3 +2172,242 @@ def test_finished_competition_ranking_still_renders(
     res = auth_client.get(f"/competitions/{finished_competition.name}/ranking")
     res.raise_for_status()
     assert res.json()
+
+
+# ---------------------------------------------------------------------------
+# Publishing a round to the club website
+# ---------------------------------------------------------------------------
+
+CLUB_SITE = "https://club.test"
+
+
+@pytest.fixture
+def wordpress_site(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Credentials for a stub WordPress site, whose routes the tests mock."""
+    monkeypatch.setattr(settings, "club_site_base_url", CLUB_SITE)
+    monkeypatch.setattr(settings, "club_site_username", "petlom")
+    monkeypatch.setattr(settings, "club_site_app_password", SecretStr("abcd"))
+
+
+def wp_route(method: str, rest_route: str) -> respx.Route:
+    return respx.route(
+        method=method,
+        url__startswith=f"{CLUB_SITE}/",
+        params={"rest_route": rest_route},
+    )
+
+
+def wp_post(post_id: int, status: str = "publish") -> dict[str, object]:
+    return {"id": post_id, "link": f"{CLUB_SITE}/?p={post_id}", "status": status}
+
+
+def publish(client: TestClient, competition: Competition, round_nr: int):
+    return client.post(
+        f"/competitions/{competition.name}/publication", params={"round_nr": round_nr}
+    )
+
+
+@respx.mock
+def test_publish_creates_the_post_then_updates_it(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+    wordpress_site: None,
+):
+    (competition, _, _) = simkro_setup
+    competition.club_site_category_ids = [14, 11]
+    session.add(competition)
+    session.commit()
+    created = wp_route("POST", "/wp/v2/posts").respond(201, json=wp_post(7))
+    updated = wp_route("POST", "/wp/v2/posts/7").respond(200, json=wp_post(7))
+
+    res = publish(auth_client, competition, 2)
+    res.raise_for_status()
+    assert res.json()["url"] == f"{CLUB_SITE}/?p=7"
+    assert res.json()["with_results"] is True
+    body = json.loads(created.calls.last.request.content)
+    assert body["title"] == "Uitslagen en stand Ronde 2"
+    assert body["categories"] == [14, 11]
+    assert "petlom-ranking" in body["content"]
+
+    publish(auth_client, competition, 2).raise_for_status()
+    assert created.call_count == 1
+    assert updated.call_count == 1
+    posts = session.exec(select(ClubSitePost)).all()
+    assert [(p.round, p.post_id) for p in posts] == [(2, 7)]
+
+
+@respx.mock
+def test_publish_pairings_before_the_results_are_in(
+    competition: Competition,
+    match_factory: Callable[..., Match],
+    auth_client: TestClient,
+    wordpress_site: None,
+):
+    match_factory(competition=competition, round=1, board=1, result=Result.WHITE_WIN)
+    match_factory(competition=competition, round=1, board=2, result=None)
+    created = wp_route("POST", "/wp/v2/posts").respond(201, json=wp_post(7))
+
+    res = publish(auth_client, competition, 1)
+    res.raise_for_status()
+
+    assert res.json()["with_results"] is False
+    body = json.loads(created.calls.last.request.content)
+    assert body["title"] == "Indeling Ronde 1"
+    assert "petlom-ranking" not in body["content"]
+
+
+@pytest.mark.parametrize(
+    "update_response",
+    [
+        httpx.Response(404, json={"code": "rest_post_invalid_id", "message": "x"}),
+        httpx.Response(200, json=wp_post(7, status="trash")),
+    ],
+    ids=["deleted", "trashed"],
+)
+@respx.mock
+def test_publish_replaces_a_post_removed_from_the_site(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+    wordpress_site: None,
+    update_response: httpx.Response,
+):
+    (competition, _, _) = simkro_setup
+    session.add(
+        ClubSitePost(
+            competition_id=competition.id,
+            round=1,
+            post_id=7,
+            url=f"{CLUB_SITE}/?p=7",
+            with_results=False,
+            published_at=datetime.now(UTC),
+        )
+    )
+    session.commit()
+    wp_route("POST", "/wp/v2/posts/7").mock(return_value=update_response)
+    wp_route("POST", "/wp/v2/posts").respond(201, json=wp_post(8))
+
+    res = publish(auth_client, competition, 1)
+    res.raise_for_status()
+
+    assert res.json()["url"] == f"{CLUB_SITE}/?p=8"
+    assert session.exec(select(ClubSitePost)).one().post_id == 8
+
+
+@respx.mock
+def test_publish_reports_the_site_rejecting_it_as_a_bad_gateway(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+    wordpress_site: None,
+):
+    (competition, _, _) = simkro_setup
+    wp_route("POST", "/wp/v2/posts").respond(
+        401, json={"code": "incorrect_password", "message": "Wrong password."}
+    )
+
+    res = publish(auth_client, competition, 1)
+
+    # Not a 401: that would log the moderator out of Petlom.
+    assert res.status_code == 502
+    assert "Wrong password." in res.json()["detail"]
+    assert session.exec(select(ClubSitePost)).all() == []
+
+
+def test_publish_without_credentials_is_unavailable(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    (competition, _, _) = simkro_setup
+    monkeypatch.setattr(settings, "club_site_username", None)
+
+    assert publish(auth_client, competition, 1).status_code == 503
+    res = auth_client.get(f"/competitions/{competition.name}/publication")
+    res.raise_for_status()
+    assert res.json()["enabled"] is False
+
+
+def test_publish_a_round_without_a_pairing(
+    competition: Competition, auth_client: TestClient, wordpress_site: None
+):
+    assert publish(auth_client, competition, 1).status_code == 400
+
+
+def test_publish_requires_a_moderator(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    result_keeper_client: TestClient,
+    wordpress_site: None,
+):
+    (competition, _, _) = simkro_setup
+    assert publish(result_keeper_client, competition, 1).status_code == 403
+    res = result_keeper_client.get(f"/competitions/{competition.name}/publication")
+    assert res.status_code == 403
+
+
+def test_retrieve_publication(
+    simkro_setup: tuple[Competition, list[Player], list[Match]],
+    auth_client: TestClient,
+    session: Session,
+    wordpress_site: None,
+):
+    (competition, _, _) = simkro_setup
+    session.add(
+        ClubSitePost(
+            competition_id=competition.id,
+            round=4,
+            post_id=7,
+            url=f"{CLUB_SITE}/?p=7",
+            with_results=True,
+            published_at=datetime.now(UTC),
+        )
+    )
+    session.commit()
+
+    # Without a round number: the latest round, which is 4.
+    latest = auth_client.get(f"/competitions/{competition.name}/publication")
+    latest.raise_for_status()
+    assert latest.json()["round_nr"] == 4
+    assert latest.json()["url"] == f"{CLUB_SITE}/?p=7"
+    assert latest.json()["enabled"] is True
+
+    other = auth_client.get(
+        f"/competitions/{competition.name}/publication", params={"round_nr": 3}
+    )
+    other.raise_for_status()
+    assert other.json()["url"] is None
+
+
+@respx.mock
+def test_publish_a_finished_competition(
+    finished_competition: Competition, auth_client: TestClient, wordpress_site: None
+):
+    wp_route("POST", "/wp/v2/posts").respond(201, json=wp_post(7))
+
+    assert publish(auth_client, finished_competition, 1).status_code == 200
+
+
+def test_club_site_categories_of_a_finished_competition_can_change(
+    finished_competition: Competition, auth_client: TestClient
+):
+    res = auth_client.patch(
+        f"/competitions/{finished_competition.name}",
+        json={"club_site_category_ids": [14, 139]},
+    )
+    res.raise_for_status()
+    assert res.json()["club_site_category_ids"] == [14, 139]
+    listed = auth_client.get("/competitions/").json()
+    assert listed[0]["club_site_category_ids"] == [14, 139]
+
+
+@respx.mock
+def test_list_club_site_categories(auth_client: TestClient, wordpress_site: None):
+    wp_route("GET", "/wp/v2/categories").respond(
+        200, json=[{"id": 14, "name": "Interne competitie", "parent": 0}]
+    )
+
+    res = auth_client.get("/club-site/categories")
+    res.raise_for_status()
+
+    assert res.json() == [{"id": 14, "name": "Interne competitie", "parent": 0}]
