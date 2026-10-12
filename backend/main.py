@@ -6,7 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
 from backend.db import engine, init_db
-from backend.routers import auth, competitions, external_ratings, matches, players
+from backend.routers import (
+    auth,
+    club_site,
+    competitions,
+    external_ratings,
+    matches,
+    players,
+)
 
 
 @asynccontextmanager
@@ -29,3 +36,4 @@ app.include_router(competitions.router)
 app.include_router(players.router)
 app.include_router(matches.router)
 app.include_router(external_ratings.router)
+app.include_router(club_site.router)

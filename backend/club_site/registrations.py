@@ -19,24 +19,10 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-# The club website answers some non-browser user agents with a 403.
-USER_AGENT = (
-    "Mozilla/5.0 (compatible; Petlom/1.0; +https://github.com/petlom) python-httpx"
-)
+from backend.club_site.http import ClubSiteError, client
 
 # The header of the column holding the registered names, normalized.
 NAME_HEADERS = frozenset({"naam", "name"})
-
-# One client for the whole process, like backend.external.chess_db: a client
-# per request would leak a connection pool per request. No concurrency budget
-# here -- a run is at most a handful of sequential requests.
-_client = httpx.Client(
-    timeout=10.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}
-)
-
-
-class ClubSiteError(Exception):
-    """The sign-up list could not be fetched or made sense of."""
 
 
 class _IframeSrcParser(HTMLParser):
@@ -84,7 +70,7 @@ def _sheet_csv_url(src: str) -> str | None:
 
 def _get(url: str) -> str:
     try:
-        response = _client.get(url)
+        response = client.get(url)
         response.raise_for_status()
     except httpx.HTTPError as exc:
         raise ClubSiteError(f"Club website request failed: {exc}") from exc

@@ -1,10 +1,12 @@
+from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
+from sqlalchemy import func
 from sqlmodel import Session, SQLModel, select
 
 from backend.db import engine
-from backend.models import Competition
+from backend.models import Competition, Match, RoundRegistration
 
 MAX_PAGE_LENGTH = 500
 
@@ -54,3 +56,31 @@ def ensure_competition_open(competition: Competition) -> None:
                 "Reopen it before making changes."
             ),
         )
+
+
+def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
+    n_rounds_stmt = select(func.max(Match.round)).where(
+        Match.competition_id == competition.id
+    )
+    return session.scalar(n_rounds_stmt) or 0
+
+
+def get_round_matches(
+    competition: Competition, round_nr: int, session: SessionDep
+) -> Sequence[Match]:
+    return session.exec(
+        select(Match)
+        .where(Match.competition_id == competition.id)
+        .where(Match.round == round_nr)
+    ).all()
+
+
+def get_round_registrations(
+    competition: Competition, round_nr: int, session: SessionDep
+) -> Sequence[RoundRegistration]:
+    return session.exec(
+        select(RoundRegistration).where(
+            RoundRegistration.competition_id == competition.id,
+            RoundRegistration.round == round_nr,
+        )
+    ).all()

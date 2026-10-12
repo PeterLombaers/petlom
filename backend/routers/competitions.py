@@ -1,25 +1,24 @@
-from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Annotated
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
-from sqlalchemy import func
 from sqlmodel import col, select
 
 from backend.auth import ModeratorDep
-from backend.club_site import ClubSiteError, fetch_registered_names
 from backend.competitions.ranking import compute_ranking, current_ratings
 from backend.competitions.registry import round_field
 from backend.competitions.simkro import create_matchups
-from backend.config import settings
 from backend.csv_export import matches_csv, ranking_csv
 from backend.dependencies import (
     MAX_PAGE_LENGTH,
     SessionDep,
     ensure_competition_open,
     find_competition,
+    get_latest_round_nr,
+    get_round_matches,
+    get_round_registrations,
 )
 from backend.models import (
     Competition,
@@ -33,19 +32,15 @@ from backend.models import (
     CompetitionRatingTypeUpdate,
     CompetitionRatingUpdate,
     CompetitionUpdate,
-    ImportedRegistrationAmbiguity,
-    ImportedRegistrationMatch,
     Match,
     MatchPublic,
     PairingCreate,
     Player,
-    RegistrationImportPreview,
     RoundRegistration,
     RoundRegistrationPublic,
     RoundRegistrationUpdate,
     SimkroRank,
 )
-from backend.registration_import import match_names
 
 router = APIRouter(prefix="/competitions", tags=["competitions"])
 
@@ -74,13 +69,6 @@ def csv_response(content: str, filename: str) -> Response:
             "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"
         },
     )
-
-
-def get_latest_round_nr(competition: Competition, session: SessionDep) -> int:
-    n_rounds_stmt = select(func.max(Match.round)).where(
-        Match.competition_id == competition.id
-    )
-    return session.scalar(n_rounds_stmt) or 0
 
 
 def to_competition_response(
@@ -270,16 +258,6 @@ def update_player_rating(
 # ---------------------------------------------------------------------------
 
 
-def get_round_matches(
-    competition: Competition, round_nr: int, session: SessionDep
-) -> Sequence[Match]:
-    return session.exec(
-        select(Match)
-        .where(Match.competition_id == competition.id)
-        .where(Match.round == round_nr)
-    ).all()
-
-
 @router.get("/{name}/pairing")
 def retrieve_pairing(
     name: str, session: SessionDep, round_nr: int | None = None
@@ -428,17 +406,6 @@ def export_ranking(
 # one row per player per competition, holding the initial rating they entered it
 # with. The initial rating of a player together with the matches they played are enough
 # to calculate their competition rating.
-
-
-def get_round_registrations(
-    competition: Competition, round_nr: int, session: SessionDep
-) -> Sequence[RoundRegistration]:
-    return session.exec(
-        select(RoundRegistration).where(
-            RoundRegistration.competition_id == competition.id,
-            RoundRegistration.round == round_nr,
-        )
-    ).all()
 
 
 def public_round_registrations(
@@ -610,51 +577,6 @@ def retrieve_round_registrations(
 ) -> list[RoundRegistrationPublic]:
     competition = find_competition(name, session)
     return public_round_registrations(competition, round_nr, session)
-
-
-@router.get("/{name}/registrations/import-preview")
-def preview_registration_import(
-    name: str, round_nr: int, session: SessionDep, _: ModeratorDep
-) -> RegistrationImportPreview:
-    """Report what signing up on the club website would add to this round.
-
-    Read-only on purpose: the names come from a form people type into, so the
-    moderator gets to see what was matched to whom before anything is
-    registered.
-    """
-    competition = find_competition(name, session)
-    url = settings.club_registration_url
-    try:
-        names = fetch_registered_names(url)
-    except ClubSiteError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
-
-    players = session.exec(select(Player).where(Player.is_active)).all()
-    result = match_names(names, players)
-    registered = {
-        reg.player_id for reg in get_round_registrations(competition, round_nr, session)
-    }
-
-    return RegistrationImportPreview(
-        source_url=url,
-        scraped_count=len(names),
-        matched=[
-            ImportedRegistrationMatch(
-                scraped_name=m.scraped_name,
-                player=m.player,
-                approximate=m.approximate,
-                already_registered=m.player.id in registered,
-            )
-            for m in result.matched
-        ],
-        unmatched=result.unmatched,
-        ambiguous=[
-            ImportedRegistrationAmbiguity(
-                scraped_name=a.scraped_name, candidates=a.candidates
-            )
-            for a in result.ambiguous
-        ],
-    )
 
 
 @router.patch("/{name}/registrations")

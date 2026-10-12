@@ -4,8 +4,8 @@
 the ids the collision handling keys on. The names are invented.
 """
 
+from backend.club_site.registration_import import match_names
 from backend.models import Player
-from backend.registration_import import match_names
 
 
 def players(*names: str) -> list[Player]:

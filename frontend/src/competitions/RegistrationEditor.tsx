@@ -21,7 +21,7 @@ import { PlayerName } from "@/ui/PlayerName";
 import { getRating } from "@/players/external";
 import NewPlayerButton from "@/players/NewPlayerButton";
 import { useRegistrations } from "./useRegistrations";
-import ImportRegistrationsModal from "./ImportRegistrationsModal";
+import ImportRegistrationsModal from "@/clubSite/ImportRegistrationsModal";
 import SeedRatingsModal, { PlayerNeedingRating } from "./SeedRatingsModal";
 import { useState } from "react";
 

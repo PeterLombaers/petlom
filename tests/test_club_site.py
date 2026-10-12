@@ -4,7 +4,8 @@ import httpx
 import pytest
 import respx
 
-from backend.club_site import ClubSiteError, fetch_registered_names
+from backend.club_site import ClubSiteError
+from backend.club_site.registrations import fetch_registered_names
 
 PAGE_URL = "https://club.test/?page_id=1"
 PAGE_HTML = (Path(__file__).parent / "data/club_site/signup_page.html").read_text()
