@@ -44,8 +44,13 @@ const CAROL = { id: 3, name: "Carol", is_active: true, external_ids: [] };
 /** The dropdown shows the FIDE rating beside the name, `—` when there is none. */
 const option = (player: typeof ALICE) => `${player.name} (—)`;
 
-function makeRegistration(id: number, player: typeof ALICE, is_bye = false) {
-  return { id, player, is_bye, rating: null };
+function makeRegistration(
+  id: number,
+  player: typeof ALICE,
+  is_bye = false,
+  previous_bye_rounds: number[] = [],
+) {
+  return { id, player, is_bye, rating: null, previous_bye_rounds };
 }
 
 function setupMocks({
@@ -229,6 +234,32 @@ describe("RegistrationEditor", () => {
       expect(
         screen.queryByText(/Odd number of players/),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("previous byes", () => {
+    it("shows who had a bye before, and still lets them have it again", async () => {
+      const user = userEvent.setup();
+      const { updateMutation } = renderList([
+        makeRegistration(10, ALICE, false, [1, 3]),
+        makeRegistration(11, BOB),
+        makeRegistration(12, CAROL),
+      ]);
+
+      const aliceRow = screen.getByText("Alice").closest("tr")!;
+      expect(
+        within(aliceRow).getByText("Previous bye: round 1, 3"),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByText("Bob").closest("tr")!).queryByText(
+          /Previous bye/,
+        ),
+      ).not.toBeInTheDocument();
+
+      await user.click(within(aliceRow).getByRole("radio"));
+      expect(updateMutation.mutate).toHaveBeenCalledWith(
+        expect.objectContaining({ body: { bye_player_id: ALICE.id } }),
+      );
     });
   });
 

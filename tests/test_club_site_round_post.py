@@ -99,6 +99,34 @@ def test_names_are_escaped():
     assert "<b>" not in content
 
 
+def test_the_bye_is_announced_above_the_pairings():
+    content = render_round_post(3, MATCHES, None, "Henk de Bye").content
+
+    bye = content.index(
+        '<p class="petlom-bye">Er zijn een oneven aantal aanmeldingen.'
+        " Henk de Bye heeft een bye.</p>"
+    )
+    assert bye < content.index("petlom-matches")
+
+
+def test_no_bye_line_without_a_bye():
+    assert "petlom-bye" not in render_round_post(3, MATCHES, None).content
+
+
+def test_the_bye_is_left_out_once_the_results_are_in():
+    ranking = [build_rank(1, "Jan Jansen")]
+
+    content = render_round_post(3, MATCHES, ranking, "Henk de Bye").content
+
+    assert "petlom-bye" not in content
+
+
+def test_the_bye_name_is_escaped():
+    content = render_round_post(3, MATCHES, None, "<b>Henk</b>").content
+
+    assert "&lt;b&gt;Henk&lt;/b&gt; heeft een bye." in content
+
+
 def test_is_complete():
     assert not is_complete([])
     assert not is_complete(MATCHES)

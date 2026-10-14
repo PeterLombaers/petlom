@@ -162,7 +162,15 @@ def publish_round(
         if is_complete(matches)
         else None
     )
-    round_post = render_round_post(round_nr, matches, ranking)
+    bye_player_name = next(
+        (
+            reg.player.name
+            for reg in get_round_registrations(competition, round_nr, session)
+            if reg.is_bye
+        ),
+        None,
+    )
+    round_post = render_round_post(round_nr, matches, ranking, bye_player_name)
     categories = competition.club_site_category_ids
 
     record = find_club_site_post(competition, round_nr, session)

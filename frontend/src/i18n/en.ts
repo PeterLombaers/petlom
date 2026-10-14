@@ -182,6 +182,7 @@ const en = {
   registration: {
     player: "Player",
     bye: "Bye",
+    previousByes: "Previous bye: round {{rounds}}",
     selectPlayers: "Select players...",
     add: "Add",
     oddPlayersWarning:

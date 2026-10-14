@@ -1327,6 +1327,11 @@ export interface components {
              * @description The player's current competition rating, derived from their initial rating and the matches they played. None when it is unknown.
              */
             rating: number | null;
+            /**
+             * Previous Bye Rounds
+             * @description The earlier rounds of this competition in which the player had the bye, ascending. A hint for choosing this round's bye, not a rule: the same player may get it again.
+             */
+            previous_bye_rounds: number[];
         };
         /**
          * RoundRegistrationUpdate

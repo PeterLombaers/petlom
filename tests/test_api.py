@@ -1810,6 +1810,38 @@ def test_round_registrations_remove_then_move_bye(
     assert [rp["player"]["id"] for rp in players if rp["is_bye"]] == [p2.id]
 
 
+def test_round_registrations_report_previous_byes(
+    competition: Competition,
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    session: Session,
+):
+    p1, p2 = player_factory(), player_factory()
+    for round_nr, bye in [(1, p1), (2, p1), (3, p2), (4, p2)]:
+        session.add(
+            RoundRegistration(
+                competition_id=competition.id,
+                round=round_nr,
+                player_id=bye.id,
+                is_bye=True,
+            )
+        )
+    session.add(
+        RoundRegistration(competition_id=competition.id, round=3, player_id=p1.id)
+    )
+    session.commit()
+
+    res = auth_client.get(
+        f"/competitions/{competition.name}/registrations", params={"round_nr": 3}
+    )
+    res.raise_for_status()
+
+    # Only rounds before this one count, so neither p2's bye in this round nor
+    # the one in round 4 is reported.
+    previous = {rp["player"]["id"]: rp["previous_bye_rounds"] for rp in res.json()}
+    assert previous == {p1.id: [1, 2], p2.id: []}
+
+
 def test_delete_round_registrations(
     competition: Competition,
     player_factory: Callable[..., Player],
@@ -2255,6 +2287,31 @@ def test_publish_pairings_before_the_results_are_in(
     body = json.loads(created.calls.last.request.content)
     assert body["title"] == "Indeling Ronde 1"
     assert "petlom-ranking" not in body["content"]
+
+
+@respx.mock
+def test_publish_mentions_the_bye_with_the_pairings(
+    competition: Competition,
+    match_factory: Callable[..., Match],
+    player_factory: Callable[..., Player],
+    auth_client: TestClient,
+    session: Session,
+    wordpress_site: None,
+):
+    match_factory(competition=competition, round=1, board=1, result=None)
+    bye = player_factory(name="Jan Jansen")
+    session.add(
+        RoundRegistration(
+            competition_id=competition.id, round=1, player_id=bye.id, is_bye=True
+        )
+    )
+    session.commit()
+    created = wp_route("POST", "/wp/v2/posts").respond(201, json=wp_post(7))
+
+    publish(auth_client, competition, 1).raise_for_status()
+
+    body = json.loads(created.calls.last.request.content)
+    assert "Jan Jansen heeft een bye." in body["content"]
 
 
 @pytest.mark.parametrize(

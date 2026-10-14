@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Annotated
 from urllib.parse import quote
@@ -414,14 +415,27 @@ def export_ranking(
 def public_round_registrations(
     competition: Competition, round_nr: int, session: SessionDep
 ) -> list[RoundRegistrationPublic]:
-    """The round's registrations, each with the player's derived current rating."""
+    """The round's registrations, each with the player's derived current rating
+    and the earlier rounds in which they had the bye."""
     ratings = current_ratings(competition, session)
+    previous_byes: dict[int, list[int]] = defaultdict(list)
+    for player_id, bye_round in session.exec(
+        select(RoundRegistration.player_id, RoundRegistration.round)
+        .where(
+            RoundRegistration.competition_id == competition.id,
+            col(RoundRegistration.is_bye),
+            RoundRegistration.round < round_nr,
+        )
+        .order_by(RoundRegistration.round)
+    ):
+        previous_byes[player_id].append(bye_round)
     return [
         RoundRegistrationPublic(
             id=reg.id,
             player=reg.player,
             is_bye=reg.is_bye,
             rating=ratings.get(reg.player_id),
+            previous_bye_rounds=previous_byes[reg.player_id],
         )
         for reg in get_round_registrations(competition, round_nr, session)
     ]

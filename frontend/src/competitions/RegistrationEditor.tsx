@@ -214,12 +214,23 @@ export default function RegistrationEditor({
               </Table.Td>
               {isOdd && (
                 <Table.Td>
-                  <Radio
-                    checked={rp.is_bye}
-                    onChange={() =>
-                      rp.is_bye ? handleClearBye() : handleSetBye(rp.player.id)
-                    }
-                  />
+                  <Group gap="xs" wrap="nowrap">
+                    <Radio
+                      checked={rp.is_bye}
+                      onChange={() =>
+                        rp.is_bye
+                          ? handleClearBye()
+                          : handleSetBye(rp.player.id)
+                      }
+                    />
+                    {rp.previous_bye_rounds.length > 0 && (
+                      <Text size="xs" c="dimmed">
+                        {t("registration.previousByes", {
+                          rounds: rp.previous_bye_rounds.join(", "),
+                        })}
+                      </Text>
+                    )}
+                  </Group>
                 </Table.Td>
               )}
               <Table.Td>

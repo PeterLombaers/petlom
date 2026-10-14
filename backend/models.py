@@ -646,6 +646,13 @@ class RoundRegistrationPublic(SQLModel):
             " rating and the matches they played. None when it is unknown."
         )
     )
+    previous_bye_rounds: list[int] = Field(
+        description=(
+            "The earlier rounds of this competition in which the player had the"
+            " bye, ascending. A hint for choosing this round's bye, not a rule:"
+            " the same player may get it again."
+        )
+    )
 
 
 class ImportedRegistrationMatch(SQLModel):

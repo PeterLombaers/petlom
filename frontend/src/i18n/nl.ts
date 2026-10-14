@@ -184,6 +184,7 @@ const nl: TranslationSchema = {
   registration: {
     player: "Speler",
     bye: "Bye",
+    previousByes: "Eerder een bye: ronde {{rounds}}",
     selectPlayers: "Spelers selecteren...",
     add: "Toevoegen",
     oddPlayersWarning:
